@@ -1,0 +1,320 @@
+# 2025 Threat Trends
+
+**Reporting Period:** Q1 2025 (January - March)  
+**Last Updated:** 2025-01-15
+
+## Executive Summary
+
+- **TTR Compression Continues**: Median ransomware dwell time now <24 hours
+- **IAB Market Expansion**: Infostealer-to-ransomware pipeline now dominant access method
+- **ClickFix Evolution**: New variants emerge quarterly, same chokepoint
+- **RMM Tool Abuse Stable**: Detections forcing tool rotation but not technique abandonment
+
+---
+
+## Hot Chokepoints (High Activity)
+
+### 1. Renamed RMM Tools
+**Threat Level:** Critical  
+**Prevalence:** Very High  
+**Trend:** ↑ Increasing
+
+**What's Happening:**
+- AnyDesk declining after detection improvements
+- ScreenConnect now primary choice
+- RustDesk emerging as self-hosted alternative
+- "RMM-to-RMM" deployments (one deploys another for redundancy)
+
+**Why It Matters:**
+- Initial access AND persistent C2 in single tool
+- Legitimate signed binaries evade many defenses
+- User interaction barrier lower than malware execution
+
+**Detection Focus:**
+- Browser download + masqueraded filenames
+- File metadata mismatch (OriginalFilename vs. actual name)
+- User-initiated vs. IT-deployed RMM
+
+**Chokepoint Stability:** High (detection patterns remain valid)
+
+---
+
+### 2. ClickFix Variants
+**Threat Level:** High  
+**Prevalence:** High  
+**Trend:** ↑ Increasing
+
+**What's Happening:**
+- ClickFix → FileFix → TerminalFix → DownloadFix progression
+- New variants every 6-8 weeks
+- Targeting both consumer and enterprise users
+- Social engineering improving (more convincing pretexts)
+
+**Why It Matters:**
+- Low technical barrier for attackers
+- High success rate (user psychology exploitation)
+- Bypasses email security (no malicious attachment)
+
+**Detection Focus:**
+- Script interpreter (powershell.exe, cmd.exe) with browser parent
+- Outbound network connection from scripting process
+- Encoded/obfuscated command lines
+
+**Chokepoint Stability:** Very High (clipboard → execution pattern unchanged)
+
+**Prediction:** Q2 2025 will see mobile-focused variants (iOS/Android clipboard abuse)
+
+---
+
+### 3. Service Manipulation (Ransomware Prep)
+**Threat Level:** Critical  
+**Prevalence:** High  
+**Trend:** → Stable
+
+**What's Happening:**
+- Comprehensive kill lists (50+ products)
+- Backup services now prioritized over AV/EDR
+- ESXi-specific service targeting increasing
+- Faster execution (service stops compressed to <5 minutes)
+
+**Why It Matters:**
+- Final warning before encryption begins
+- Detection window narrowing as automation improves
+- Cloud/hypervisor targeting reduces endpoint visibility
+
+**Detection Focus:**
+- Multiple security/backup services stopped in short window
+- Network logon + service manipulation (remote ransomware)
+- After-hours service stop activity
+
+**Chokepoint Stability:** Very High (service manipulation requirements unchanged)
+
+---
+
+### 4. Infostealer Credential Harvesting
+**Threat Level:** Critical  
+**Prevalence:** Very High  
+**Trend:** ↑↑ Rapidly Increasing
+
+**What's Happening:**
+- 50% increase in infections (2024 vs 2023)
+- Session token theft now standard (MFA bypass)
+- IAB marketplace maturation
+- Enterprise-focused campaigns increasing
+
+**Why It Matters:**
+- Enables entire RaaS ecosystem
+- Compresses attacker timelines (pre-mapped environments)
+- MFA no longer sufficient defense
+- Detection often post-compromise
+
+**Detection Focus:**
+- Browser credential file access by non-browser processes
+- Large data exfiltration from user workstations
+- Execution from Downloads folder
+
+**Chokepoint Stability:** High (browser storage access patterns consistent)
+
+**Impact:** Expect continued TTR compression due to IAB efficiency
+
+---
+
+## Declining Chokepoints (Lower Activity)
+
+### Legacy RDP Brute Force
+**Trend:** ↓ Decreasing
+
+**Why Declining:**
+- Network detection improved
+- MFA adoption increasing
+- Attackers prefer stolen credentials (infostealers)
+
+**Chokepoint Status:** Still valid, but lower priority
+
+---
+
+### Email Macro Malware
+**Trend:** ↓↓ Significantly Decreasing
+
+**Why Declining:**
+- Microsoft disabled macros by default (2022)
+- User awareness improved
+- Attackers shifted to alternate vectors (ISO, LNK, HTML smuggling)
+
+**Chokepoint Status:** Evolving to new file types, not abandoned
+
+---
+
+## New Tool Capabilities
+
+### Q1 2025 - Impacket RDP Shadowing
+**Tool:** Impacket rdp_shadow.py  
+**Date:** 2025-01-15  
+**Impact:** Low (existing chokepoint coverage)
+
+**Details:**
+- PR#2064 adds native RDP session hijacking
+- Joins existing Impacket lateral movement suite
+- Same prerequisites as other RDP hijacking methods
+
+**Detection Impact:**
+- Existing RDP session manipulation detections apply
+- No new chokepoint created
+- Monitor for adoption in Q2-Q3
+
+**Chokepoint:** [Remote Execution Tools](../chokepoints/lateral-movement/remote-execution-tools.md)
+
+---
+
+## Ecosystem Trends
+
+### RaaS/IAB Dynamics
+
+**Time to Ransom (TTR) Compression:**
+```
+2020: Average 21 days
+2022: Average 7 days  
+2024: Average 2 days
+2025: Median <24 hours
+```
+
+**Root Cause:**
+- Initial Access Brokers (IABs) sell pre-authenticated access
+- Attackers skip reconnaissance phase
+- Credentials + network maps included in IAB sales
+- Automation of post-access phases
+
+**Detection Implication:**
+- Less time for detection and response
+- Emphasis on preventing initial access critical
+- Credential theft detection becomes highest priority
+- Assume breach mentality required
+
+---
+
+### Tool Rotation Patterns
+
+**Observation:**
+Attackers rotate tools when detection rates increase, but chokepoints remain stable.
+
+**Example - RMM Tool Migration:**
+```
+2020-2022: AnyDesk dominant
+2022-2023: ScreenConnect adoption increases
+2023-2024: AnyDesk declines, ScreenConnect primary
+2024-2025: RustDesk emergence as self-hosted option
+```
+
+**Chokepoint Constant:**
+- Browser download + file masquerading
+- User execution
+- Outbound connection to RMM infrastructure
+
+**Strategy:**
+Focus detection on chokepoints, not specific tools
+
+---
+
+## Predictions: Q2-Q4 2025
+
+### High Confidence (80%+)
+
+**RMM Tool Evolution:**
+- Continued rotation away from blocked tools
+- Increase in self-hosted/open-source RMM (RustDesk, MeshCentral)
+- More sophisticated masquerading (valid cert spoofing)
+
+**Infostealer Growth:**
+- 20-30% increase in infections
+- Targeting of password managers directly
+- Mobile device credential theft increases
+
+**Ransomware TTR:**
+- Median drops below 12 hours
+- Automated playbooks from access to encryption
+- Targeting of cloud infrastructure increases
+
+### Medium Confidence (50-70%)
+
+**ClickFix Mobile Variants:**
+- iOS/Android clipboard-based attacks
+- Targeting of enterprise mobile management (EMM) gaps
+- QR code social engineering integration
+
+**AI-Enhanced Social Engineering:**
+- Voice cloning for vishing campaigns
+- Deepfake video for executive impersonation
+- AI-generated phishing content at scale
+
+### Low Confidence (30-50%)
+
+**Zero-Click Exploitation:**
+- Decline in user-interaction requirements
+- Browser/OS exploit chains become accessible
+- Detection shifts from user-action to exploitation artifacts
+
+---
+
+## Strategic Recommendations
+
+### Detection Priorities
+
+**Priority 1: Credential Theft Prevention**
+- LSASS protection (PPL, Credential Guard)
+- Browser credential file monitoring
+- Session token theft detection
+
+**Priority 2: Lateral Movement Containment**
+- Network segmentation enforcement
+- Admin account monitoring  
+- Remote execution pattern detection
+
+**Priority 3: Defense Evasion Monitoring**
+- Service manipulation detection
+- Tamper protection on security tools
+- Immutable logging infrastructure
+
+### Investment Areas
+
+**High ROI:**
+- Infostealer detection capabilities
+- Credential exposure monitoring (dark web, paste sites)
+- Behavioral analytics for compromised accounts
+
+**Medium ROI:**
+- User awareness training (social engineering focus)
+- Network segmentation projects
+- Backup infrastructure hardening
+
+**Long-term ROI:**
+- Zero Trust architecture
+- Passwordless authentication
+- Breach and attack simulation (BAS)
+
+---
+
+## Metrics to Track
+
+**Operational:**
+- Time from credential theft to detection
+- RMM tool deployment detection rate
+- Service manipulation alert → response time
+
+**Strategic:**
+- Credential exposure frequency (dark web monitoring)
+- Lateral movement detection coverage
+- Mean time to ransomware (MTTR) if breach occurs
+
+---
+
+## Data Sources
+
+- Mandiant M-Trends 2025 Report
+- HudsonRock Infostealer Intelligence
+- RedCanary Threat Detection Report 2025
+- Cyberint IAB Marketplace Analysis
+- Internal threat hunting results
+
+---
+
+**Next Review:** 2025-04-15 (Q2 Update)
