@@ -1,0 +1,63 @@
+title: Security or Backup Service Stopped
+id: b4c8d0e2-f4a6-4b8c-0d2e-2f4a6b8c0d2e
+status: experimental
+description: >
+  Detects security product and backup service state changes to "stopped".
+  Research-level rule for the ransomware service manipulation chokepoint.
+  Establishes a baseline of how often security and backup services stop in the
+  environment (maintenance windows, updates, reboots) to tune higher-fidelity
+  detection. High false positive rate expected.
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+  - https://attack.mitre.org/techniques/T1489/
+  - https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.defense_evasion
+  - attack.t1562.001
+  - attack.impact
+  - attack.t1489
+  - detection.maturity.research
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_event:
+    EventID: 7036
+    # "The X service entered the stopped state."
+    Message|contains: 'entered the stopped state'
+  selection_security_services:
+    Message|contains:
+      # Sophos
+      - 'Sophos'
+      - 'sophos'
+      # Microsoft Defender
+      - 'WinDefend'
+      - 'Windows Defender'
+      - 'Sense'
+      - 'WdNisSvc'
+      # Generic AV/EDR patterns
+      - 'Antivirus'
+      - 'antivirus'
+      # Backup services
+      - 'Veeam'
+      - 'veeam'
+      - 'Volume Shadow Copy'
+      - 'VSS'
+      - 'wbengine'
+      - 'Acronis'
+      - 'acronis'
+  condition: selection_event and selection_security_services
+falsepositives:
+  - System reboots (all services stop)
+  - AV/EDR product updates (service restarts)
+  - Maintenance windows (planned service stops)
+  - Backup service completion cycles (Veeam, etc. stop between jobs)
+level: low
+# ─── Research Notes ──────────────────────────────────────────────────────────────
+# Track: How many times per day/week does each service stop?
+# Track: What time of day? (Maintenance windows vs. after-hours anomalies)
+# Track: What triggers the stop? (System restart? sc.exe? Service update?)
+# Build a frequency baseline per service per host.
+# Anything outside the baseline is a candidate for Hunt rule investigation.

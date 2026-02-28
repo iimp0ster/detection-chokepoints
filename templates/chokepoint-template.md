@@ -1,12 +1,17 @@
-# [Technique Name] - [MITRE ID]
+# [Technique Name] — [MITRE ID]
 
-**Last Updated:** YYYY-MM-DD  
+> **Note:** This is the human-readable markdown template for documenting chokepoints.
+> For the canonical machine-parseable format, use the YAML template in this same
+> directory. New chokepoints should be committed as YAML entries under
+> `chokepoints/<tactic>/`. See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full process.
+
+**Last Updated:** YYYY-MM-DD
 **Contributors:** [Your name/handle]
 
 ## Scope
 
-**Tactics:** [MITRE Tactic(s)]  
-**Techniques:** [MITRE Technique ID(s)]  
+**Tactics:** [MITRE Tactic(s)]
+**Techniques:** [MITRE Technique ID(s)]
 **Scope:** [Single technique / Multi-tactic]
 
 Brief description of what this chokepoint covers.
@@ -35,15 +40,17 @@ What **must** be true for this technique to work:
 
 ## Evolution Timeline
 
-### YYYY-MM
+### YYYY-MM — [Event Title]
 - **Event:** [New tool/variant emerged]
 - **Change:** [What changed vs. what stayed the same]
 - **Detection Impact:** [How this affects detection]
+- **The Constant:** [What did NOT change — the chokepoint]
 
-### YYYY-MM
-- **Event:** [Previous iteration]
-- **Change:** [What changed vs. what stayed the same]
-- **Detection Impact:** [How this affects detection]
+### YYYY-MM — [Previous Iteration]
+- **Event:** [Previous event]
+- **Change:** [What changed]
+- **Detection Impact:** [Impact on detection]
+- **The Constant:** [What stayed the same]
 
 ## Detection Strategy
 
@@ -59,7 +66,7 @@ What **must** be true for this technique to work:
 [Broad detection approach]
 ```
 
-**Expected FP Rate:** High  
+**Expected FP Rate:** High
 **Use Case:** Research, threat landscape mapping
 
 ### Hunt Level
@@ -73,7 +80,7 @@ What **must** be true for this technique to work:
 [More specific detection with context]
 ```
 
-**Expected FP Rate:** Medium  
+**Expected FP Rate:** Medium
 **Use Case:** Proactive hunting, campaign detection
 
 ### Analyst Level
@@ -87,19 +94,14 @@ What **must** be true for this technique to work:
 [High-fidelity detection with correlation]
 ```
 
-**Expected FP Rate:** Low  
+**Expected FP Rate:** Low
 **Use Case:** Automated alerting, IR escalation
 
 ## Sigma Rules
 
-- [Research Level Rule](./sigma-rules/[technique]-research.yml)
-- [Hunt Level Rule](./sigma-rules/[technique]-hunt.yml)
-- [Analyst Level Rule](./sigma-rules/[technique]-analyst.yml)
-
-## Yara Rules
-
-- [Pattern Detection](./yara-rules/[technique]-pattern.yar)
-- [Behavioral Detection](./yara-rules/[technique]-behavior.yar)
+- [Research Level Rule](../sigma-rules/[technique]/research.yml)
+- [Hunt Level Rule](../sigma-rules/[technique]/hunt.yml)
+- [Analyst Level Rule](../sigma-rules/[technique]/analyst.yml)
 
 ## OSINT Sources
 
@@ -127,6 +129,6 @@ What **must** be true for this technique to work:
 
 ---
 
-**Detection Priority:** [High/Medium/Low]  
-**Threat Prevalence:** [High/Medium/Low]  
-**Detection Difficulty:** [High/Medium/Low]
+**Detection Priority:** [CRITICAL/HIGH/MEDIUM/LOW]
+**Threat Prevalence:** [VERY HIGH/HIGH/MEDIUM/LOW/EMERGING]
+**Detection Difficulty:** [LOW/MEDIUM/HIGH]

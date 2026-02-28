@@ -1,0 +1,86 @@
+title: Masqueraded RMM Tool with Campaign-Themed Filename Downloaded via Browser
+id: d0e4f6a8-b0c2-4d4e-6f7a-8b9c0d1e2f3a
+status: experimental
+description: >
+  High-fidelity detection for renamed RMM tools delivered via browser download using
+  social engineering pretexts (tax, invoice, SSN/SSA, IT support). Detects when an
+  executable with a campaign-themed name is downloaded by a browser and contains
+  file metadata (OriginalFilename or signer) matching a known RMM vendor. This
+  combination of deceptive naming and legitimate signing is a strong indicator of
+  the renamed RMM tool technique.
+references:
+  - https://attack.mitre.org/techniques/T1219/
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.initial_access
+  - attack.command_and_control
+  - attack.t1219
+  - detection.maturity.analyst
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  # Executable downloaded from browser to user-writable location
+  selection_path:
+    Image|contains:
+      - '\Downloads\'
+      - '\AppData\Local\Temp\'
+      - '\Temp\'
+      - '\Desktop\'
+  # Campaign-themed filename patterns (tax season, invoice, IT support pretexts)
+  selection_campaign_name:
+    Image|contains:
+      - 'tax'
+      - 'invoice'
+      - 'Invoice'
+      - 'Tax'
+      - 'SSN'
+      - 'SSA'
+      - 'W-2'
+      - 'W2'
+      - '1099'
+      - 'refund'
+      - 'Refund'
+      - 'support'
+      - 'Support'
+      - 'verify'
+      - 'Verify'
+      - 'secure'
+      - 'Secure'
+      - 'helpdesk'
+      - 'HelpDesk'
+      - 'IT_'
+      - 'remote_'
+  # Original filename or description matches known RMM vendors
+  # (requires file metadata enrichment — Sysmon FileVersion fields or EDR metadata)
+  selection_rmm_metadata:
+    OriginalFileName|contains:
+      - 'AnyDesk'
+      - 'anydesk'
+      - 'ScreenConnect'
+      - 'screenconnect'
+      - 'TeamViewer'
+      - 'teamviewer'
+      - 'UltraViewer'
+      - 'ultraviewer'
+      - 'RustDesk'
+      - 'rustdesk'
+      - 'MeshAgent'
+      - 'meshagent'
+  condition: selection_path and selection_campaign_name and selection_rmm_metadata
+falsepositives:
+  - Legitimate tax or invoice software that happens to have RMM integration
+  - IT staff downloading RMM tools with descriptive names for asset tracking
+level: high
+# ─── Response Actions ──────────────────────────────────────────────────────────
+# 1. Preserve the executable (hash, submit to VT, check OriginalFilename vs. actual)
+# 2. Pull network connections (Sysmon EID 3) — what RMM infrastructure did it contact?
+# 3. Check if the RMM session is still active (immediate threat if session open)
+# 4. Identify what actions were taken during the RMM session via EDR telemetry
+# 5. Notify the user — social engineering pretext tells you the campaign theme
+# 6. Check other endpoints for the same file hash or RMM infrastructure connections
+#
+# Note: OriginalFileName field requires Sysmon configured to capture file version info
+# or EDR enrichment. If unavailable, use the Hunt rule as a starting point and enrich
+# results with manual file metadata analysis.

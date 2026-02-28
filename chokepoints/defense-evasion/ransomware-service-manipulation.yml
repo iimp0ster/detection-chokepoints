@@ -1,0 +1,162 @@
+---
+Name: Ransomware Service Manipulation
+Id: e5f7a9b1-3c4d-6e8f-0a2b-5d7c9e1f3a5b
+MitreIds:
+  - T1562.001
+  - T1489
+Tactics:
+  - Defense Evasion
+  - Impact
+Techniques:
+  - "Impair Defenses: Disable or Modify Tools"
+  - "Service Stop"
+DetectionPriority: CRITICAL
+ThreatPrevalence: HIGH
+DetectionDifficulty: LOW
+Description: >
+  Before encrypting files, ransomware operators stop and delete security tools,
+  backup services, and database engines to maximize impact and prevent recovery.
+  This service manipulation phase is the last detectable warning before encryption
+  begins. The chokepoint is immutable: admin/SYSTEM privileges, service enumeration,
+  and service stop/delete capability are always required regardless of which ransomware
+  family is executing. This pattern has remained consistent across all major ransomware
+  families from 2021 to present, with kill lists expanding but the core behavior unchanged.
+LastUpdated: "2025-01-15"
+Author: "@iimp0ster"
+
+Variations:
+  - Name: BlackBasta
+    FirstSeen: "2022"
+    Status: Active
+    Notes: "Targets AV, EDR, Veeam backup, SQL databases; avg TTR 6-12 hours"
+  - Name: Alphv/BlackCat
+    FirstSeen: "2021"
+    Status: Active
+    Notes: "Targets Sophos, Defender, VSS, SQL; cross-platform (Windows and Linux/ESXi)"
+  - Name: Akira
+    FirstSeen: "2023"
+    Status: Active
+    Notes: "Prioritizes Defender and backup agents; targets VPN appliances for initial access"
+  - Name: Qilin
+    FirstSeen: "2024"
+    Status: Active
+    Notes: "Targets EDR, Veeam, databases; VMware ESXi variant active"
+  - Name: LockBit 3.0
+    FirstSeen: "2022"
+    Status: Active
+    Notes: "Comprehensive kill list (50+ services); Group Policy abuse for domain-wide deployment"
+
+Prerequisites:
+  - Admin or SYSTEM privileges on target system
+  - Ability to enumerate running services (sc query, Get-Service, WMI)
+  - Ability to stop services (sc stop, net stop, taskkill)
+  - Ability to delete/disable services (sc delete, sc config start= disabled)
+  - Target services must be running (cannot stop what is not running)
+
+EvolutionTimeline:
+  - Date: "2021-Q2"
+    Event: Database services added to kill lists
+    Change: SQL Server, MySQL, PostgreSQL services targeted to release file locks before encryption
+    DetectionImpact: Database service monitoring becomes a required detection component
+    TheConstant: "Admin privileges → service enumeration → service stop → service delete"
+  - Date: "2022-Q3"
+    Event: Multi-vendor EDR evasion; kill lists expand to 50+ security products
+    Change: From targeted evasion (specific vendor) to comprehensive kill lists covering all major AV/EDR
+    DetectionImpact: Cannot rely on specific product name matches; threshold-based detection required
+    TheConstant: "Admin privileges → service enumeration → service stop → service delete"
+  - Date: "2023-Q4"
+    Event: Backup services prioritized ahead of AV/EDR in kill sequence
+    Change: Operators target Veeam, Acronis, Windows Backup before other defenses
+    DetectionImpact: Backup service monitoring becomes highest priority signal
+    TheConstant: "Admin privileges → service enumeration → service stop → service delete"
+  - Date: "2024-Q2"
+    Event: ESXi hypervisor service targeting increases
+    Change: VM-based service disruption targeting vmware-hostd, vpxa, vsanmgmtd
+    DetectionImpact: ESXi-specific logging (vSphere/vCenter) required; endpoint detection insufficient
+    TheConstant: "Admin privileges → service enumeration → service stop → service delete"
+
+Detections:
+  - Level: Research
+    Description: Identify security or backup service state changes (stopped)
+    LogSources:
+      - "Windows System Event ID 7036 (Service State Change)"
+      - "Windows System Event ID 7040 (Service Start Type Change)"
+    Logic: >
+      Event ID: 7036
+      Service Name: Contains "sophos" OR "defender" OR "veeam" OR "backup" OR "antivirus"
+      State: Stopped
+    ExpectedFPRate: High
+    UseCase: Baseline service stop frequency and patterns; identify maintenance windows vs. anomalies
+    SigmaRule: sigma-rules/ransomware-service/research.yml
+
+  - Level: Hunt
+    Description: Service stop + delete combination for security or backup services in rapid succession
+    LogSources:
+      - "Windows System Event ID 7036 (Service State Change)"
+      - "Windows System Event ID 7040 (Service Start Type Change)"
+      - "Sysmon Event ID 1 (Process Creation for sc.exe, net.exe)"
+    Logic: >
+      Process: sc.exe OR net.exe OR powershell.exe OR taskkill.exe
+      CommandLine: "stop" AND (service keyword in: sophos, defender, veeam, backup, acronis, mssql, mysql)
+      Within 60 seconds: Same or related service: "delete" OR "disabled" via sc.exe
+      OR: 3+ security/backup services stopped within 5-minute window from same process/session
+    ExpectedFPRate: Medium
+    UseCase: Hunt for ransomware preparation activity; identifies pre-encryption service manipulation
+    SigmaRule: sigma-rules/ransomware-service/hunt.yml
+
+  - Level: Analyst
+    Description: Network logon + bulk service termination targeting specific security/backup services within a tight window
+    LogSources:
+      - "Sysmon Event ID 1 (Process Creation)"
+      - "Windows Security Event ID 4624 (Logon)"
+      - "Windows System Event ID 7036 (Service State)"
+      - "Windows System Event ID 7040/7045 (Service Config)"
+    Logic: >
+      Source: Network Logon (4624, LogonType 3) OR local admin session
+      Process: sc.exe OR net.exe OR taskkill.exe
+      Services stopped (5 or more within 10-minute window), targeting:
+        Security: SophosFileScanner OR SAVService OR WinDefend OR Sense OR MsMpEng
+        Backup: Veeam* OR VeeamDeploymentService OR VSS OR wbengine OR *acronis*
+        Database: MSSQL* OR SQLWriter OR MySQL* OR postgresql*
+      Service delete: Attempted within 2 minutes of service stop
+      Context: After-hours activity (outside 08:00-18:00 local) OR unusual source IP
+    ExpectedFPRate: Low
+    UseCase: SOC alerting; ransomware pre-encryption detection with minimal time to respond
+    SigmaRule: sigma-rules/ransomware-service/analyst.yml
+
+Intel:
+  - Name: Kaspersky Common TTPs of Modern Ransomware
+    URL: https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf
+    Description: Comprehensive analysis of service kill lists across major ransomware families
+
+RelatedChokepoints:
+  - remote-execution-tools
+  - clickfix-techniques
+
+OsintSources:
+  - Platform: VirusTotal
+    Query: "behavior_processes:sc.exe type:ransomware"
+    Notes: Find ransomware samples using sc.exe to stop services; extract service kill lists
+  - Platform: GitHub
+    Query: "ransomware kill list sc stop service"
+    Notes: Security researchers often publish extracted kill lists from analyzed samples
+
+KnownBypasses:
+  - Bypass: Tamper protection enabled on EDR (requires kernel-level access to disable)
+    Mitigation: Enable tamper protection on all EDR products; require kernel driver to disable
+    Detection: Detect kernel driver loading (BYOVD) before service manipulation
+  - Bypass: Booting to Safe Mode (security services don't start)
+    Mitigation: N/A — services genuinely not running in Safe Mode
+    Detection: Detect Safe Mode boot on servers (registry: HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot)
+  - Bypass: Renaming service before stopping (evades name-based filters)
+    Mitigation: Allowlist by service binary path, not service name
+    Detection: Monitor service configuration changes (sc config); service rename before stop is itself suspicious
+  - Bypass: Process termination (taskkill /F) instead of service stop
+    Mitigation: Protected Process Light (PPL) for EDR processes
+    Detection: Monitor process termination events targeting security tool executables
+
+References:
+  - https://attack.mitre.org/techniques/T1562/001/
+  - https://attack.mitre.org/techniques/T1489/
+  - https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf
+  - https://www.mandiant.com/m-trends

@@ -1,0 +1,87 @@
+title: Impacket-Style Remote Execution — Network Logon, IPC$ Access, Suspicious Service
+id: a3b7c9d1-e3f5-4a7b-9c1d-1e2f3a4b5c6d
+status: experimental
+description: >
+  High-fidelity detection for Impacket psexec.py, smbexec.py, CrackMapExec, and NetExec
+  SMB execution patterns. Looks for the combination of network logon, IPC$ share access,
+  and suspicious service creation (random name, temporary binary path) — all three must
+  be present from the same source within a short time window. This three-event correlation
+  dramatically reduces false positives compared to individual event detection.
+references:
+  - https://attack.mitre.org/techniques/T1021/002/
+  - https://www.socinvestigation.com/threat-hunting-with-eventid-5145-object-access-detailed-file-share/
+  - https://github.com/fortra/impacket
+  - https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.lateral_movement
+  - attack.t1021.002
+  - attack.execution
+  - attack.t1569.002
+  - detection.maturity.analyst
+# ─── Implementation Note ─────────────────────────────────────────────────────────
+# This is a correlation rule requiring event ID 5145 (Detailed File Share) which
+# must be enabled via GPO: Computer Configuration → Windows Settings → Security
+# Settings → Advanced Audit Policy → Object Access → Audit Detailed File Share
+#
+# Full correlation is best implemented in a SIEM with the following logic:
+#
+# WITHIN 5 MINUTES, SAME SOURCE IP, SAME DESTINATION HOST:
+#   1. Event ID 4624 (Logon), LogonType = 3, AND elevated account
+#   2. Event ID 5145 (Detailed File Share), ShareName = IPC$
+#   3. Event ID 7045 (Service Install), ImagePath contains \Temp\ or random service name
+# ─────────────────────────────────────────────────────────────────────────────────
+logsource:
+  product: windows
+  service: system
+detection:
+  # Focus on the clearest signal: service installed from temp path after logon
+  # The IPC$ correlation must be done at the SIEM/pipeline level
+  selection_service_install:
+    EventID: 7045
+  filter_suspicious_path:
+    ImagePath|contains:
+      - '\Windows\Temp\'
+      - '\Users\Public\'
+      - '\ProgramData\'
+  filter_command_exec:
+    ImagePath|contains:
+      - '%COMSPEC%'
+      - 'cmd.exe /Q /c'
+      - 'cmd.exe /C'
+  filter_random_service:
+    # Impacket psexec generates random 8-char service names like "TrPFXzGH"
+    # This regex check should be done at SIEM level; approximated here
+    ServiceName|re: '^[A-Za-z]{6,12}$'
+  condition: selection_service_install and (filter_suspicious_path or filter_command_exec or filter_random_service)
+falsepositives:
+  - Authorized use of PsExec or Impacket by red teams (check with security team)
+  - SCCM/Intune deployments that use temporary service paths (verify source IP)
+  - Legitimate remote admin via sc.exe from known admin workstations
+level: high
+# ─── SIEM Correlation Query (KQL example for Microsoft Sentinel) ─────────────────
+#
+# let timeWindow = 5m;
+# let networkLogons = SecurityEvent
+#     | where EventID == 4624 and LogonType == 3
+#     | project TimeGenerated, SourceIP = IpAddress, TargetHost = Computer, Account = TargetUserName;
+# let ipcAccess = SecurityEvent
+#     | where EventID == 5145 and ShareName == "IPC$"
+#     | project TimeGenerated, SourceIP = IpAddress, TargetHost = Computer;
+# let serviceInstall = System
+#     | where EventID == 7045
+#     | where ImagePath contains "\\Temp\\" or ImagePath contains "cmd.exe /Q /c"
+#     | project TimeGenerated, TargetHost = Computer, ServiceName, ImagePath;
+# networkLogons
+# | join kind=inner (ipcAccess) on SourceIP, TargetHost
+# | join kind=inner (serviceInstall) on TargetHost
+# | where abs(datetime_diff('minute', TimeGenerated, TimeGenerated1)) < 5
+# | project TimeGenerated, SourceIP, TargetHost, Account, ServiceName, ImagePath
+#
+# ─── Response Actions ────────────────────────────────────────────────────────────
+# 1. Identify the source IP — is it a known admin workstation? If not, immediate IR
+# 2. Check what the service binary executed (Sysmon EID 1, parent = services.exe)
+# 3. Pull all 4624 events from the same source IP for the past 24 hours
+#    - Multiple targets = lateral movement spray campaign
+# 4. Check if Cobalt Strike/C2 beacon artifacts are present on the source host

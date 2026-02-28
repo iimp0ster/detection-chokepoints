@@ -1,0 +1,58 @@
+title: RMM Tool Downloaded via Browser and Executed
+id: c9d3e5f7-a9b1-4c3d-5e6f-7a8b9c0d1e2f
+status: experimental
+description: >
+  Detects RMM tool executables created by a web browser in a download location
+  (Downloads or Temp directory). Hunt-level rule targeting the renamed RMM tool
+  chokepoint: legitimate but renamed RMM binaries delivered via browser download
+  as part of social engineering campaigns. Distinguishes user-initiated downloads
+  from IT-deployed RMM installations.
+references:
+  - https://attack.mitre.org/techniques/T1219/
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.initial_access
+  - attack.command_and_control
+  - attack.t1219
+  - detection.maturity.hunt
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection_download_path:
+    TargetFilename|contains:
+      - '\Downloads\'
+      - '\AppData\Local\Temp\'
+      - '\Temp\'
+      - '\AppData\Roaming\Temp\'
+  selection_browser_creator:
+    Image|endswith:
+      - '\chrome.exe'
+      - '\firefox.exe'
+      - '\msedge.exe'
+      - '\iexplore.exe'
+      - '\opera.exe'
+      - '\brave.exe'
+      - '\vivaldi.exe'
+  selection_executable:
+    TargetFilename|endswith:
+      - '.exe'
+      - '.msi'
+  condition: selection_download_path and selection_browser_creator and selection_executable
+falsepositives:
+  - Legitimate software downloads by users (any browser-downloaded executable)
+  - IT staff downloading RMM tools for authorized deployment
+level: low
+# ─── Hunt Notes ──────────────────────────────────────────────────────────────────
+# This rule fires on ALL browser-downloaded executables — the volume will be high.
+# Pivot from file creation events to process creation events for the same file:
+#   Correlate: TargetFilename (file create) → CommandLine (process create)
+#
+# Key filters to apply during hunting:
+#   1. Product name / OriginalFilename in file version info matches RMM vendor
+#   2. File is signed by AnyDesk GmbH, ConnectWise LLC, TeamViewer GmbH, etc.
+#   3. Execution occurred within 5 minutes of download
+#   4. Followed by outbound network connection to RMM infrastructure
+#
+# Use with Sysmon EID 11 (file create) + EID 1 (process create) + EID 3 (network)

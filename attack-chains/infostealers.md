@@ -4,7 +4,9 @@
 
 ## Overview
 
-Infostealers have become the foundation of the RaaS ecosystem. Initial Access Brokers (IABs) use infostealers to harvest credentials and session tokens, which are then sold to ransomware operators with pre-mapped environments.
+Infostealers have become the foundation of the RaaS ecosystem. Initial Access Brokers
+(IABs) use infostealers to harvest credentials and session tokens, which are then sold
+to ransomware operators with pre-mapped environments.
 
 **Market Value:** $10-$100K per enterprise access package (HudsonRock, RedCanary)
 
@@ -191,7 +193,7 @@ Day 15:
 - **T+0:05**: Download from newly registered domain
 - **T+0:10**: Unsigned executable in Downloads folder
 - **T+0:12**: Process execution from user Downloads
-- **T+0:13**: Access to %APPDATA%\*\Chromium\*\Login Data
+- **T+0:13**: Access to `%APPDATA%\*\Chromium\*\Login Data`
 - **T+0:15**: Non-browser process making HTTPS POST with large payload
 - **Day 14**: VPN login from new geo-location with valid creds
 
@@ -210,7 +212,7 @@ Day 15:
 **Detection:**
 ```
 Process: [Not browser.exe]
-File Access: 
+File Access:
   - %APPDATA%\Google\Chrome\User Data\Default\Login Data
   - %APPDATA%\Mozilla\Firefox\Profiles\*.default\logins.json
   - %LOCALAPPDATA%\Microsoft\Windows\Credentials\*
@@ -229,7 +231,7 @@ Action: Read access
 ```
 Process: [Not browser.exe]
 Network: Outbound HTTPS POST
-Destination: 
+Destination:
   - Newly registered domain (<90 days)
   - Known C2 infrastructure
   - Telegram/Discord API
@@ -291,7 +293,7 @@ Timeline: Days to hours
 - Network map included
 - Veeam backup server access
 
-[Premium] Healthcare Provider - $50K  
+[Premium] Healthcare Provider - $50K
 - Local admin on 200+ endpoints
 - EMR system access
 - 1,500 employees
@@ -302,7 +304,7 @@ Timeline: Days to hours
 
 ## Key Metrics
 
-**Infostealer Prevalence:**
+**Infostealer Prevalence (HudsonRock, RedCanary):**
 - 2023: 10M+ infections annually
 - 2024: 15M+ infections annually (50% increase)
 
@@ -343,9 +345,10 @@ Timeline: Days to hours
 ## References
 
 - [HudsonRock Infostealer Data](https://www.hudsonrock.com/)
-- [RedCanary Infostealer Analysis](https://redcanary.com/)
+- [RedCanary Threat Detection Report](https://redcanary.com/)
 - MITRE ATT&CK: T1555 (Credentials from Password Stores)
 - MITRE ATT&CK: T1539 (Steal Web Session Cookie)
+- [Cyberint IAB Analysis](https://cyberint.com/)
 
 ## Related Attack Chains
 

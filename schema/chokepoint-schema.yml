@@ -1,0 +1,142 @@
+# Detection Chokepoints - Entry Schema
+# Version: 1.0
+# This file documents the required and optional fields for all chokepoint YAML entries.
+# Entries live under chokepoints/<tactic>/<technique-name>.yml
+
+---
+# ─── REQUIRED FIELDS ────────────────────────────────────────────────────────────
+
+# Human-readable name of the chokepoint
+Name: string  # Example: "ClickFix Techniques"
+
+# Unique identifier (UUIDv4 preferred, generated at creation time)
+Id: string  # Example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+# MITRE ATT&CK technique IDs this chokepoint covers
+MitreIds:
+  - string  # Example: "T1204.001"
+
+# MITRE ATT&CK tactic names (use canonical names below)
+# Valid values: Initial Access | Execution | Persistence | Privilege Escalation |
+#               Defense Evasion | Credential Access | Discovery | Lateral Movement |
+#               Collection | Command and Control | Exfiltration | Impact
+Tactics:
+  - string  # Example: "Initial Access"
+
+# Human-readable technique names (complement MitreIds)
+Techniques:
+  - string  # Example: "User Execution: Malicious Link"
+
+# Detection triage priority for SOC teams
+# Valid values: CRITICAL | HIGH | MEDIUM | LOW
+DetectionPriority: string
+
+# How frequently this is observed in the wild
+# Valid values: VERY HIGH | HIGH | MEDIUM | LOW | EMERGING
+ThreatPrevalence: string
+
+# How hard is it to build production-quality detections?
+# Valid values: LOW | MEDIUM | HIGH
+DetectionDifficulty: string
+
+# One-paragraph description of the chokepoint
+Description: string
+
+# ISO 8601 date of last update
+LastUpdated: string  # Example: "2025-01-15"
+
+# Author handle(s) — GitHub username or Twitter/X handle
+Author: string  # Example: "@iimp0ster"
+
+# ─── RECOMMENDED FIELDS ─────────────────────────────────────────────────────────
+
+# Tool/method variations that exploit this chokepoint
+Variations:
+  - Name: string            # Tool or method name
+    FirstSeen: string       # Quarter or date: "2024-Q2" or "2024-06"
+    Status: string          # Active | Declining | Emerging | Legacy
+    Notes: string           # (optional) brief context
+
+# The unchanging prerequisites — what MUST be true for the attack to succeed
+# These are the actual chokepoints: conditions that cannot be bypassed
+Prerequisites:
+  - string  # Example: "User must interact with clipboard (copy action)"
+
+# Chronological record of how variations evolved; each entry includes
+# what changed AND what stayed the same (the chokepoint constant)
+EvolutionTimeline:
+  - Date: string            # "YYYY-MM" or "YYYY-QN"
+    Event: string           # Brief title of what happened
+    Change: string          # What changed in this iteration
+    DetectionImpact: string # Effect on existing detections
+    TheConstant: string     # The chokepoint condition that did NOT change
+
+# Detection strategy at three maturity levels
+Detections:
+  - Level: string           # Research | Hunt | Analyst
+    Description: string     # One-line goal for this level
+    LogSources:
+      - string              # Example: "Sysmon Event ID 1 (Process Creation)"
+    Logic: string           # Plain-English detection logic summary
+    ExpectedFPRate: string  # High | Medium | Low
+    UseCase: string         # Who uses this and for what
+    SigmaRule: string       # Relative path: "sigma-rules/clickfix/research.yml"
+
+# Free intel resources tied to this chokepoint
+Intel:
+  - Name: string
+    URL: string
+    Description: string
+
+# Cross-references to other chokepoints in this repo
+# Use the filename stem (no path, no extension)
+RelatedChokepoints:
+  - string  # Example: "renamed-rmm-tools"
+
+# External references: blogs, papers, MITRE links, vendor reports
+References:
+  - string  # Example: "https://attack.mitre.org/techniques/T1204/001/"
+
+# ─── OPTIONAL FIELDS ────────────────────────────────────────────────────────────
+
+# OSINT queries useful for hunting this chokepoint externally
+OsintSources:
+  - Platform: string        # URLScan | Shodan | Censys | GitHub | VirusTotal
+    Query: string           # The actual query string
+    Notes: string           # (optional) context on what this finds
+
+# Known bypass methods and corresponding mitigations/detections
+KnownBypasses:
+  - Bypass: string          # How attackers evade detection
+    Mitigation: string      # How to prevent or harden
+    Detection: string       # How to detect the bypass anyway
+
+# YARA rules for memory/file-based detection (in addition to Sigma)
+YaraRules:
+  - string  # Relative path: "yara-rules/clickfix-patterns.yar"
+
+# ─── FIELD VALUE CONSTRAINTS ────────────────────────────────────────────────────
+
+# DetectionPriority:
+#   CRITICAL — Stop-what-you're-doing; direct precursor to severe impact
+#   HIGH     — Important, address within the sprint
+#   MEDIUM   — Useful coverage, address in roadmap
+#   LOW      — Nice to have, opportunistic coverage
+
+# ThreatPrevalence:
+#   VERY HIGH — Seen in the majority of relevant incidents
+#   HIGH      — Seen regularly across many threat families
+#   MEDIUM    — Seen in specific campaigns or threat actors
+#   LOW       — Rarely observed, niche technique
+#   EMERGING  — Just appearing, not yet widespread
+
+# DetectionDifficulty:
+#   LOW    — Clear telemetry, low FP rate at Analyst level
+#   MEDIUM — Requires correlation across multiple sources
+#   HIGH   — Significant tuning needed; high initial FP rate
+
+# Status values for Variations:
+#   Active    — Actively observed in current campaigns
+#   Emerging  — Newly identified, adoption increasing
+#   Declining — Being phased out; detection is maturing
+#   Legacy    — Rarely seen; historical record only

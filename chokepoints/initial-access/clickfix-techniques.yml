@@ -1,0 +1,160 @@
+---
+Name: ClickFix Techniques
+Id: c7f2a1b4-3e8d-4a9c-8b5f-2d1e6f0a7c3b
+MitreIds:
+  - T1204.001
+  - T1204.003
+Tactics:
+  - Initial Access
+Techniques:
+  - "User Execution: Malicious Link"
+  - "User Execution: Malicious Image"
+DetectionPriority: HIGH
+ThreatPrevalence: HIGH
+DetectionDifficulty: LOW
+Description: >
+  Social engineering attacks that trick users into copying and executing malicious
+  commands via clipboard manipulation. A malicious site instructs the user to copy
+  a command (often disguised as a CAPTCHA fix, software update, or troubleshooting
+  step) and paste it into a Run dialog, terminal, or browser address bar. The
+  clipboard is the pivot — the scripting interpreter execution is the chokepoint.
+LastUpdated: "2025-01-15"
+Author: "@iimp0ster"
+
+Variations:
+  - Name: ClickFix
+    FirstSeen: "2024-Q2"
+    Status: Active
+    Notes: Original variant; fake CAPTCHA or browser fix prompts user to paste PowerShell
+  - Name: FileFix
+    FirstSeen: "2024-Q3"
+    Status: Active
+    Notes: File-based execution; adds file creation step before script execution
+  - Name: TerminalFix
+    FirstSeen: "2024-Q4"
+    Status: Active
+    Notes: Mimics terminal windows; targets IT-savvy users, still same execution path
+  - Name: DownloadFix
+    FirstSeen: "2024-Q4"
+    Status: Active
+    Notes: Simplified delivery; user pastes a download-and-execute one-liner
+
+Prerequisites:
+  - Host malicious site or compromised legitimate site
+  - User must interact with clipboard (the copy action is the trigger)
+  - User must paste and execute the copied content
+  - Scripting interpreter available on system (powershell.exe, cmd.exe, bash)
+
+EvolutionTimeline:
+  - Date: "2024-Q2"
+    Event: ClickFix Original
+    Change: New social engineering technique requiring no malicious attachment
+    DetectionImpact: New pattern requiring detection development
+    TheConstant: "User clipboard → scripting interpreter → outbound network connection"
+  - Date: "2024-Q3"
+    Event: FileFix Variant
+    Change: Added file creation/persistence step before script execution
+    DetectionImpact: Additional file creation telemetry available for correlation
+    TheConstant: "User clipboard → scripting interpreter → outbound network connection"
+  - Date: "2024-Q4"
+    Event: TerminalFix Variant
+    Change: UI mimics terminal windows; payload targets IT-savvy users
+    DetectionImpact: No change — still scripting interpreter execution
+    TheConstant: "User clipboard → scripting interpreter → outbound network connection"
+  - Date: "2024-Q4"
+    Event: DownloadFix Variant
+    Change: Simplified payload; less obfuscation needed, direct download-execute
+    DetectionImpact: Same clipboard interaction and execution pattern
+    TheConstant: "User clipboard → scripting interpreter → outbound network connection"
+
+Detections:
+  - Level: Research
+    Description: Identify any scripting interpreter making outbound external connections
+    LogSources:
+      - "Windows Security Event Log (Process Creation / Event ID 4688)"
+      - "Sysmon Event ID 3 (Network Connection)"
+      - "DNS query logs"
+    Logic: >
+      Process: powershell.exe OR cmd.exe OR wscript.exe OR cscript.exe OR mshta.exe
+      Network: External destination (non-RFC1918) initiated by that process
+      Parent: ANY
+    ExpectedFPRate: High
+    UseCase: Threat research baseline; understanding scripting interpreter network behavior
+    SigmaRule: sigma-rules/clickfix/research.yml
+
+  - Level: Hunt
+    Description: Scripting interpreter spawned by browser or explorer with external network connection
+    LogSources:
+      - "Sysmon Event ID 1 (Process Creation)"
+      - "Sysmon Event ID 3 (Network Connection)"
+      - "DNS query logs"
+    Logic: >
+      Process: powershell.exe OR cmd.exe OR wscript.exe OR cscript.exe
+      ParentProcess: explorer.exe OR chrome.exe OR firefox.exe OR msedge.exe OR iexplore.exe OR brave.exe OR opera.exe
+      Network: External connection within 60 seconds of process start
+    ExpectedFPRate: Medium
+    UseCase: Proactive hunting for user-initiated clipboard execution; campaign detection
+    SigmaRule: sigma-rules/clickfix/hunt.yml
+
+  - Level: Analyst
+    Description: Browser-spawned interpreter with encoded command and outbound connection to low-reputation destination
+    LogSources:
+      - "Sysmon Event ID 1 (Process Creation)"
+      - "Sysmon Event ID 3 (Network Connection)"
+      - "Sysmon Event ID 22 (DNS Query)"
+      - "Parent process chain analysis"
+    Logic: >
+      Process: powershell.exe OR cmd.exe
+      ParentProcess: [browser] OR explorer.exe
+      CommandLine: Contains encoded command OR obfuscation pattern
+        (-enc, -EncodedCommand, FromBase64String, IEX, Invoke-Expression)
+      Network: External connection within 30 seconds
+      UserContext: Interactive logon session (LogonType 2 or 10)
+    ExpectedFPRate: Low
+    UseCase: Automated SOC alerting; immediate IR response trigger
+    SigmaRule: sigma-rules/clickfix/analyst.yml
+
+Intel:
+  - Name: ClickGrab
+    URL: https://mhaggis.github.io/ClickGrab/
+    Description: >
+      Community-sourced payload collection from active ClickFix infrastructure.
+      Plug payloads directly into threat hunting queries to identify indicators
+      in your environment. See intel/clickgrab.md for usage guidance.
+  - Name: AITMFEED ClickFix Infrastructure Tracking
+    URL: https://www.aitmfeed.com/blog/blog-1/tracking-clickfix-infrastructure-4
+    Description: Tracking and analysis of ClickFix hosting infrastructure over time
+
+RelatedChokepoints:
+  - renamed-rmm-tools
+  - ransomware-service-manipulation
+
+OsintSources:
+  - Platform: URLScan
+    Query: "page.url:*clickfix* OR page.url:*filefix*"
+    Notes: Find active ClickFix lure pages; combine with page content search for clipboard JS
+  - Platform: URLScan
+    Query: "page.body:navigator.clipboard OR page.body:ClipboardItem"
+    Notes: Find pages using clipboard manipulation JavaScript regardless of theme name
+  - Platform: VirusTotal
+    Query: "behavior_network:pastebin.com type:powershell"
+    Notes: Find PowerShell files with Pastebin C2 — common ClickFix payload pattern
+
+KnownBypasses:
+  - Bypass: Hosting payload on legitimate platforms (Pastebin, GitHub, cloud storage)
+    Mitigation: User awareness training; web filtering by content type rather than domain
+    Detection: Focus on the execution context (browser parent + scripting interpreter), not the hosting domain
+  - Bypass: Clipboard obfuscation (payload split across multiple copy operations)
+    Mitigation: N/A — user still executes the final result
+    Detection: Detect execution patterns, not clipboard content
+  - Bypass: Delayed execution (sleep before outbound connection)
+    Mitigation: N/A
+    Detection: Extend the correlation time window in hunt/analyst rules
+
+References:
+  - https://huntress.com/blog/dont-sweat-clickfix-techniques
+  - https://staging.huntress.com/blog/dont-sweat-clickfix-techniques
+  - https://mhaggis.github.io/ClickGrab/
+  - https://www.aitmfeed.com/blog/blog-1/tracking-clickfix-infrastructure-4
+  - https://attack.mitre.org/techniques/T1204/001/
+  - https://attack.mitre.org/techniques/T1204/003/
