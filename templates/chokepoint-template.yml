@@ -1,0 +1,109 @@
+---
+# Detection Chokepoints YAML Entry Template
+# Copy this file to chokepoints/<tactic>/<technique-name>.yml and fill in all fields.
+# See schema/chokepoint-schema.yml for field definitions and valid values.
+# See CONTRIBUTING.md for the full submission process.
+
+Name: "[Technique Name]"
+Id: ""  # Generate a UUIDv4: python3 -c "import uuid; print(uuid.uuid4())"
+MitreIds:
+  - "T0000.000"
+Tactics:
+  - "[MITRE Tactic Name]"
+Techniques:
+  - "[Human-readable technique name]"
+DetectionPriority: HIGH      # CRITICAL | HIGH | MEDIUM | LOW
+ThreatPrevalence: HIGH       # VERY HIGH | HIGH | MEDIUM | LOW | EMERGING
+DetectionDifficulty: MEDIUM  # LOW | MEDIUM | HIGH
+Description: >
+  One paragraph description of the chokepoint. Describe what the attacker is trying to
+  accomplish, what the invariant prerequisites are, and why this pattern persists across
+  tool variations.
+LastUpdated: "YYYY-MM-DD"
+Author: "@your-handle"
+
+Variations:
+  - Name: "[Tool or method name]"
+    FirstSeen: "YYYY-QN"      # e.g., "2024-Q2" or "2024-06"
+    Status: Active             # Active | Emerging | Declining | Legacy
+    Notes: "Brief context about this variation"
+  - Name: "[Another tool/method]"
+    FirstSeen: "YYYY"
+    Status: Emerging
+    Notes: ""
+
+Prerequisites:
+  - "First prerequisite — must be true for attack to succeed"
+  - "Second prerequisite — cannot be bypassed regardless of tool"
+  - "Third prerequisite"
+
+EvolutionTimeline:
+  - Date: "YYYY-QN"
+    Event: "Brief title of what happened"
+    Change: "What changed in this iteration"
+    DetectionImpact: "Effect on existing detections (e.g., 'No change' or 'New rule needed')"
+    TheConstant: "What did NOT change — the chokepoint condition"
+  - Date: "YYYY-QN"
+    Event: "Earlier event"
+    Change: "What changed"
+    DetectionImpact: ""
+    TheConstant: "The invariant chokepoint"
+
+Detections:
+  - Level: Research
+    Description: "One-line goal for this detection level"
+    LogSources:
+      - "Sysmon Event ID X (Name)"
+      - "Windows Security Event ID Y (Name)"
+    Logic: >
+      Plain-English description of what to look for. Not a Sigma rule — just the
+      human-readable detection logic that the Sigma rule implements.
+    ExpectedFPRate: High
+    UseCase: "Who uses this and for what purpose"
+    SigmaRule: "sigma-rules/[technique]/research.yml"
+
+  - Level: Hunt
+    Description: "One-line goal"
+    LogSources:
+      - "Sysmon Event ID X (Name)"
+    Logic: >
+      More specific logic with context filters added.
+    ExpectedFPRate: Medium
+    UseCase: "Active threat hunting, campaign detection"
+    SigmaRule: "sigma-rules/[technique]/hunt.yml"
+
+  - Level: Analyst
+    Description: "One-line goal"
+    LogSources:
+      - "Multiple correlated sources"
+    Logic: >
+      High-fidelity correlated logic. Should include time-window correlation and
+      multiple event types where applicable.
+    ExpectedFPRate: Low
+    UseCase: "Automated SOC alerting; IR escalation trigger"
+    SigmaRule: "sigma-rules/[technique]/analyst.yml"
+
+Intel:
+  - Name: "[Resource name]"
+    URL: "https://example.com"
+    Description: "How to use this resource for hunting this chokepoint"
+
+RelatedChokepoints:
+  - "other-chokepoint-filename-stem"  # No path, no extension
+
+OsintSources:
+  - Platform: URLScan
+    Query: ""
+    Notes: ""
+  - Platform: Shodan
+    Query: ""
+    Notes: ""
+
+KnownBypasses:
+  - Bypass: "How attackers evade this detection"
+    Mitigation: "How defenders can harden against the bypass"
+    Detection: "How to detect the bypass method itself"
+
+References:
+  - "https://attack.mitre.org/techniques/T0000/"
+  - "https://example.com/research-blog"

@@ -1,0 +1,70 @@
+title: Ransomware Pre-Encryption — Bulk Service Termination Targeting Sophos File Scanner
+id: d6e0f2a4-b6c8-4d0e-2f4a-4b6c8d0e2f4a
+status: experimental
+description: >
+  High-fidelity detection for ransomware pre-encryption activity. Detects sc.exe
+  stopping the Sophos File Scanner service (SophosFileScanner) followed by service
+  deletion — a specific TTP observed in Alphv/BlackCat, BlackBasta, and LockBit
+  campaigns. This combination of stop + delete targeting a named security service
+  via a network logon session is a very strong pre-encryption indicator.
+  Inspired by the detection iteration demonstrated in the "Detection Chokepoints"
+  talk (BSidesSLC / Huntress).
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+  - https://attack.mitre.org/techniques/T1489/
+  - https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf
+  - https://www.mandiant.com/m-trends
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.defense_evasion
+  - attack.t1562.001
+  - attack.impact
+  - attack.t1489
+  - detection.maturity.analyst
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_sc_stop:
+    Image|endswith: '\sc.exe'
+    CommandLine|contains|all:
+      - 'stop'
+      - 'SophosFileScanner'
+  selection_sc_delete:
+    Image|endswith: '\sc.exe'
+    CommandLine|contains|all:
+      - 'delete'
+      - 'SophosFileScanner'
+  condition: selection_sc_stop or selection_sc_delete
+falsepositives:
+  - Sophos product uninstallation by authorized IT staff
+  - Sophos version upgrade process (stop old, install new)
+level: high
+# ─── Variant: Generic Multi-Service Threshold Detection ─────────────────────────
+# For broader coverage across all security/backup services, implement this threshold
+# logic in your SIEM:
+#
+# ALERT when:
+#   - 5 or more DISTINCT security/backup service names stopped within 10 minutes
+#   - By the same process parent OR same logon session OR same source IP
+#   - Service names match: (Sophos|WinDefend|Veeam|VSS|MSSQL|Acronis|backup)
+#   - Optionally: At least one service delete follows within 2 minutes of stop
+#
+# KQL (Microsoft Sentinel):
+# let threshold = 5;
+# let timeWindow = 10m;
+# DeviceProcessEvents
+# | where FileName in ("sc.exe", "net.exe", "net1.exe")
+# | where ProcessCommandLine has_any ("stop", "delete")
+# | where ProcessCommandLine has_any ("sophos","windefend","veeam","vss","mssql","backup","acronis")
+# | summarize ServiceCount = dcount(tostring(ProcessCommandLine)), cmds=make_set(ProcessCommandLine)
+#     by DeviceName, bin(Timestamp, timeWindow), InitiatingProcessId
+# | where ServiceCount >= threshold
+#
+# ─── Response Actions ────────────────────────────────────────────────────────────
+# 1. Check for active network logon session from unusual IP → remote attacker
+# 2. Check for encryption activity on the same host (mass file writes, .encrypted extension)
+# 3. Check other hosts for similar service stop patterns from the same source IP
+# 4. Isolate the endpoint — if service termination is occurring, encryption is imminent
+# 5. Preserve VSS snapshots immediately if not yet deleted (vssadmin list shadows)

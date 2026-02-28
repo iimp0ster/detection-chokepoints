@@ -1,0 +1,72 @@
+title: Scripting Interpreter Outbound Network Connection
+id: c4f8a2b1-3e7d-4a5c-8b9f-2d1e6f0a7c3b
+status: experimental
+description: >
+  Detects scripting interpreters (powershell.exe, cmd.exe, wscript.exe, etc.) making
+  outbound connections to external (non-RFC1918) addresses. Broad research-level rule
+  for the ClickFix chokepoint. Establishes baseline visibility into scripting interpreter
+  network behavior. High false positive rate expected — use for research and baselining only.
+references:
+  - https://huntress.com/blog/dont-sweat-clickfix-techniques
+  - https://mhaggis.github.io/ClickGrab/
+  - https://attack.mitre.org/techniques/T1204/001/
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.initial_access
+  - attack.t1204.001
+  - attack.t1204.003
+  - detection.maturity.research
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    Image|endswith:
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\cmd.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\mshta.exe'
+  filter_private_ranges:
+    DestinationIp|startswith:
+      - '10.'
+      - '172.16.'
+      - '172.17.'
+      - '172.18.'
+      - '172.19.'
+      - '172.20.'
+      - '172.21.'
+      - '172.22.'
+      - '172.23.'
+      - '172.24.'
+      - '172.25.'
+      - '172.26.'
+      - '172.27.'
+      - '172.28.'
+      - '172.29.'
+      - '172.30.'
+      - '172.31.'
+      - '192.168.'
+      - '127.'
+      - '::1'
+      - 'fe80:'
+  filter_loopback:
+    DestinationIp: '0.0.0.0'
+  condition: selection and not 1 of filter_*
+falsepositives:
+  - Legitimate administrative scripts making web requests (SCCM, Ansible, etc.)
+  - Software update mechanisms (Windows Update, application updaters)
+  - Monitoring agents and IT management tooling
+  - Developer tooling (npm, pip, curl wrappers, build scripts)
+  - Security scanning tools
+level: low
+# ─── Usage Notes ────────────────────────────────────────────────────────────────
+# This is a RESEARCH-level rule. Do not deploy in a SOC alerting context without
+# significant tuning. Use it to:
+#   1. Understand your baseline of scripting interpreter network activity
+#   2. Identify unexpected process/destination combinations for refinement
+#   3. Feed into the Hunt and Analyst level rules
+# Expected volume: Very high in most environments

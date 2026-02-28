@@ -4,7 +4,9 @@
 
 ## Overview
 
-Modern ransomware operations follow a predictable pattern of chokepoints from initial access through impact. Understanding these chokepoints enables defense-in-depth detection strategies.
+Modern ransomware operations follow a predictable pattern of chokepoints from initial
+access through impact. Understanding these chokepoints enables defense-in-depth detection
+strategies.
 
 **Average Time to Ransom (TTR):** <24 hours (Mandiant M-Trends 2025)
 
@@ -20,8 +22,8 @@ Initial Access → Credential Access → Lateral Movement → Defense Evasion �
 
 ### 1. Initial Access
 **Chokepoints Used:**
-- [Renamed RMM Tools](../chokepoints/initial-access/renamed-rmm-tools.md)
-- [ClickFix Techniques](../chokepoints/initial-access/clickfix-techniques.md)
+- [Renamed RMM Tools](../chokepoints/initial-access/renamed-rmm-tools.yml)
+- [ClickFix Techniques](../chokepoints/initial-access/clickfix-techniques.yml)
 - Phishing with malicious attachments
 - Exposed RDP/VPN services
 
@@ -59,7 +61,7 @@ Initial Access → Credential Access → Lateral Movement → Defense Evasion �
 
 ### 3. Lateral Movement
 **Chokepoints Used:**
-- [Remote Execution Tools](../chokepoints/lateral-movement/remote-execution-tools.md)
+- [Remote Execution Tools](../chokepoints/lateral-movement/remote-execution-tools.yml)
 - RDP lateral movement
 - WMI/DCOM execution
 - PsExec-style service creation
@@ -80,7 +82,7 @@ Initial Access → Credential Access → Lateral Movement → Defense Evasion �
 
 ### 4. Defense Evasion
 **Chokepoints Used:**
-- [Ransomware Service Manipulation](../chokepoints/defense-evasion/ransomware-service-manipulation.md)
+- [Ransomware Service Manipulation](../chokepoints/defense-evasion/ransomware-service-manipulation.yml)
 - EDR/AV disabling
 - Backup service termination
 - Database service shutdown

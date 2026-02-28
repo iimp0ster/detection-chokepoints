@@ -1,0 +1,57 @@
+title: Suspicious Service Created After Network Logon — Remote Execution Pattern
+id: f2a6b8c0-d2e4-4f6a-8b0c-0d1e2f3a4b5c
+status: experimental
+description: >
+  Detects suspicious service installations with random-looking names or binaries
+  located in user-writable paths. This pattern is characteristic of Impacket's
+  psexec.py and smbexec.py, CrackMapExec, and NetExec SMB execution modules, which
+  create short-lived services with auto-generated names in temporary locations.
+references:
+  - https://attack.mitre.org/techniques/T1021/002/
+  - https://attack.mitre.org/techniques/T1047/
+  - https://www.socinvestigation.com/threat-hunting-with-eventid-5145-object-access-detailed-file-share/
+  - https://github.com/fortra/impacket
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.lateral_movement
+  - attack.t1021.002
+  - attack.execution
+  - attack.t1569.002
+  - detection.maturity.hunt
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_service_install:
+    EventID: 7045
+  # Service binary located in suspicious paths (user-writable, temp locations)
+  filter_suspicious_path:
+    ImagePath|contains:
+      - '\Windows\Temp\'
+      - '\Users\Public\'
+      - '\ProgramData\'
+      - '\AppData\Local\Temp\'
+      - '\AppData\Roaming\'
+  # OR service binary executes cmd/powershell (common for shell-based execution)
+  filter_shell_execution:
+    ImagePath|contains:
+      - 'cmd.exe'
+      - 'powershell.exe'
+      - 'pwsh.exe'
+  condition: selection_service_install and (filter_suspicious_path or filter_shell_execution)
+falsepositives:
+  - Legitimate software installers that temporarily use Windows\Temp (verify binary is signed)
+  - Some legitimate monitoring agents that run from non-standard paths
+  - Custom IT deployment scripts that create temporary services
+level: medium
+# ─── Hunt Notes ──────────────────────────────────────────────────────────────────
+# When a hit fires, pivot to:
+#   1. Event ID 4624 (same host, within 60 seconds before service install):
+#      - LogonType 3 (network logon)?
+#      - What account? Is it a service account, admin, or user account?
+#      - What source IP? Is it from a known admin workstation?
+#   2. Event ID 4624 with LogonType 3 from the SAME source IP to OTHER hosts
+#      within the same time window → spray pattern = lateral movement campaign
+#   3. Sysmon EID 1: Look for processes spawned from the service binary
+#   4. Event ID 5145 (IPC$ share access) from the same source IP

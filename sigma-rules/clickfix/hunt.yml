@@ -1,0 +1,67 @@
+title: Browser or Explorer Spawning Script Interpreter
+id: a7b3c9d2-5e8f-4a1b-9c6d-3f2e8b0a4d7e
+status: experimental
+description: >
+  Detects scripting interpreters (PowerShell, cmd, wscript) spawned directly by web
+  browsers or Windows Explorer. This is a hunt-level rule targeting the ClickFix
+  chokepoint, where users are socially engineered to paste and execute malicious
+  commands. Browsers and Explorer should rarely directly spawn scripting interpreters
+  in normal enterprise operations.
+references:
+  - https://huntress.com/blog/dont-sweat-clickfix-techniques
+  - https://staging.huntress.com/blog/dont-sweat-clickfix-techniques
+  - https://mhaggis.github.io/ClickGrab/
+  - https://www.aitmfeed.com/blog/blog-1/tracking-clickfix-infrastructure-4
+  - https://attack.mitre.org/techniques/T1204/001/
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.initial_access
+  - attack.t1204.001
+  - attack.t1204.003
+  - detection.maturity.hunt
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_interpreter:
+    Image|endswith:
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\cmd.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\mshta.exe'
+  selection_parent_browser:
+    ParentImage|endswith:
+      - '\chrome.exe'
+      - '\firefox.exe'
+      - '\msedge.exe'
+      - '\iexplore.exe'
+      - '\opera.exe'
+      - '\brave.exe'
+      - '\vivaldi.exe'
+      - '\waterfox.exe'
+  selection_parent_explorer:
+    ParentImage|endswith:
+      - '\explorer.exe'
+  filter_known_legit:
+    # Browser-launched shell integrations for file associations (rare but legitimate)
+    CommandLine|contains:
+      - 'IEShims.dll'
+      - 'ShellExecute'
+  condition: selection_interpreter and (selection_parent_browser or selection_parent_explorer) and not filter_known_legit
+falsepositives:
+  - Browser extensions that invoke system shell for file processing (rare)
+  - Shell integrations for file associations opened via browser download
+  - IT tooling launched from Windows Explorer (e.g., admin scripts opened by double-click)
+  - Some enterprise software launchers that spawn from explorer.exe
+level: medium
+# ─── Hunt Notes ─────────────────────────────────────────────────────────────────
+# Run this as a hunt query against 7-30 days of process creation logs.
+# Investigate each unique (ParentImage, Image, CommandLine) tuple.
+# Pair with network connection events (Sysmon EID 3) from the same ProcessId
+# to confirm outbound network activity.
+#
+# Key pivot: Is the command line encoded or obfuscated? (→ promote to Analyst rule)
+# Key pivot: Does the spawning match a ClickGrab payload? (https://mhaggis.github.io/ClickGrab/)

@@ -8,13 +8,18 @@
 
 ## What is a Chokepoint Shift?
 
-A chokepoint shift occurs when defensive measures make a chokepoint too costly/risky, forcing attackers to migrate to alternative methods with different prerequisites.
+A chokepoint shift occurs when defensive measures make a chokepoint too costly or
+risky, forcing attackers to migrate to alternative methods with different prerequisites.
 
 **Example:**
 - **Old Chokepoint:** Email macro execution (T1204.002)
 - **Defensive Change:** Microsoft disables macros by default (2022)
 - **New Chokepoint:** ISO/LNK file execution (T1204.001)
-- **Result:** File type change, but user execution requirement remains
+- **Result:** File type changed, but user execution requirement remains
+
+**Key distinction:** Not all tool changes are chokepoint shifts.
+- **Tool Rotation**: Same prerequisites, different tool → chokepoint detection still valid
+- **True Shift**: Prerequisites change → detection logic must be updated
 
 ---
 
@@ -27,7 +32,7 @@ A chokepoint shift occurs when defensive measures make a chokepoint too costly/r
 AnyDesk → ScreenConnect → RustDesk
 ```
 
-**Classification:** Tool Rotation, NOT Chokepoint Shift  
+**Classification:** Tool Rotation, NOT Chokepoint Shift
 **Why:** Prerequisites unchanged (browser download, masquerading, user execution)
 
 **Defensive Pressure:**
@@ -41,7 +46,6 @@ AnyDesk → ScreenConnect → RustDesk
 - Adopt self-hosted solutions (RustDesk)
 
 **Chokepoint Status:** Stable (browser download + user execution constant)
-
 **Detection Adaptation:** Minimal (same detection logic applies)
 
 ---
@@ -89,7 +93,6 @@ Prerequisites:
 - File type flexibility increased ✗
 
 **Detection Adaptation:** Moderate (new file types require new signatures)
-
 **Current Status:** Ongoing evolution (attackers testing new file types)
 
 ---
@@ -131,9 +134,7 @@ Prerequisites:
 - NTDS.dit extraction from domain controllers
 
 **Chokepoint Status:** Fragmenting (multiple alternatives emerging)
-
 **Detection Adaptation:** Significant (must cover multiple credential sources)
-
 **Current Status:** Early shift (LSASS still dominant, alternatives growing)
 
 ---
@@ -141,7 +142,7 @@ Prerequisites:
 ## Historical Shifts (2020-2024)
 
 ### SMB v1 → SMB v2/v3
-**Years:** 2017-2020  
+**Years:** 2017-2020
 **Trigger:** MS17-010 (EternalBlue) patches, SMBv1 deprecation
 
 **Impact:**
@@ -154,7 +155,7 @@ Prerequisites:
 ---
 
 ### RDP Brute Force → Credential Stuffing
-**Years:** 2018-2023  
+**Years:** 2018-2023
 **Trigger:** Network-based RDP brute force detection improvements
 
 **Impact:**
@@ -167,7 +168,7 @@ Prerequisites:
 ---
 
 ### PowerShell Downloads → LOLBins
-**Years:** 2019-2022  
+**Years:** 2019-2022
 **Trigger:** PowerShell AMSI, script block logging improvements
 
 **Impact:**
@@ -182,7 +183,7 @@ Prerequisites:
 ## Predicted Shifts (2025-2026)
 
 ### Browser Credential Storage → Alternative Sources
-**Likelihood:** Medium (40%)  
+**Likelihood:** Medium (40%)
 **Timeline:** 2025-2026
 
 **Trigger:**
@@ -203,7 +204,7 @@ Prerequisites:
 ---
 
 ### Local Execution → Cloud-Based C2
-**Likelihood:** High (70%)  
+**Likelihood:** High (70%)
 **Timeline:** 2025
 
 **Trigger:**
@@ -229,7 +230,7 @@ Prerequisites:
 **How quickly do attackers adapt to defensive changes?**
 
 - **Tool Rotation:** 1-3 months
-- **Minor Shift:** 6-12 months  
+- **Minor Shift:** 6-12 months
 - **Major Shift:** 12-24 months
 
 ### Shift Completeness

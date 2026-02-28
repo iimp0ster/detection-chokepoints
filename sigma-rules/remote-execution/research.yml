@@ -1,0 +1,45 @@
+title: Network Logon Followed by Service Installation
+id: e1f5a7b9-c1d3-4e5f-7a8b-9c0d1e2f3a4b
+status: experimental
+description: >
+  Detects Windows network logon events (Type 3) followed closely by service installation
+  events. Research-level rule for the remote execution tools chokepoint. This covers
+  PsExec-style execution via Impacket, CrackMapExec, NetExec, and native PsExec.exe.
+  High false positive rate expected — legitimate remote admin activity generates the
+  same pattern. Use to baseline normal admin behavior.
+references:
+  - https://attack.mitre.org/techniques/T1021/002/
+  - https://attack.mitre.org/techniques/T1021/006/
+  - https://www.socinvestigation.com/threat-hunting-with-eventid-5145-object-access-detailed-file-share/
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.lateral_movement
+  - attack.t1021.002
+  - attack.execution
+  - detection.maturity.research
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    EventID: 7045
+    # Any new service installation — extremely broad
+  condition: selection
+falsepositives:
+  - Software installation via MSI packages
+  - Windows Update installing drivers and services
+  - Legitimate remote administration (SCCM, Ansible, PDQ Deploy)
+  - IT staff using PsExec or similar tools for authorized administration
+  - Antivirus/EDR product updates
+level: informational
+# ─── Research Notes ──────────────────────────────────────────────────────────────
+# This rule produces very high volume. Use it to:
+#   1. Build a baseline of normal service installations in your environment
+#   2. Identify common legitimate parent accounts, source IPs, and binary paths
+#   3. Identify the "fingerprint" of your IT deployment tools
+#
+# Correlate with Event ID 4624 (LogonType 3) within 60 seconds on the same host
+# to identify network-logon-initiated service installs.
+#
+# Next step: Promote to Hunt level by adding binary path and name filtering

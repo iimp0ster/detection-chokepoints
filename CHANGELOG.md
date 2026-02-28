@@ -2,27 +2,61 @@
 
 All notable changes to this detection chokepoints repository will be documented in this file.
 
-## [Unreleased]
+## [2025-02-28] — LOLBAS-Style Restructuring
 
 ### Added
-- Initial repository structure
-- Framework documentation (README.md, FRAMEWORK.md)
-- Templates for chokepoint documentation and quick-add entries
-- Chokepoint examples:
-  - ClickFix Techniques (Initial Access)
-  - Renamed RMM Tools (Initial Access)
-  - Remote Execution Tools (Lateral Movement)
-  - Ransomware Service Manipulation (Defense Evasion)
-- Attack chain examples:
-  - Ransomware
-  - Infostealers
-- Threat evolution tracking:
-  - 2025 Q1 trends
-  - Chokepoint shifts analysis
-- Sigma rules:
-  - ClickFix detection (research, hunt, analyst levels)
-  - Remote execution detection
-  - Ransomware service stop detection
+- `CONTRIBUTING.md` — full contribution guide (schema requirements, PR checklist, what not to submit)
+- `schema/chokepoint-schema.yml` — canonical field definitions and valid values for all YAML entries
+- `chokepoints/initial-access/clickfix-techniques.yml` — ClickFix converted to structured YAML
+- `chokepoints/initial-access/renamed-rmm-tools.yml` — Renamed RMM tools converted to structured YAML
+- `chokepoints/lateral-movement/remote-execution-tools.yml` — Remote execution tools (HackTools) converted to YAML
+- `chokepoints/defense-evasion/ransomware-service-manipulation.yml` — Ransomware service manipulation converted to YAML
+- `sigma-rules/clickfix/research.yml` — Research-level Sigma rule for ClickFix chokepoint
+- `sigma-rules/clickfix/hunt.yml` — Hunt-level Sigma rule for ClickFix chokepoint
+- `sigma-rules/clickfix/analyst.yml` — Analyst-level Sigma rule for ClickFix chokepoint
+- `sigma-rules/renamed-rmm/research.yml` — Research-level Sigma rule for Renamed RMM tools
+- `sigma-rules/renamed-rmm/hunt.yml` — Hunt-level Sigma rule for Renamed RMM tools
+- `sigma-rules/renamed-rmm/analyst.yml` — Analyst-level Sigma rule for Renamed RMM tools
+- `sigma-rules/remote-execution/research.yml` — Research-level Sigma rule for Remote Execution tools
+- `sigma-rules/remote-execution/hunt.yml` — Hunt-level Sigma rule for Remote Execution tools
+- `sigma-rules/remote-execution/analyst.yml` — Analyst-level Sigma rule (KQL correlation included)
+- `sigma-rules/ransomware-service/research.yml` — Research-level Sigma rule for ransomware service stops
+- `sigma-rules/ransomware-service/hunt.yml` — Hunt-level Sigma rule for service stop/delete combination
+- `sigma-rules/ransomware-service/analyst.yml` — Analyst-level Sigma rule (Sophos + KQL threshold query)
+- `intel/clickgrab.md` — ClickGrab documentation: what it is, how to use it for threat hunting
+- `attack-chains/ransomware.md` — Ransomware kill chain with chokepoint references (updated links)
+- `attack-chains/infostealers.md` — Infostealer IAB pipeline with source attribution
+- `trends/2025-q1.md` — Q1 2025 threat trends with source citations and chokepoint links
+- `trends/chokepoint-shifts.md` — True shift vs. tool rotation analysis
+- `templates/chokepoint-template.yml` — Canonical YAML template for new submissions
+- `templates/chokepoint-template.md` — Human-readable markdown template
+- `templates/quick-add.md` — Fast template for adding new tool variants
+- `templates/evolution-tracker.md` — Template for tracking chokepoint evolution over time
+- `templates/EXAMPLE-WORKFLOW.md` — Complete workflow example: adding Impacket RDP shadowing
+
+### Changed
+- `README.md` — Full rewrite: military chokepoint hook (Thermopylae, Fulda Gap), thesis statement
+  ("TTPs evolve. Chokepoints don't."), chokepoint index table, updated repo structure diagram,
+  How to Use section by persona (Hunter / Detection Engineer / Evolution Tracker)
+- All chokepoint entries now structured as YAML with standardized schema instead of freeform markdown
+- Source citations added to infostealers.md (HudsonRock, RedCanary, Cyberint)
+- trends/2025-q1.md now includes links to ClickGrab intel resource
+
+### Removed
+- `clickfix-techniques.md` — superseded by `chokepoints/initial-access/clickfix-techniques.yml`
+- `renamed-rmm-tools.md` — superseded by `chokepoints/initial-access/renamed-rmm-tools.yml`
+- `remote-execution-tools.md` — superseded by `chokepoints/lateral-movement/remote-execution-tools.yml`
+- `ransomware-service-manipulation.md` — superseded by `chokepoints/defense-evasion/ransomware-service-manipulation.yml`
+- `ransomware.md` — moved to `attack-chains/ransomware.md`
+- `infostealers.md` — moved to `attack-chains/infostealers.md`
+- `2025-trends.md` — moved to `trends/2025-q1.md`
+- `chokepoint-shifts.md` — moved to `trends/chokepoint-shifts.md`
+- `chokepoint-template.md` — moved to `templates/chokepoint-template.md`
+- `quick-add.md` — moved to `templates/quick-add.md`
+- `evolution-tracker.md` — moved to `templates/evolution-tracker.md`
+- `EXAMPLE-WORKFLOW.md` — moved to `templates/EXAMPLE-WORKFLOW.md`
+
+## [Unreleased]
 
 ## [2025-01-15] - Repository Creation
 

@@ -1,0 +1,177 @@
+---
+Name: Renamed RMM Tools
+Id: b3d5e7f9-1a2c-4b6d-8e0f-3c5a7b9d1e2f
+MitreIds:
+  - T1219
+Tactics:
+  - Initial Access
+  - Command and Control
+Techniques:
+  - "Remote Access Software"
+DetectionPriority: HIGH
+ThreatPrevalence: HIGH
+DetectionDifficulty: MEDIUM
+Description: >
+  Legitimate remote management and monitoring (RMM) tools are renamed or
+  masqueraded to appear as trusted applications (tax documents, invoices, IT
+  support tools) and delivered via browser download. Once executed, the RMM
+  establishes persistent command-and-control to attacker infrastructure while
+  appearing to be a signed, legitimate binary. Because the binary is legitimately
+  signed by the vendor, many security tools will not flag it. The chokepoint is
+  the browser download, file masquerading, user execution, and outbound connection
+  to RMM infrastructure — all of which are required regardless of which RMM tool
+  is used.
+LastUpdated: "2025-01-15"
+Author: "@iimp0ster"
+
+Variations:
+  - Name: AnyDesk
+    FirstSeen: "2020"
+    Status: Declining
+    Notes: "Common masquerade names: invoice.exe, tax_form.exe, SSN_verification.exe"
+  - Name: TeamViewer
+    FirstSeen: "2019"
+    Status: Active
+    Notes: "Common masquerade names: update.exe, system_check.exe"
+  - Name: ScreenConnect (ConnectWise)
+    FirstSeen: "2022"
+    Status: Active
+    Notes: "Common masquerade names: support_tool.exe, IT_access.exe; now primary choice"
+  - Name: UltraViewer
+    FirstSeen: "2023"
+    Status: Active
+    Notes: "Common masquerade names: security_scan.exe, verify.exe"
+  - Name: RustDesk
+    FirstSeen: "2024"
+    Status: Emerging
+    Notes: Open-source; self-hosted infrastructure makes domain blocking ineffective
+  - Name: RMM-to-RMM Deployment
+    FirstSeen: "2024"
+    Status: Active
+    Notes: >
+      One RMM (e.g., ScreenConnect) deploys a second RMM (e.g., AnyDesk) for
+      redundancy — if one is removed, the other maintains access
+
+Prerequisites:
+  - Site to host payload (attacker-controlled or compromised legitimate site)
+  - Social engineering pretext (tax, invoice, SSN, IT support, e-invite)
+  - RMM tool binary (legitimately signed vendor software, just renamed)
+  - User must download and execute the binary via browser
+
+EvolutionTimeline:
+  - Date: "2019"
+    Event: TeamViewer and AnyDesk adoption in social engineering campaigns
+    Change: Legitimate RMM binaries adopted as an initial access alternative to malware
+    DetectionImpact: New pattern — signed binaries evading hash-based detection
+    TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
+  - Date: "2022-Q1"
+    Event: ScreenConnect becomes primary campaign tool
+    Change: Shift to ConnectWise ScreenConnect for a more "professional" appearance
+    DetectionImpact: No change to core detection pattern
+    TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
+  - Date: "2023-Q2"
+    Event: UltraViewer campaigns emerge
+    Change: Shift to less-known tools to evade AnyDesk-specific detections
+    DetectionImpact: Tool-agnostic detection becomes critical; vendor name can no longer be relied on
+    TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
+  - Date: "2024-Q3"
+    Event: RustDesk adoption as self-hosted alternative
+    Change: Open-source RMM with self-hosted C2; blocklisting known RMM domains no longer works
+    DetectionImpact: Domain/IP-based blocking bypassed; behavior detection essential
+    TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
+  - Date: "2024-Q4"
+    Event: RMM-to-RMM deployment pattern emerges
+    Change: First RMM is used to deploy a second RMM as a backup persistence mechanism
+    DetectionImpact: Process creation chain detection required; single-RMM detection insufficient
+    TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
+
+Detections:
+  - Level: Research
+    Description: Identify all RMM tool processes running in the environment
+    LogSources:
+      - "Sysmon Event ID 1 (Process Creation)"
+      - "Windows Security Event ID 4688 (Process Creation)"
+      - "Application inventory / software management telemetry"
+    Logic: >
+      Process name matches known RMM tool executables:
+        anydesk.exe OR screenconnect*.exe OR teamviewer*.exe OR
+        ultraviewer.exe OR rustdesk.exe OR meshagent.exe OR
+        connectwisecontrol*.exe
+    ExpectedFPRate: High
+    UseCase: Asset inventory; baseline of legitimate RMM usage by IT staff
+    SigmaRule: sigma-rules/renamed-rmm/research.yml
+
+  - Level: Hunt
+    Description: Detect RMM tool binaries downloaded via browser and executed within minutes
+    LogSources:
+      - "Sysmon Event ID 1 (Process Creation)"
+      - "Sysmon Event ID 11 (File Creation)"
+      - "Browser download telemetry"
+    Logic: >
+      File Created: *.exe
+      Creating Process: chrome.exe OR firefox.exe OR msedge.exe OR iexplore.exe OR brave.exe
+      File Path: \Downloads\ OR \Temp\ OR \AppData\Local\Temp\
+      Then: Process execution within 5 minutes
+      AND: Product metadata OR original filename matches known RMM vendor
+    ExpectedFPRate: Medium
+    UseCase: Hunt for user-initiated RMM downloads; distinguishes IT-deployed from user-downloaded
+    SigmaRule: sigma-rules/renamed-rmm/hunt.yml
+
+  - Level: Analyst
+    Description: Masqueraded RMM tool with campaign-themed name, downloaded by browser, with immediate outbound connection
+    LogSources:
+      - "Sysmon Event ID 1 (Process Creation)"
+      - "Sysmon Event ID 3 (Network Connection)"
+      - "Sysmon Event ID 11 (File Creation)"
+      - "File metadata / version info analysis"
+    Logic: >
+      File Created: *.exe via browser (see Hunt logic above)
+      AND one of:
+        - File Name contains: "tax" OR "invoice" OR "SSN" OR "SSA" OR "support" OR "verify" OR "secure"
+        - File Metadata: OriginalFilename = "anydesk.exe" (or other RMM) but current name differs
+        - File Signer: Known RMM vendor certificate on file with non-RMM name
+      Network: Outbound connection to RMM infrastructure within 2 minutes of execution
+      UserContext: Standard user account (not in IT admin group)
+    ExpectedFPRate: Low
+    UseCase: SOC alerting; campaign-themed file name detection catches targeted pretexts
+    SigmaRule: sigma-rules/renamed-rmm/analyst.yml
+
+Intel:
+  - Name: URLScan RMM Masquerade Hunting
+    URL: https://urlscan.io/
+    Description: >
+      Use URLScan to find sites hosting renamed RMM binaries.
+      Query: filename:tax*.exe OR filename:invoice*.exe OR filename:SSN*.exe
+
+RelatedChokepoints:
+  - clickfix-techniques
+  - remote-execution-tools
+
+OsintSources:
+  - Platform: URLScan
+    Query: "filename:tax*.exe OR filename:invoice*.exe OR filename:ssn*.exe"
+    Notes: Finds download pages serving tax/invoice-themed executables
+  - Platform: Shodan
+    Query: "product:\"ScreenConnect\""
+    Notes: Find exposed ScreenConnect instances; compare to known legitimate instances
+  - Platform: Censys
+    Query: "ssl:\"AnyDesk\""
+    Notes: Identify AnyDesk infrastructure; useful for campaign correlation
+
+KnownBypasses:
+  - Bypass: Legitimate business use of the same RMM tool
+    Mitigation: Maintain allowlist of IT-approved RMM instances and source IPs
+    Detection: Focus on user-initiated browser downloads rather than all RMM process execution
+  - Bypass: Self-hosted RMM infrastructure (RustDesk, MeshCentral)
+    Mitigation: Network-level egress filtering by traffic pattern
+    Detection: Detect by behavior (browser download + user execution) not by destination domain
+  - Bypass: Legitimate-looking file names matching IT asset naming conventions
+    Mitigation: User awareness training; verify download sources with IT
+    Detection: Combine with file metadata mismatch (OriginalFilename vs. actual name)
+  - Bypass: Delayed execution (user downloads, executes hours later)
+    Mitigation: N/A
+    Detection: Extend correlation time window; correlate on file path rather than time delta
+
+References:
+  - https://attack.mitre.org/techniques/T1219/
+  - https://huntress.com/blog/dont-sweat-clickfix-techniques

@@ -1,0 +1,86 @@
+title: Multiple Security or Backup Services Stopped or Deleted in Rapid Succession
+id: c5d9e1f3-a5b7-4c9d-1e3f-3a5b7c9d1e3f
+status: experimental
+description: >
+  Detects sc.exe, net.exe, or taskkill.exe used to stop or delete security/backup
+  services, with specific focus on service deletion within 60 seconds of a stop
+  command (a strong indicator of ransomware preparation). Also catches rapid-fire
+  service stops targeting multiple services within a 5-minute window.
+references:
+  - https://attack.mitre.org/techniques/T1562.001/
+  - https://attack.mitre.org/techniques/T1489/
+  - https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.defense_evasion
+  - attack.t1562.001
+  - attack.impact
+  - attack.t1489
+  - detection.maturity.hunt
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_stop_tools:
+    Image|endswith:
+      - '\sc.exe'
+      - '\net.exe'
+      - '\net1.exe'
+      - '\taskkill.exe'
+  # Service stop commands targeting security/backup services
+  selection_stop_action:
+    CommandLine|contains:
+      - ' stop '
+      - ' delete '
+      - '/IM '  # taskkill /IM
+  selection_security_targets:
+    CommandLine|contains:
+      # Sophos
+      - 'Sophos'
+      - 'sophos'
+      - 'SAVService'
+      - 'SophosFileScanner'
+      # Windows Defender
+      - 'WinDefend'
+      - 'Sense'
+      - 'WdNisSvc'
+      - 'WdFilter'
+      - 'MsMpEng'
+      # Veeam
+      - 'Veeam'
+      - 'veeam'
+      # Volume Shadow Copy
+      - 'VSS'
+      - 'vss'
+      - 'wbengine'
+      # SQL / Database
+      - 'MSSQL'
+      - 'SQLWriter'
+      - 'MySQL'
+      - 'postgresql'
+      # Acronis
+      - 'Acronis'
+      - 'acronis'
+      # Generic backup patterns
+      - 'backup'
+      - 'Backup'
+  condition: selection_stop_tools and selection_stop_action and selection_security_targets
+falsepositives:
+  - Planned maintenance by system administrators (compare against change management records)
+  - AV/EDR product uninstallation during software upgrade cycles
+  - IT operations during system decommissioning
+level: medium
+# ─── Hunt Notes ──────────────────────────────────────────────────────────────────
+# When this fires, check for:
+#   1. Was this preceded by a network logon (4624, LogonType 3)?
+#      → Remote attacker executing ransomware preparation
+#   2. Are multiple services being stopped within a short time window?
+#      → Correlate by parent process or session ID
+#   3. Is this followed by mass file modifications or high disk I/O?
+#      → Encryption phase beginning
+#   4. Was this during business hours or after-hours?
+#      → After-hours increases suspicion significantly
+#
+# Quick SIEM pivot: Count sc.exe "stop" events per host per 10-minute window
+# Threshold: 3+ stops → Hunt investigation; 5+ stops → Analyst alert

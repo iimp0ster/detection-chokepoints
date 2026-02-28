@@ -2,18 +2,21 @@
 
 Track how a chokepoint's variations evolved over time.
 
+---
+
 ## Chokepoint: [Name]
 
-**Monitoring Period:** YYYY-MM to YYYY-MM  
+**Monitoring Period:** YYYY-MM to YYYY-MM
 **Current Status:** [Active/Declining/Emerging]
 
 ## Evolution Summary
 
-Brief narrative of how this chokepoint has evolved.
+Brief narrative of how this chokepoint has evolved and why the core detection
+has remained (or needed updating).
 
 ## Timeline
 
-### YYYY-MM - [Event Title]
+### YYYY-MM — [Event Title]
 
 **What Happened:**
 - [Description of change]
@@ -25,14 +28,14 @@ Brief narrative of how this chokepoint has evolved.
 - [Impact on threat landscape]
 
 **Detection Response:**
-- [How detections were adapted]
+- [How detections were adapted, or confirmation they didn't need to be]
 
 **The Constant (Chokepoint):**
 - [What remained unchanged]
 
 ---
 
-### YYYY-MM - [Event Title]
+### YYYY-MM — [Event Title]
 
 **What Happened:**
 - [Description of change]
@@ -59,7 +62,7 @@ Brief narrative of how this chokepoint has evolved.
 
 ### Decreasing Usage
 - [Variants being abandoned]
-- [Why they're declining (detection, defenses, etc.)]
+- [Why they're declining (detection, defenses, cost, etc.)]
 
 ### Emerging Patterns
 - [New variations on the horizon]
@@ -86,7 +89,7 @@ Rate how stable this chokepoint has been:
 - **Unstable** (2/5): Frequent changes requiring detection updates
 - **Volatile** (1/5): Chokepoint may be shifting entirely
 
-**Current Score:** [X/5]  
+**Current Score:** [X/5]
 **Reasoning:** [Why this score]
 
 ## Predicted Future State
@@ -104,12 +107,12 @@ Rate how stable this chokepoint has been:
 
 ## Related Chokepoint Shifts
 
-Has this chokepoint caused attackers to shift to different chokepoints?
+Has detection pressure on this chokepoint caused attackers to shift to a different
+technique category? See [chokepoint-shifts.md](../trends/chokepoint-shifts.md).
 
-- [Yes/No]
-- [If yes, where are they shifting to?]
+- [Yes/No — if yes, where are they shifting to?]
 
 ---
 
-**Last Review:** YYYY-MM-DD  
+**Last Review:** YYYY-MM-DD
 **Next Review:** YYYY-MM-DD

@@ -1,0 +1,50 @@
+title: Known RMM Tool Process Execution
+id: b8c2d4e6-f8a0-4b2c-9d3e-5f7a9b1c3d5e
+status: experimental
+description: >
+  Detects execution of known Remote Management and Monitoring (RMM) tool processes.
+  Research-level rule for baselining RMM tool usage across the environment. High false
+  positive rate expected due to legitimate IT use. Use to establish a baseline of
+  approved RMM instances before promoting to hunt-level detection.
+references:
+  - https://attack.mitre.org/techniques/T1219/
+author: "@iimp0ster"
+date: 2025/01/15
+tags:
+  - attack.initial_access
+  - attack.command_and_control
+  - attack.t1219
+  - detection.maturity.research
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+      - '\anydesk.exe'
+      - '\AnyDesk.exe'
+      - '\TeamViewer.exe'
+      - '\teamviewer.exe'
+      - '\ultraviewer.exe'
+      - '\UltraViewer.exe'
+      - '\rustdesk.exe'
+      - '\RustDesk.exe'
+      - '\meshagent.exe'
+      - '\MeshAgent.exe'
+    Image|contains:
+      - '\ScreenConnect.'
+      - '\connectwisecontrol'
+      - '\ConnectWiseControl'
+  condition: selection
+falsepositives:
+  - Legitimate IT helpdesk use of RMM tools
+  - Authorized remote support sessions
+  - Security testing environments
+level: informational
+# ─── Research Notes ──────────────────────────────────────────────────────────────
+# Build a whitelist of approved:
+#   - RMM tool names and versions
+#   - Source user accounts (IT staff only)
+#   - Parent processes (installer, IT deployment system)
+#   - Network destinations (approved RMM vendor infrastructure)
+# Anything outside this baseline is a candidate for promotion to Hunt/Analyst level.
