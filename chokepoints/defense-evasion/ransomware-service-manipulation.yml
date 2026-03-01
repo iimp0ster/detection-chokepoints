@@ -147,7 +147,7 @@ KnownBypasses:
     Detection: Detect kernel driver loading (BYOVD) before service manipulation
   - Bypass: Booting to Safe Mode (security services don't start)
     Mitigation: N/A — services genuinely not running in Safe Mode
-    Detection: Detect Safe Mode boot on servers (registry: HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot)
+    Detection: "Detect Safe Mode boot on servers (registry: HKLM\\SYSTEM\\CurrentControlSet\\Control\\SafeBoot)"
   - Bypass: Renaming service before stopping (evades name-based filters)
     Mitigation: Allowlist by service binary path, not service name
     Detection: Monitor service configuration changes (sc config); service rename before stop is itself suspicious

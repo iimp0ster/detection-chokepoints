@@ -1,0 +1,48 @@
+title: Detection Chokepoints
+tagline: "TTPs evolve. Chokepoints don't."
+description: >
+  A community database of attack prerequisites — the conditions attackers cannot avoid
+  regardless of tool choice. Each chokepoint includes Sigma detection rules at Research,
+  Hunt, and Analyst maturity levels.
+
+baseurl: "/detection-chokepoints"
+url: "https://iimp0ster.github.io"
+github_username: iimp0ster
+github_repo: detection-chokepoints
+
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+
+collections:
+  chokepoints:
+    output: true
+    permalink: /chokepoints/:name/
+
+plugins:
+  - jekyll-seo-tag
+
+# Files/dirs Jekyll should not copy or process into _site/
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - scripts/
+  - schema/
+  - templates/
+  - chokepoints/
+  - sigma-rules/
+  - attack-chains/
+  - trends/
+  - intel/
+  - README.md
+  - CONTRIBUTING.md
+  - CHANGELOG.md
+  - FRAMEWORK.md
+  - vendor/
+  - node_modules/
+  - "*.gemspec"
+  - ".github/"

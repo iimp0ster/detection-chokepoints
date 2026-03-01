@@ -1,0 +1,39 @@
+{% assign cp = include.cp %}
+{% assign priority_class = cp.DetectionPriority | downcase %}
+<article class="chokepoint-card" data-tactic="{{ cp.Tactic | downcase }}" data-priority="{{ cp.DetectionPriority }}" data-difficulty="{{ cp.Difficulty }}">
+  <a href="{{ cp._slug | prepend: '/chokepoints/' | append: '/' | relative_url }}" class="card-link" aria-label="View {{ cp.Name }}">
+    <div class="card-header">
+      <span class="priority-badge priority-{{ priority_class }}">{{ cp.DetectionPriority }}</span>
+      {% if cp.Status and cp.Status != "Active" %}
+      <span class="status-badge status-{{ cp.Status | downcase }}">{{ cp.Status }}</span>
+      {% endif %}
+    </div>
+    <h3 class="card-title">{{ cp.Name }}</h3>
+    <p class="card-tactic">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      {{ cp.Tactic }}
+    </p>
+    <p class="card-description">{{ cp.Description | truncate: 120 }}</p>
+    <div class="card-meta">
+      {% if cp.MitreIds %}
+      <div class="card-mitre">
+        {% for mid in cp.MitreIds limit:3 %}
+        <span class="mitre-chip">{{ mid }}</span>
+        {% endfor %}
+        {% if cp.MitreIds.size > 3 %}
+        <span class="mitre-chip mitre-more">+{{ cp.MitreIds.size | minus: 3 }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if cp.Variations %}
+      <span class="card-variants">{{ cp.Variations.size }} variation{% if cp.Variations.size != 1 %}s{% endif %}</span>
+      {% endif %}
+    </div>
+    {% if cp.TheConstant %}
+    <div class="card-constant">
+      <span class="constant-label">THE CONSTANT</span>
+      <span class="constant-value">{{ cp.TheConstant | truncate: 80 }}</span>
+    </div>
+    {% endif %}
+  </a>
+</article>
