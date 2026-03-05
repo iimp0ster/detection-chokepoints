@@ -4,71 +4,89 @@ title: Detection Chokepoints
 description: "Community resource for detection engineering: high-signal chokepoints that every attacker must pass through."
 ---
 
-<section class="hero">
-  <div class="hero-inner">
-    <h1 class="hero-title">Detection Chokepoints</h1>
-    <p class="hero-tagline">TTPs evolve. Chokepoints don't.</p>
+<section class="hero py-16 px-6 text-center border-b overflow-hidden relative">
+  <div class="max-w-2xl mx-auto relative">
+    <h1 class="hero-title mb-2">Detection Chokepoints</h1>
+    <p class="hero-tagline mb-4">TTPs evolve. Chokepoints don't.</p>
     <p class="hero-sub">Attack prerequisites that cannot be bypassed regardless of tool choice — high-signal, low-volume detection opportunities for every defender.</p>
   </div>
 </section>
 
-<section class="search-section" aria-label="Search and filter">
-  <div class="search-wrap">
-    <div class="search-box-wrap">
-      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+<section class="max-w-[1280px] mx-auto px-6 pt-8" aria-label="Search and filter">
+  <div class="mb-4">
+    <div class="search-box-wrap relative max-w-[640px]">
+      <svg class="search-icon absolute left-3.5 top-1/2 -translate-y-1/2" width="18" height="18"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
       <input
         type="search"
         id="search-input"
-        class="search-box"
+        class="search-box w-full rounded-xl text-base py-3 pl-11 pr-12"
         placeholder="Search chokepoints, techniques, MITRE IDs…"
         aria-label="Search chokepoints"
         autocomplete="off"
         spellcheck="false"
       />
-      <kbd class="search-shortcut" aria-hidden="true">/</kbd>
+      <kbd class="search-shortcut absolute right-3.5 top-1/2 -translate-y-1/2 rounded text-xs px-1.5 py-0.5"
+           aria-hidden="true">/</kbd>
     </div>
   </div>
 
-  <div class="filter-row" role="group" aria-label="Filter by tactic">
-    <span class="filter-label">Tactic</span>
-    <button class="filter-chip active" data-filter="tactic" data-value="all">All</button>
-    <button class="filter-chip" data-filter="tactic" data-value="initial-access">Initial Access</button>
-    <button class="filter-chip" data-filter="tactic" data-value="lateral-movement">Lateral Movement</button>
-    <button class="filter-chip" data-filter="tactic" data-value="defense-evasion">Defense Evasion</button>
-    <button class="filter-chip" data-filter="tactic" data-value="execution">Execution</button>
-    <button class="filter-chip" data-filter="tactic" data-value="persistence">Persistence</button>
+  <div class="filter-row flex flex-wrap items-center gap-2 mb-3"
+       role="group" aria-label="Filter by tactic">
+    <span class="filter-label text-xs font-semibold uppercase tracking-[.06em] min-w-[4.5rem]">Tactic</span>
+    <button class="filter-chip active rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="tactic" data-value="all">All</button>
+    <button class="filter-chip rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="tactic" data-value="initial-access">Initial Access</button>
+    <button class="filter-chip rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="tactic" data-value="lateral-movement">Lateral Movement</button>
+    <button class="filter-chip rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="tactic" data-value="defense-evasion">Defense Evasion</button>
+    <button class="filter-chip rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="tactic" data-value="execution">Execution</button>
+    <button class="filter-chip rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="tactic" data-value="persistence">Persistence</button>
   </div>
 
-  <div class="filter-row" role="group" aria-label="Filter by priority">
-    <span class="filter-label">Priority</span>
-    <button class="filter-chip active" data-filter="priority" data-value="all">All</button>
-    <button class="filter-chip priority-chip critical" data-filter="priority" data-value="CRITICAL">Critical</button>
-    <button class="filter-chip priority-chip high" data-filter="priority" data-value="HIGH">High</button>
-    <button class="filter-chip priority-chip medium" data-filter="priority" data-value="MEDIUM">Medium</button>
-    <button class="filter-chip priority-chip low" data-filter="priority" data-value="LOW">Low</button>
+  <div class="filter-row flex flex-wrap items-center gap-2 mb-3"
+       role="group" aria-label="Filter by priority">
+    <span class="filter-label text-xs font-semibold uppercase tracking-[.06em] min-w-[4.5rem]">Priority</span>
+    <button class="filter-chip active rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="priority" data-value="all">All</button>
+    <button class="filter-chip priority-chip critical rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="priority" data-value="CRITICAL">Critical</button>
+    <button class="filter-chip priority-chip high rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="priority" data-value="HIGH">High</button>
+    <button class="filter-chip priority-chip medium rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="priority" data-value="MEDIUM">Medium</button>
+    <button class="filter-chip priority-chip low rounded-full text-[.8125rem] px-3.5 py-1 cursor-pointer"
+            data-filter="priority" data-value="LOW">Low</button>
   </div>
 </section>
 
-<section class="results-meta" aria-live="polite" aria-atomic="true">
+<section class="results-meta max-w-[1280px] mx-auto px-6 mt-3 text-[.8125rem] min-h-[1.4rem]"
+         aria-live="polite" aria-atomic="true">
   <span id="results-count"></span>
 </section>
 
-<main id="chokepoints-grid" class="chokepoints-grid" aria-label="Chokepoints">
+<main id="chokepoints-grid"
+      class="max-w-[1280px] mx-auto px-6 mt-5 mb-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      aria-label="Chokepoints">
   {% assign sorted = site.data.chokepoints | sort: "DetectionPriority" %}
   {% for cp in sorted %}
     {% include chokepoint-card.html cp=cp %}
   {% endfor %}
 </main>
 
-<div id="no-results" class="no-results" hidden>
+<div id="no-results" class="no-results max-w-[1280px] mx-auto px-6 my-12 text-center" hidden>
   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
     <path d="M8 11h6M11 8v6" transform="rotate(45 11 11)"/>
   </svg>
-  <p>No chokepoints match your search.</p>
-  <button id="clear-search" class="btn-outline">Clear filters</button>
+  <p class="text-[1.1rem] mt-4 mb-5">No chokepoints match your search.</p>
+  <button id="clear-search" class="btn-outline rounded text-sm px-5 py-2">Clear filters</button>
 </div>
 
 <script>

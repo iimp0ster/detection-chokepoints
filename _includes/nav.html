@@ -1,6 +1,6 @@
 <nav class="site-nav" role="navigation" aria-label="Main navigation">
-  <div class="nav-inner">
-    <a class="nav-logo" href="{{ '/' | relative_url }}">
+  <div class="max-w-[1280px] mx-auto px-6 h-full flex items-center gap-8">
+    <a class="nav-logo flex items-center gap-2 font-bold text-base flex-shrink-0" href="{{ '/' | relative_url }}">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
            stroke-linejoin="round" aria-hidden="true">
@@ -9,19 +9,48 @@
       <span>Detection Chokepoints</span>
     </a>
 
-    <ul class="nav-links">
-      <li><a href="{{ '/' | relative_url }}"
-             {% if page.url == '/' or page.url == '/index.html' %}class="active"{% endif %}>
-        Chokepoints
-      </a></li>
-      <li><a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/attack-chains"
-             target="_blank" rel="noopener">Attack Chains</a></li>
-      <li><a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/FRAMEWORK.md"
-             target="_blank" rel="noopener">Framework</a></li>
-      <li><a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md"
-             target="_blank" rel="noopener">Contribute</a></li>
+    <ul class="flex items-center gap-1 list-none ml-auto">
       <li>
-        <a class="nav-github" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}"
+        <a class="text-sm px-3 py-1.5 rounded transition-colors
+                  {% if page.url == '/' or page.url == '/index.html' %}active{% endif %}"
+           href="{{ '/' | relative_url }}">
+          Chokepoints
+        </a>
+      </li>
+      <li>
+        <a class="text-sm px-3 py-1.5 rounded transition-colors"
+           href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/attack-chains"
+           target="_blank" rel="noopener">Attack Chains</a>
+      </li>
+      <li>
+        <a class="text-sm px-3 py-1.5 rounded transition-colors"
+           href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/FRAMEWORK.md"
+           target="_blank" rel="noopener">Framework</a>
+      </li>
+      <li>
+        <a class="text-sm px-3 py-1.5 rounded transition-colors"
+           href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md"
+           target="_blank" rel="noopener">Contribute</a>
+      </li>
+      <li>
+        <button class="theme-toggle p-1.5" id="theme-toggle"
+                aria-label="Toggle colour theme" title="Switch light/dark mode">
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </li>
+      <li>
+        <a class="nav-github flex items-center ml-1"
+           href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}"
            target="_blank" rel="noopener" aria-label="GitHub">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                fill="currentColor" aria-hidden="true">
