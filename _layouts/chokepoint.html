@@ -5,283 +5,293 @@ layout: default
 {% assign cp = site.data.chokepoints | where: "_slug", page.slug | first %}
 
 {% if cp == nil %}
-  <div class="container">
-    <p class="error">Chokepoint data not found for slug: {{ page.slug }}</p>
+  <div class="max-w-[960px] mx-auto px-6 py-10">
+    <p class="text-sm" style="color:var(--text-muted)">Chokepoint data not found for slug: {{ page.slug }}</p>
   </div>
 {% else %}
 
-<article class="chokepoint-detail">
-  <div class="container">
+<article class="max-w-[960px] mx-auto px-6 py-10 pb-20">
 
-    <!-- ── Header ─────────────────────────────────────────────────── -->
-    <header class="detail-header">
-      <div class="detail-header-top">
-        <a href="{{ '/' | relative_url }}" class="back-link">&larr; All Chokepoints</a>
-        <span class="badge priority-{{ cp.DetectionPriority | downcase }}">{{ cp.DetectionPriority }}</span>
-      </div>
-      <h1 class="detail-title">{{ cp.Name }}</h1>
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <header class="detail-header mb-10">
+    <div class="flex items-center gap-3 mb-4">
+      <a href="{{ '/' | relative_url }}" class="back-link text-sm">&larr; All Chokepoints</a>
+      <span class="badge priority-{{ cp.DetectionPriority | downcase }}">{{ cp.DetectionPriority }}</span>
+    </div>
 
-      <div class="detail-meta">
-        {% for tactic in cp.Tactics %}
-          <span class="badge tactic-badge">{{ tactic }}</span>
-        {% endfor %}
-        {% for mid in cp.MitreIds %}
-          <a class="badge mitre-badge"
-             href="https://attack.mitre.org/techniques/{{ mid | replace: '.', '/' }}/"
-             target="_blank" rel="noopener">{{ mid }}</a>
-        {% endfor %}
-        <span class="badge diff-badge diff-{{ cp.DetectionDifficulty | downcase }}">
-          Detection difficulty: {{ cp.DetectionDifficulty }}
-        </span>
-        <span class="badge prev-badge">
-          Prevalence: {{ cp.ThreatPrevalence }}
-        </span>
-      </div>
+    <h1 class="detail-title text-[clamp(1.5rem,4vw,2.25rem)] font-extrabold leading-tight mb-3">
+      {{ cp.Name }}
+    </h1>
 
-      <p class="detail-description">{{ cp.Description }}</p>
+    <div class="flex flex-wrap gap-2 mb-4">
+      {% for tactic in cp.Tactics %}
+        <span class="badge tactic-badge">{{ tactic }}</span>
+      {% endfor %}
+      {% for mid in cp.MitreIds %}
+        <a class="badge mitre-badge"
+           href="https://attack.mitre.org/techniques/{{ mid | replace: '.', '/' }}/"
+           target="_blank" rel="noopener">{{ mid }}</a>
+      {% endfor %}
+      <span class="badge diff-badge">Detection difficulty: {{ cp.DetectionDifficulty }}</span>
+      <span class="badge prev-badge">Prevalence: {{ cp.ThreatPrevalence }}</span>
+    </div>
 
-      <p class="detail-byline">
-        By {{ cp.Author }} &middot; Updated {{ cp.LastUpdated }}
-        &middot; <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ cp._source_path }}"
-                    target="_blank" rel="noopener">View source YAML</a>
-      </p>
-    </header>
+    <p class="detail-description text-[1.05rem] leading-relaxed max-w-[720px] mb-3">{{ cp.Description }}</p>
 
-    <!-- ── Prerequisites ─────────────────────────────────────────── -->
-    <section class="detail-section">
-      <h2>Prerequisites <span class="section-sub">(The Chokepoint)</span></h2>
-      <p class="section-intro">What <strong>must</strong> be true for this technique to succeed,
-         regardless of which tool is used:</p>
-      <ul class="prereq-list">
-        {% for prereq in cp.Prerequisites %}
-          <li><span class="prereq-icon">&#10003;</span> {{ prereq }}</li>
-        {% endfor %}
-      </ul>
-    </section>
+    <p class="detail-byline">
+      By {{ cp.Author }} &middot; Updated {{ cp.LastUpdated }}
+      &middot; <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ cp._source_path }}"
+                  target="_blank" rel="noopener">View source YAML</a>
+    </p>
+  </header>
 
-    <!-- ── Variations ─────────────────────────────────────────────── -->
-    {% if cp.Variations %}
-    <section class="detail-section">
-      <h2>Variations</h2>
-      <p class="section-intro">Tools and methods that exploit this chokepoint (the list grows; the chokepoint doesn't change):</p>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Tool / Method</th>
-              <th>First Seen</th>
-              <th>Status</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for v in cp.Variations %}
-            <tr>
-              <td><strong>{{ v.Name }}</strong></td>
-              <td>{{ v.FirstSeen }}</td>
-              <td><span class="status-badge status-{{ v.Status | downcase }}">{{ v.Status }}</span></td>
-              <td>{{ v.Notes }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
-    {% endif %}
+  <!-- ── Prerequisites ─────────────────────────────────────────── -->
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">
+      Prerequisites <span class="section-sub">(The Chokepoint)</span>
+    </h2>
+    <p class="section-intro mb-4">What <strong>must</strong> be true for this technique to succeed,
+       regardless of which tool is used:</p>
+    <ul class="prereq-list flex flex-col gap-2">
+      {% for prereq in cp.Prerequisites %}
+        <li class="flex items-start gap-2 text-[.9375rem]">
+          <span class="prereq-icon text-[.7rem] mt-1">&#10003;</span>
+          {{ prereq }}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
 
-    <!-- ── Detection Strategy ─────────────────────────────────────── -->
-    <section class="detail-section">
-      <h2>Detection Strategy</h2>
-      <p class="section-intro">Build detections iteratively. Start broad to understand your
-         baseline, then tighten to production-ready.</p>
+  <!-- ── The Constant ───────────────────────────────────────────── -->
+  {% if cp.TheConstant %}
+  <div class="constant-box rounded-xl px-6 py-5 mb-10">
+    <p class="constant-box-label">The Constant</p>
+    <p class="constant-box-value text-base">{{ cp.TheConstant }}</p>
+  </div>
+  {% endif %}
 
-      {% assign levels = "Research,Hunt,Analyst" | split: "," %}
-      <div class="sigma-tabs">
-        <div class="tab-buttons" role="tablist">
-          {% for level in levels %}
-            {% assign level_lower = level | downcase %}
-            <button class="tab-btn {% if level == 'Research' %}active{% endif %}"
-                    role="tab"
-                    data-tab="{{ level_lower }}"
-                    aria-selected="{% if level == 'Research' %}true{% else %}false{% endif %}">
-              {{ level }}
-              {% assign fp_map = "High,Medium,Low" | split: "," %}
-              {% assign fp_idx = forloop.index0 %}
-              <span class="tab-fp fp-{{ level_lower }}">{{ fp_map[fp_idx] }} FP</span>
-            </button>
+  <!-- ── Variations ─────────────────────────────────────────────── -->
+  {% if cp.Variations %}
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">Variations</h2>
+    <p class="section-intro mb-4">Tools and methods that exploit this chokepoint (the list grows; the chokepoint doesn't change):</p>
+    <div class="table-wrapper rounded-lg overflow-hidden">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tool / Method</th>
+            <th>First Seen</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in cp.Variations %}
+          <tr>
+            <td><strong>{{ v.Name }}</strong></td>
+            <td>{{ v.FirstSeen }}</td>
+            <td><span class="status-badge status-{{ v.Status | downcase }}">{{ v.Status }}</span></td>
+            <td>{{ v.Notes }}</td>
+          </tr>
           {% endfor %}
-        </div>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
 
+  <!-- ── Detection Strategy ─────────────────────────────────────── -->
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">Detection Strategy</h2>
+    <p class="section-intro mb-5">Build detections iteratively. Start broad to understand your
+       baseline, then tighten to production-ready.</p>
+
+    {% assign levels = "Research,Hunt,Analyst" | split: "," %}
+    <div class="sigma-tabs">
+      <div class="tab-buttons" role="tablist">
         {% for level in levels %}
           {% assign level_lower = level | downcase %}
-          {% assign detection = cp.Detections | where: "Level", level | first %}
-          {% assign sigma_key = "_sigma_" | append: level_lower %}
+          <button class="tab-btn text-sm font-medium px-5 py-2.5 cursor-pointer {% if level == 'Research' %}active{% endif %}"
+                  role="tab"
+                  data-tab="{{ level_lower }}"
+                  aria-selected="{% if level == 'Research' %}true{% else %}false{% endif %}">
+            {{ level }}
+            {% assign fp_map = "High,Medium,Low" | split: "," %}
+            {% assign fp_idx = forloop.index0 %}
+            <span class="tab-fp fp-{{ level_lower }}">{{ fp_map[fp_idx] }} FP</span>
+          </button>
+        {% endfor %}
+      </div>
 
-          <div class="tab-panel {% if level == 'Research' %}active{% endif %}"
-               id="tab-{{ level_lower }}" role="tabpanel">
+      {% for level in levels %}
+        {% assign level_lower = level | downcase %}
+        {% assign detection = cp.Detections | where: "Level", level | first %}
+        {% assign sigma_key = "_sigma_" | append: level_lower %}
 
-            {% if detection %}
-            <div class="detection-meta">
-              <p class="detection-goal"><strong>Goal:</strong> {{ detection.Description }}</p>
-              <div class="detection-two-col">
-                <div>
-                  <h4>Log Sources</h4>
-                  <ul class="log-sources">
-                    {% for src in detection.LogSources %}
-                      <li>{{ src }}</li>
-                    {% endfor %}
-                  </ul>
-                </div>
-                <div>
-                  <p><strong>FP Rate:</strong> {{ detection.ExpectedFPRate }}</p>
-                  <p><strong>Use Case:</strong> {{ detection.UseCase }}</p>
-                </div>
+        <div class="tab-panel rounded-b-xl p-6 {% if level == 'Research' %}active{% endif %}"
+             id="tab-{{ level_lower }}" role="tabpanel">
+
+          {% if detection %}
+          <div class="detection-meta mb-5">
+            <p class="detection-goal mb-4"><strong>Goal:</strong> {{ detection.Description }}</p>
+            <div class="detection-two-col grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
+              <div>
+                <h4>Log Sources</h4>
+                <ul class="log-sources mt-2">
+                  {% for src in detection.LogSources %}
+                    <li>{{ src }}</li>
+                  {% endfor %}
+                </ul>
               </div>
-              {% if detection.Logic %}
-              <h4>Detection Logic</h4>
-              <pre class="logic-block"><code>{{ detection.Logic | strip }}</code></pre>
-              {% endif %}
+              <div>
+                <p><strong>FP Rate:</strong> {{ detection.ExpectedFPRate }}</p>
+                <p class="mt-2"><strong>Use Case:</strong> {{ detection.UseCase }}</p>
+              </div>
             </div>
+            {% if detection.Logic %}
+            <h4 class="mb-2">Detection Logic</h4>
+            <pre class="logic-block rounded-lg p-4 overflow-x-auto text-[.8rem]"><code>{{ detection.Logic | strip }}</code></pre>
             {% endif %}
-
-            <!-- Sigma rule -->
-            <div class="sigma-rule-block">
-              <div class="sigma-rule-header">
-                <span class="sigma-label">Sigma Rule &mdash; {{ level }} Level</span>
-                <div class="sigma-actions">
-                  {% if detection.SigmaRule %}
-                  <a class="btn-sm"
-                     href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ detection.SigmaRule }}"
-                     target="_blank" rel="noopener">View on GitHub</a>
-                  <a class="btn-sm"
-                     href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ detection.SigmaRule }}"
-                     download>Download</a>
-                  {% endif %}
-                  <button class="btn-sm copy-btn" data-target="sigma-{{ level_lower }}">Copy</button>
-                </div>
-              </div>
-              {% assign sigma_content = cp[sigma_key] %}
-              {% if sigma_content %}
-              <pre class="sigma-code" id="sigma-{{ level_lower }}"><code class="language-yaml">{{ sigma_content | xml_escape }}</code></pre>
-              {% else %}
-              <p class="no-sigma">Sigma rule not yet available for this level.
-                <a href="{{ site.github_repo | prepend: 'https://github.com/' | append: '/' | append: site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md"
-                   target="_blank" rel="noopener">Contribute one</a>.
-              </p>
-              {% endif %}
-            </div>
           </div>
-        {% endfor %}
-      </div>
-    </section>
-
-    <!-- ── Evolution Timeline ─────────────────────────────────────── -->
-    {% if cp.EvolutionTimeline %}
-    <section class="detail-section">
-      <h2>Evolution Timeline</h2>
-      <p class="section-intro">New tools appear; the chokepoint stays the same.</p>
-      <div class="timeline">
-        {% for event in cp.EvolutionTimeline reversed %}
-        <div class="timeline-item">
-          <div class="timeline-date">{{ event.Date }}</div>
-          <div class="timeline-content">
-            <h4>{{ event.Event }}</h4>
-            <p><strong>Change:</strong> {{ event.Change }}</p>
-            <p><strong>Detection impact:</strong> {{ event.DetectionImpact }}</p>
-            <p class="constant-line"><strong>The constant:</strong>
-              <em>{{ event.TheConstant }}</em></p>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-    {% endif %}
-
-    <!-- ── Known Bypasses ─────────────────────────────────────────── -->
-    {% if cp.KnownBypasses %}
-    <section class="detail-section">
-      <h2>Known Bypasses &amp; Mitigations</h2>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr><th>Bypass Method</th><th>Mitigation</th><th>Detection</th></tr>
-          </thead>
-          <tbody>
-            {% for b in cp.KnownBypasses %}
-            <tr>
-              <td>{{ b.Bypass }}</td>
-              <td>{{ b.Mitigation }}</td>
-              <td>{{ b.Detection }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
-    {% endif %}
-
-    <!-- ── OSINT Sources ──────────────────────────────────────────── -->
-    {% if cp.OsintSources %}
-    <section class="detail-section">
-      <h2>OSINT Sources</h2>
-      <div class="osint-grid">
-        {% for src in cp.OsintSources %}
-        <div class="osint-card">
-          <span class="osint-platform">{{ src.Platform }}</span>
-          <code class="osint-query">{{ src.Query }}</code>
-          {% if src.Notes %}<p class="osint-notes">{{ src.Notes }}</p>{% endif %}
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-    {% endif %}
-
-    <!-- ── Intel Resources ────────────────────────────────────────── -->
-    {% if cp.Intel %}
-    <section class="detail-section">
-      <h2>Free Intel Resources</h2>
-      <ul class="intel-list">
-        {% for intel in cp.Intel %}
-        <li>
-          <a href="{{ intel.URL }}" target="_blank" rel="noopener">{{ intel.Name }}</a>
-          {% if intel.Description %}&mdash; {{ intel.Description | truncate: 120 }}{% endif %}
-        </li>
-        {% endfor %}
-      </ul>
-    </section>
-    {% endif %}
-
-    <!-- ── Related Chokepoints ────────────────────────────────────── -->
-    {% if cp.RelatedChokepoints %}
-    <section class="detail-section">
-      <h2>Related Chokepoints</h2>
-      <div class="related-grid">
-        {% for slug in cp.RelatedChokepoints %}
-          {% assign related = site.data.chokepoints | where: "_slug", slug | first %}
-          {% if related %}
-          <a class="related-card" href="{{ '/chokepoints/' | append: slug | append: '/' | relative_url }}">
-            <span class="related-name">{{ related.Name }}</span>
-            <span class="badge priority-{{ related.DetectionPriority | downcase }} sm">{{ related.DetectionPriority }}</span>
-          </a>
           {% endif %}
-        {% endfor %}
+
+          <div class="sigma-rule-block">
+            <div class="sigma-rule-header mb-3">
+              <span class="sigma-label">Sigma Rule &mdash; {{ level }} Level</span>
+              <div class="sigma-actions">
+                {% if detection.SigmaRule %}
+                <a class="btn-sm"
+                   href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ detection.SigmaRule }}"
+                   target="_blank" rel="noopener">View on GitHub</a>
+                <a class="btn-sm"
+                   href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ detection.SigmaRule }}"
+                   download>Download</a>
+                {% endif %}
+                <button class="btn-sm copy-btn" data-target="sigma-{{ level_lower }}">Copy</button>
+              </div>
+            </div>
+            {% assign sigma_content = cp[sigma_key] %}
+            {% if sigma_content %}
+            <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"
+                 id="sigma-{{ level_lower }}"><code class="language-yaml">{{ sigma_content | xml_escape }}</code></pre>
+            {% else %}
+            <p class="no-sigma">Sigma rule not yet available for this level.
+              <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md"
+                 target="_blank" rel="noopener">Contribute one</a>.
+            </p>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- ── Evolution Timeline ─────────────────────────────────────── -->
+  {% if cp.EvolutionTimeline %}
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">Evolution Timeline</h2>
+    <p class="section-intro mb-5">New tools appear; the chokepoint stays the same.</p>
+    <div class="timeline flex flex-col gap-4">
+      {% for event in cp.EvolutionTimeline reversed %}
+      <div class="timeline-item flex gap-4 items-start">
+        <div class="timeline-date font-mono text-sm min-w-[6rem] pt-0.5">{{ event.Date }}</div>
+        <div class="timeline-content">
+          <h4>{{ event.Event }}</h4>
+          <p><strong>Change:</strong> {{ event.Change }}</p>
+          <p><strong>Detection impact:</strong> {{ event.DetectionImpact }}</p>
+          <p class="constant-line"><strong>The constant:</strong> <em>{{ event.TheConstant }}</em></p>
+        </div>
       </div>
-    </section>
-    {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 
-    <!-- ── References ─────────────────────────────────────────────── -->
-    {% if cp.References %}
-    <section class="detail-section">
-      <h2>References</h2>
-      <ul class="ref-list">
-        {% for ref in cp.References %}
-        <li><a href="{{ ref }}" target="_blank" rel="noopener">{{ ref }}</a></li>
-        {% endfor %}
-      </ul>
-    </section>
-    {% endif %}
+  <!-- ── Known Bypasses ─────────────────────────────────────────── -->
+  {% if cp.KnownBypasses %}
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">Known Bypasses &amp; Mitigations</h2>
+    <div class="table-wrapper rounded-lg overflow-hidden">
+      <table class="data-table">
+        <thead>
+          <tr><th>Bypass Method</th><th>Mitigation</th><th>Detection</th></tr>
+        </thead>
+        <tbody>
+          {% for b in cp.KnownBypasses %}
+          <tr>
+            <td>{{ b.Bypass }}</td>
+            <td>{{ b.Mitigation }}</td>
+            <td>{{ b.Detection }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
 
-  </div><!-- /container -->
+  <!-- ── OSINT Sources ──────────────────────────────────────────── -->
+  {% if cp.OsintSources %}
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">OSINT Sources</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {% for src in cp.OsintSources %}
+      <div class="osint-card rounded-xl p-4">
+        <span class="osint-platform">{{ src.Platform }}</span>
+        <code class="osint-query">{{ src.Query }}</code>
+        {% if src.Notes %}<p class="osint-notes">{{ src.Notes }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ── Intel Resources ────────────────────────────────────────── -->
+  {% if cp.Intel %}
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">Free Intel Resources</h2>
+    <ul class="intel-list flex flex-col gap-2">
+      {% for intel in cp.Intel %}
+      <li class="flex items-start gap-2">
+        <a href="{{ intel.URL }}" target="_blank" rel="noopener">{{ intel.Name }}</a>
+        {% if intel.Description %}&mdash; <span style="color:var(--text-dim);font-size:.9rem">{{ intel.Description | truncate: 120 }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <!-- ── Related Chokepoints ────────────────────────────────────── -->
+  {% if cp.RelatedChokepoints %}
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">Related Chokepoints</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+      {% for slug in cp.RelatedChokepoints %}
+        {% assign related = site.data.chokepoints | where: "_slug", slug | first %}
+        {% if related %}
+        <a class="related-card rounded-lg p-4"
+           href="{{ '/chokepoints/' | append: slug | append: '/' | relative_url }}">
+          <span class="related-name">{{ related.Name }}</span>
+          <span class="badge priority-{{ related.DetectionPriority | downcase }} sm">{{ related.DetectionPriority }}</span>
+        </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ── References ─────────────────────────────────────────────── -->
+  {% if cp.References %}
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">References</h2>
+    <ul class="ref-list flex flex-col gap-1.5">
+      {% for ref in cp.References %}
+      <li><a href="{{ ref }}" target="_blank" rel="noopener">{{ ref }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
 </article>
 
 <script>
@@ -308,7 +318,8 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
       await navigator.clipboard.writeText(target.textContent);
       const orig = btn.textContent;
       btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = orig; }, 1500);
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
     } catch {
       btn.textContent = 'Failed';
     }

@@ -1,39 +1,63 @@
 {% assign cp = include.cp %}
 {% assign priority_class = cp.DetectionPriority | downcase %}
-<article class="chokepoint-card" data-tactic="{{ cp.Tactic | downcase }}" data-priority="{{ cp.DetectionPriority }}" data-difficulty="{{ cp.Difficulty }}">
-  <a href="{{ cp._slug | prepend: '/chokepoints/' | append: '/' | relative_url }}" class="card-link" aria-label="View {{ cp.Name }}">
-    <div class="card-header">
-      <span class="priority-badge priority-{{ priority_class }}">{{ cp.DetectionPriority }}</span>
+<article class="chokepoint-card rounded-xl transition-all"
+         data-tactic="{{ cp.Tactic | downcase }}"
+         data-priority="{{ cp.DetectionPriority }}"
+         data-difficulty="{{ cp.Difficulty }}">
+  <a href="{{ cp._slug | prepend: '/chokepoints/' | append: '/' | relative_url }}"
+     class="card-link flex flex-col gap-2.5 p-5 h-full"
+     aria-label="View {{ cp.Name }}">
+
+    <div class="card-header flex items-center gap-2">
+      <span class="priority-badge priority-{{ priority_class }} text-[.6875rem] font-bold uppercase tracking-[.06em] px-2 py-0.5 rounded-sm">
+        {{ cp.DetectionPriority }}
+      </span>
       {% if cp.Status and cp.Status != "Active" %}
-      <span class="status-badge status-{{ cp.Status | downcase }}">{{ cp.Status }}</span>
+      <span class="status-badge status-{{ cp.Status | downcase }} text-[.65rem] font-semibold uppercase tracking-[.05em] px-1.5 py-0.5 rounded-sm">
+        {{ cp.Status }}
+      </span>
       {% endif %}
     </div>
-    <h3 class="card-title">{{ cp.Name }}</h3>
-    <p class="card-tactic">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+
+    <h3 class="card-title text-[1.05rem] font-bold leading-snug">{{ cp.Name }}</h3>
+
+    <p class="card-tactic flex items-center gap-1.5 text-xs uppercase tracking-[.05em]">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
       {{ cp.Tactic }}
     </p>
-    <p class="card-description">{{ cp.Description | truncate: 120 }}</p>
-    <div class="card-meta">
+
+    <p class="card-description text-sm leading-relaxed flex-grow">
+      {{ cp.Description | truncate: 120 }}
+    </p>
+
+    <div class="card-meta flex items-center justify-between flex-wrap gap-2 mt-1">
       {% if cp.MitreIds %}
-      <div class="card-mitre">
+      <div class="card-mitre flex flex-wrap gap-1">
         {% for mid in cp.MitreIds limit:3 %}
-        <span class="mitre-chip">{{ mid }}</span>
+        <span class="mitre-chip font-mono text-[.7rem] px-1.5 py-0.5 rounded-sm">{{ mid }}</span>
         {% endfor %}
         {% if cp.MitreIds.size > 3 %}
-        <span class="mitre-chip mitre-more">+{{ cp.MitreIds.size | minus: 3 }}</span>
+        <span class="mitre-chip mitre-more font-mono text-[.7rem] px-1.5 py-0.5 rounded-sm">
+          +{{ cp.MitreIds.size | minus: 3 }}
+        </span>
         {% endif %}
       </div>
       {% endif %}
       {% if cp.Variations %}
-      <span class="card-variants">{{ cp.Variations.size }} variation{% if cp.Variations.size != 1 %}s{% endif %}</span>
+      <span class="card-variants text-xs">
+        {{ cp.Variations.size }} variation{% if cp.Variations.size != 1 %}s{% endif %}
+      </span>
       {% endif %}
     </div>
+
     {% if cp.TheConstant %}
-    <div class="card-constant">
-      <span class="constant-label">THE CONSTANT</span>
-      <span class="constant-value">{{ cp.TheConstant | truncate: 80 }}</span>
+    <div class="card-constant rounded px-3 py-2 mt-1">
+      <span class="constant-label block text-[.6rem] font-bold uppercase tracking-[.1em] mb-1">THE CONSTANT</span>
+      <span class="constant-value text-[.78rem] italic">{{ cp.TheConstant | truncate: 80 }}</span>
     </div>
     {% endif %}
+
   </a>
 </article>

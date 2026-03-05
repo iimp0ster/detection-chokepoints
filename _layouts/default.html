@@ -8,6 +8,7 @@
   {% seo %}
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}" />
   <link rel="icon" type="image/svg+xml" href="{{ '/assets/img/favicon.svg' | relative_url }}" />
+  <script src="https://cdn.tailwindcss.com"></script>
   <!-- Restore saved theme before first paint to prevent flash -->
   <script>
     (function () {
@@ -16,7 +17,7 @@
     })();
   </script>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
 
   {% include nav.html %}
 
@@ -24,13 +25,13 @@
     {{ content }}
   </main>
 
-  <footer class="site-footer">
-    <div class="footer-inner">
+  <footer class="site-footer py-8 px-6">
+    <div class="footer-inner max-w-[1280px] mx-auto flex flex-wrap items-center justify-between gap-4 text-sm">
       <span>
         <a href="{{ '/' | relative_url }}">Detection Chokepoints</a>
         &mdash; community detection engineering resource
       </span>
-      <span class="footer-links">
+      <span class="footer-links flex flex-wrap gap-5">
         <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}" target="_blank" rel="noopener">
           GitHub
         </a>
