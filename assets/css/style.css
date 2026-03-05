@@ -6,6 +6,8 @@
   --bg-card:     #161b22;
   --bg-card-hover: #1c2128;
   --bg-input:    #21262d;
+  --bg-nav:      rgba(13,17,23,0.85);
+  --bg-stripe:   rgba(22,27,34,.6);
   --border:      #30363d;
   --border-focus:#f0883e;
   --text:        #e6edf3;
@@ -29,6 +31,33 @@
   --max-w:       1280px;
 }
 
+/* ─── Light theme ────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:            #f6f8fa;
+  --bg-card:       #ffffff;
+  --bg-card-hover: #f0f2f5;
+  --bg-input:      #f6f8fa;
+  --bg-nav:        rgba(246,248,250,0.90);
+  --bg-stripe:     rgba(234,240,246,0.7);
+  --border:        #d0d7de;
+  --border-focus:  #f0883e;
+  --text:          #1f2328;
+  --text-muted:    #57606a;
+  --text-dim:      #8c959f;
+  --link:          #0969da;
+  /* accent + priorities stay the same */
+}
+
+[data-theme="light"] .hero {
+  background: linear-gradient(160deg, #f6f8fa 0%, #eaf0f6 50%, #f6f8fa 100%);
+}
+[data-theme="light"] .hero::before {
+  background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(240,136,62,.09) 0%, transparent 70%);
+}
+[data-theme="light"] .chokepoint-card:hover {
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(0,0,0,.12);
+}
+
 html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
@@ -46,7 +75,7 @@ a:hover { text-decoration: underline; }
 
 /* ─── Navigation ────────────────────────────────────────────────────────────── */
 .site-nav {
-  background: rgba(13,17,23,0.85);
+  background: var(--bg-nav);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   height: var(--nav-h);
@@ -496,7 +525,7 @@ a:hover { text-decoration: underline; }
   vertical-align: top;
   line-height: 1.5;
 }
-.variations-table tr:nth-child(odd) td { background: rgba(22,27,34,.6); }
+.variations-table tr:nth-child(odd) td { background: var(--bg-stripe); }
 .variation-name { color: var(--text); font-weight: 600; }
 .prevalence-badge {
   display: inline-block;
@@ -637,7 +666,7 @@ pre.sigma-block {
   color: var(--text-muted);
   vertical-align: top;
 }
-.bypass-table tr:nth-child(odd) td { background: rgba(22,27,34,.6); }
+.bypass-table tr:nth-child(odd) td { background: var(--bg-stripe); }
 
 /* OSINT grid */
 .osint-grid {
@@ -709,6 +738,28 @@ pre.sigma-block {
 .footer-links { display: flex; flex-wrap: wrap; gap: 1.25rem; }
 .footer-links a { color: var(--text-dim); text-decoration: none; }
 .footer-links a:hover { color: var(--accent); }
+
+/* ─── Theme toggle ──────────────────────────────────────────────────────────── */
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: .3rem .4rem;
+  transition: color .15s, border-color .15s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.theme-toggle svg { display: block; }
+
+/* Show sun (→ light) in dark mode; show moon (→ dark) in light mode */
+[data-theme="dark"]  .icon-sun  { display: block; }
+[data-theme="dark"]  .icon-moon { display: none;  }
+[data-theme="light"] .icon-sun  { display: none;  }
+[data-theme="light"] .icon-moon { display: block; }
 
 /* ─── Utilities ─────────────────────────────────────────────────────────────── */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
