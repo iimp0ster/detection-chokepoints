@@ -2,13 +2,11 @@
 Name: ClickFix Techniques
 Id: c7f2a1b4-3e8d-4a9c-8b5f-2d1e6f0a7c3b
 MitreIds:
-  - T1204.001
-  - T1204.003
+  - T1204.004
 Tactics:
   - Initial Access
 Techniques:
-  - "User Execution: Malicious Link"
-  - "User Execution: Malicious Image"
+  - "User Execution: Malicious Copy and Paste"
 DetectionPriority: HIGH
 ThreatPrevalence: HIGH
 DetectionDifficulty: LOW
@@ -18,18 +16,21 @@ Description: >
   a command (often disguised as a CAPTCHA fix, software update, or troubleshooting
   step) and paste it into a Run dialog, terminal, or browser address bar. The
   clipboard is the pivot — the scripting interpreter execution is the chokepoint.
-LastUpdated: "2025-01-15"
+  As of late 2024 through early 2025, nation-state actors including APT28 (Russia),
+  MuddyWater (Iran), and Kimsuky (North Korea) adopted ClickFix in targeted espionage
+  campaigns, elevating it from commodity crimeware to an advanced persistent threat vector.
+LastUpdated: "2026-03-07"
 Author: "@iimp0ster"
 
 Variations:
   - Name: ClickFix
-    FirstSeen: "2024-Q2"
+    FirstSeen: "2024-Q1"
     Status: Active
-    Notes: Original variant; fake CAPTCHA or browser fix prompts user to paste PowerShell
+    Notes: "Original variant; first documented by Proofpoint in March 2024 via TA571; fake CAPTCHA or browser fix prompts user to paste PowerShell into Run dialog or terminal"
   - Name: FileFix
-    FirstSeen: "2024-Q3"
+    FirstSeen: "2025-Q2"
     Status: Active
-    Notes: File-based execution; adds file creation step before script execution
+    Notes: "Published by researcher mr.d0x on June 23, 2025; shifts attack surface from Run dialog to Windows File Explorer address bar; in-the-wild campaigns observed within two weeks of public disclosure"
   - Name: TerminalFix
     FirstSeen: "2024-Q4"
     Status: Active
@@ -38,6 +39,14 @@ Variations:
     FirstSeen: "2024-Q4"
     Status: Active
     Notes: Simplified delivery; user pastes a download-and-execute one-liner
+  - Name: JackFix / GlitchFix / ConsentFix
+    FirstSeen: "2025"
+    Status: Active
+    Notes: "Expanding family of named variants using the same clipboard-paste-execute primitive with different social engineering pretexts (consent dialogs, glitch/error UIs); same chokepoint applies"
+  - Name: DNS-based ClickFix
+    FirstSeen: "2025-Q4"
+    Status: Active
+    Notes: "Disclosed by Microsoft February 2026; uses nslookup for malware staging instead of direct download, evading URL-based web filtering; same user-execution primitive"
 
 Prerequisites:
   - Host malicious site or compromised legitimate site
@@ -46,9 +55,9 @@ Prerequisites:
   - Scripting interpreter available on system (powershell.exe, cmd.exe, bash)
 
 EvolutionTimeline:
-  - Date: "2024-Q2"
+  - Date: "2024-Q1"
     Event: ClickFix Original
-    Change: New social engineering technique requiring no malicious attachment
+    Change: New social engineering technique requiring no malicious attachment; first documented by Proofpoint via TA571
     DetectionImpact: New pattern requiring detection development
     TheConstant: "User clipboard → scripting interpreter → outbound network connection"
   - Date: "2024-Q3"
@@ -65,6 +74,16 @@ EvolutionTimeline:
     Event: DownloadFix Variant
     Change: Simplified payload; less obfuscation needed, direct download-execute
     DetectionImpact: Same clipboard interaction and execution pattern
+    TheConstant: "User clipboard → scripting interpreter → outbound network connection"
+  - Date: "2024-Q4"
+    Event: Nation-state adoption begins
+    Change: APT28, MuddyWater (TA450), Kimsuky (TA427), and UNK_RemoteRogue adopt ClickFix in targeted espionage campaigns
+    DetectionImpact: Payloads shift from commodity stealers (Lumma) to RATs (QuasarRAT) and APT implants; lure quality increases significantly; detection logic unchanged but triage priority rises
+    TheConstant: "User clipboard → scripting interpreter → outbound network connection"
+  - Date: "2025-Q2"
+    Event: FileFix published and weaponized within two weeks
+    Change: Attack surface expands from Run dialog to File Explorer address bar; same payload delivery via clipboard
+    DetectionImpact: Monitor for suspicious processes spawned from explorer.exe with File Explorer address bar as vector; existing browser-parent rules may not catch this path
     TheConstant: "User clipboard → scripting interpreter → outbound network connection"
 
 Detections:
@@ -115,6 +134,24 @@ Detections:
     SigmaRule: sigma-rules/clickfix/analyst.yml
 
 Intel:
+  - Name: Proofpoint — ClickFix Social Engineering Technique Floods Threat Landscape
+    URL: https://www.proofpoint.com/us/blog/threat-insight/security-brief-clickfix-social-engineering-technique-floods-threat-landscape
+    Description: Original Proofpoint research naming and first documenting ClickFix; covers TA571 initial campaigns and early payload taxonomy
+  - Name: "Proofpoint — Around the World in 90 Days: State-Sponsored Actors Try ClickFix"
+    URL: https://www.proofpoint.com/us/blog/threat-insight/around-world-90-days-state-sponsored-actors-try-clickfix
+    Description: Documents APT28, MuddyWater (TA450), Kimsuky (TA427), and UNK_RemoteRogue adoption of ClickFix between October 2024 and February 2025
+  - Name: Microsoft Security Blog — Think Before You ClickFix
+    URL: https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/
+    Description: Comprehensive Microsoft Threat Intelligence analysis covering technique mechanics, nation-state adoption, and the commercialization of ClickFix builders on hacker forums
+  - Name: Huntress — Don't Sweat the ClickFix Techniques
+    URL: https://huntress.com/blog/dont-sweat-clickfix-techniques
+    Description: Primary reference for the ClickFix variant taxonomy (FileFix, TerminalFix, DownloadFix); explains why the chokepoint is stable across all variants
+  - Name: "mr.d0x — FileFix: A ClickFix Alternative"
+    URL: https://mrd0x.com/filefix-clickfix-alternative/
+    Description: Original research introducing FileFix (June 2025); details the File Explorer address bar attack surface and why it bypasses Run-dialog detection heuristics
+  - Name: "MITRE ATT&CK — T1204.004 User Execution: Malicious Copy and Paste"
+    URL: https://attack.mitre.org/techniques/T1204/004/
+    Description: Official technique definition added March 18, 2025; procedure examples and detection guidance specific to clipboard-based social engineering
   - Name: ClickGrab
     URL: https://mhaggis.github.io/ClickGrab/
     Description: >
@@ -132,13 +169,16 @@ RelatedChokepoints:
 OsintSources:
   - Platform: URLScan
     Query: "page.url:*clickfix* OR page.url:*filefix*"
+    URL: "https://urlscan.io/search/#page.url%3A*clickfix*%20OR%20page.url%3A*filefix*"
     Notes: Find active ClickFix lure pages; combine with page content search for clipboard JS
   - Platform: URLScan
     Query: "page.body:navigator.clipboard OR page.body:ClipboardItem"
-    Notes: Find pages using clipboard manipulation JavaScript regardless of theme name
-  - Platform: VirusTotal
-    Query: "behavior_network:pastebin.com type:powershell"
-    Notes: Find PowerShell files with Pastebin C2 — common ClickFix payload pattern
+    URL: "https://urlscan.io/search/#page.body%3Anavigator.clipboard%20OR%20page.body%3AClipboardItem"
+    Notes: Find pages using clipboard manipulation JavaScript regardless of theme name; more resilient to lure-name changes than URL-based queries
+  - Platform: VirusTotal Intelligence
+    Query: 'behavior_network:"pastebin.com" tag:powershell'
+    URL: "https://www.virustotal.com/gui/search/behavior_network%3A%22pastebin.com%22%20tag%3Apowershell"
+    Notes: "Requires VT Intelligence subscription. Finds PowerShell samples that contacted Pastebin during sandbox execution — common ClickFix payload staging pattern. Pivot to behavior tab to inspect the full execution chain."
 
 KnownBypasses:
   - Bypass: Hosting payload on legitimate platforms (Pastebin, GitHub, cloud storage)
@@ -150,11 +190,7 @@ KnownBypasses:
   - Bypass: Delayed execution (sleep before outbound connection)
     Mitigation: N/A
     Detection: Extend the correlation time window in hunt/analyst rules
+  - Bypass: macOS/Linux native interpreters (osascript, bash, zsh) evade Windows-only detection logic
+    Mitigation: Enforce application allowlisting on macOS; restrict terminal access for non-technical users
+    Detection: "On macOS, monitor for osascript or bash spawned from browser processes (Sysmon for Linux/macOS EID 1; Jamf/EDR telemetry); the parent-child relationship and outbound connection pattern is identical to the Windows case"
 
-References:
-  - https://huntress.com/blog/dont-sweat-clickfix-techniques
-  - https://staging.huntress.com/blog/dont-sweat-clickfix-techniques
-  - https://mhaggis.github.io/ClickGrab/
-  - https://www.aitmfeed.com/blog/blog-1/tracking-clickfix-infrastructure-4
-  - https://attack.mitre.org/techniques/T1204/001/
-  - https://attack.mitre.org/techniques/T1204/003/
