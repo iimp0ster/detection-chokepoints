@@ -145,7 +145,7 @@ Intel:
   - Name: Talos — BYOVD Loader Behind DeadLock Ransomware
     URL: https://blog.talosintelligence.com/byovd-loader-deadlock-ransomware/
     Description: Technical analysis of purpose-built EDR-kill tooling bundled with ransomware; covers driver weaponization and service termination via kernel calls
-  - Name: MITRE ATT&CK — T1562.001 Impair Defenses: Disable or Modify Tools
+  - Name: "MITRE ATT&CK — T1562.001 Impair Defenses: Disable or Modify Tools"
     URL: https://attack.mitre.org/techniques/T1562/001/
     Description: Technique definition, procedure examples, and detection guidance for disabling or modifying security tools
   - Name: MITRE ATT&CK — T1489 Service Stop
