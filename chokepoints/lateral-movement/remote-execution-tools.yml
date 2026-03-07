@@ -3,17 +3,21 @@ Name: Remote Execution Tools (HackTools)
 Id: d4e6f8a0-2b3c-5d7e-9f1a-4c6b8d0e2f4a
 MitreIds:
   - T1021.002
+  - T1021.003
   - T1021.006
   - T1047
   - T1053.005
+  - T1569.002
 Tactics:
   - Lateral Movement
   - Execution
 Techniques:
   - "Remote Services: SMB/Windows Admin Shares"
+  - "Remote Services: Distributed Component Object Model"
   - "Remote Services: Windows Remote Management"
   - "Windows Management Instrumentation"
   - "Scheduled Task/Job: Scheduled Task"
+  - "System Services: Service Execution"
 DetectionPriority: HIGH
 ThreatPrevalence: HIGH
 DetectionDifficulty: MEDIUM
@@ -24,7 +28,7 @@ Description: >
   valid admin credentials. Despite tool diversity, the chokepoint is invariant: valid
   admin credentials, network access to target ports, and a remote execution primitive
   (service creation, WMI process, scheduled task) are always required.
-LastUpdated: "2025-01-15"
+LastUpdated: "2026-03-07"
 Author: "@iimp0ster"
 
 Variations:
@@ -38,8 +42,8 @@ Variations:
       dcomexec.py (DCOM), rdp_shadow.py (RDP session hijacking, added 2025-01)
   - Name: CrackMapExec
     FirstSeen: "2016"
-    Status: Active
-    Notes: Multi-protocol framework covering SMB, WMI, WinRM, MSSQL
+    Status: Archived
+    Notes: "Multi-protocol framework covering SMB, WMI, WinRM, MSSQL; original repository archived by maintainer on December 6, 2023 (read-only); superseded by NetExec — defenders should not expect CME-specific signatures to receive community updates"
   - Name: NetExec
     FirstSeen: "2023"
     Status: Active
@@ -52,6 +56,14 @@ Variations:
     FirstSeen: "2007"
     Status: Active
     Notes: Original PsExec-style SMB execution via Metasploit framework
+  - Name: Sliver
+    FirstSeen: "2020"
+    Status: Active
+    Notes: "Open-source C2 framework widely adopted by nation-state and ransomware actors as a Cobalt Strike alternative; built-in lateral movement over SMB/WMI using the same execution primitives this chokepoint detects; used by threat actors following Fortra's crackdown on pirated Cobalt Strike licenses"
+  - Name: Havoc
+    FirstSeen: "2022"
+    Status: Active
+    Notes: "Modern open-source C2 framework with strong EDR bypass features and lateral movement capabilities; described as 'entry-level C2 for serious criminals'; increasingly observed in intrusions alongside or replacing Impacket; uses the same underlying Windows execution primitives (service creation, WMI, WinRM)"
 
 Prerequisites:
   - Valid admin credentials for target system (local or domain)
@@ -74,6 +86,11 @@ EvolutionTimeline:
     Event: NetExec forked from CrackMapExec
     Change: Active development, LDAP/SSH support, improved operational security features
     DetectionImpact: No fundamental change to underlying Windows API behaviors
+    TheConstant: "Admin creds + network access + remote execution primitive"
+  - Date: "2023-Q4"
+    Event: CrackMapExec officially archived
+    Change: Original CME repository archived December 6, 2023; NetExec becomes the de facto community standard; CME-specific binary signatures and detection rules stop receiving community updates
+    DetectionImpact: Behavioral detection remains valid; tool-specific hash/signature-based detection for CME becomes stale
     TheConstant: "Admin creds + network access + remote execution primitive"
   - Date: "2025-01"
     Event: Impacket adds rdp_shadow.py (PR#2064)
@@ -139,15 +156,30 @@ Detections:
     SigmaRule: sigma-rules/remote-execution/analyst.yml
 
 Intel:
+  - Name: MITRE ATT&CK — Impacket Software S0357
+    URL: https://attack.mitre.org/software/S0357/
+    Description: Lists every known threat actor (APT groups, ransomware operators) documented using Impacket; far more useful to a defender than the raw GitHub repo for understanding real-world prevalence
+  - Name: MITRE ATT&CK — T1021.003 DCOM
+    URL: https://attack.mitre.org/techniques/T1021/003/
+    Description: Technique definition for DCOM-based lateral movement; covers dcomexec.py usage and detection guidance
+  - Name: MITRE ATT&CK — T1569.002 Service Execution
+    URL: https://attack.mitre.org/techniques/T1569/002/
+    Description: Technique definition for service-based remote execution (psexec/smbexec pattern); the primary detection signal in this chokepoint's hunt and analyst rules
+  - Name: Microsoft — Storm-0501 Ransomware Hybrid Cloud Attacks
+    URL: https://www.microsoft.com/en-us/security/blog/2024/09/26/storm-0501-ransomware-attacks-expanding-to-hybrid-cloud-environments/
+    Description: Documents Storm-0501 using Impacket SecretsDump for lateral movement in hybrid cloud environments; concrete example of Impacket use in a 2024 ransomware campaign
+  - Name: ThreatLocker — Top 10 Post-Exploitation Tools Threat Actors Use
+    URL: https://www.threatlocker.com/blog/top-post-exploitation-tools-threat-actors-use
+    Description: Real-world prevalence data for post-exploitation tooling including Impacket, NetExec, and C2 frameworks observed across actual intrusions
   - Name: Impacket GitHub
     URL: https://github.com/fortra/impacket
-    Description: Monitor releases and PRs for new execution modules that add to this chokepoint
+    Description: Monitor releases and PRs for new execution modules; source of truth for what capabilities the suite currently covers
   - Name: NetExec GitHub
     URL: https://github.com/Pennyw0rth/NetExec
-    Description: Active fork of CrackMapExec; track new protocol support and OPSEC improvements
-  - Name: SOC Investigation - Event ID 5145
+    Description: Active successor to CrackMapExec; track new protocol support and OPSEC improvements that affect detection
+  - Name: SOC Investigation — Event ID 5145 Threat Hunting
     URL: https://www.socinvestigation.com/threat-hunting-with-eventid-5145-object-access-detailed-file-share/
-    Description: Detailed guidance on using Event ID 5145 (Detailed File Share) for lateral movement detection
+    Description: Detailed guidance on using Event ID 5145 (Detailed File Share) for lateral movement detection; covers IPC$ access correlation
 
 RelatedChokepoints:
   - ransomware-service-manipulation
@@ -155,13 +187,16 @@ RelatedChokepoints:
 OsintSources:
   - Platform: Shodan
     Query: "port:445 country:US"
-    Notes: Find internet-exposed SMB — these are targets for external lateral movement
+    URL: "https://www.shodan.io/search?query=port%3A445+country%3AUS"
+    Notes: "Find internet-exposed SMB — targets for external lateral movement and NTLM relay. Narrow with 'org:' or 'asn:' to scope to specific environments during red team or exposure assessments."
   - Platform: Shodan
-    Query: "port:5985 product:\"Microsoft HTTPAPI\""
-    Notes: Find exposed WinRM endpoints (Evil-WinRM targets)
-  - Platform: GitHub
-    Query: "impacket psexec wmiexec"
-    Notes: Monitor for new Impacket capabilities and community tools built on top
+    Query: 'port:5985 product:"Microsoft HTTPAPI"'
+    URL: "https://www.shodan.io/search?query=port%3A5985+product%3A%22Microsoft+HTTPAPI%22"
+    Notes: "Find internet-exposed WinRM endpoints (Evil-WinRM targets). Port 5986 is the HTTPS variant — run a second query substituting 5986 for full coverage."
+  - Platform: GitHub Code Search
+    Query: '"wmiexec" OR "smbexec" OR "atexec" path:*.py'
+    URL: "https://github.com/search?q=%22wmiexec%22+OR+%22smbexec%22+OR+%22atexec%22+path%3A*.py&type=code"
+    Notes: "Finds community tools and forks built on Impacket execution primitives; more targeted than a keyword search. Monitor for new modules that extend the execution surface beyond the known chokepoint."
 
 KnownBypasses:
   - Bypass: Using legitimate service names that blend in with existing services
@@ -176,15 +211,13 @@ KnownBypasses:
   - Bypass: Using legitimate admin tools (psexec.exe from Sysinternals)
     Mitigation: Software allowlisting; monitor hash for known-good vs. impersonated versions
     Detection: Same IPC$ + service creation pattern applies; tool-agnostic detection covers this
+  - Bypass: Living Off the Land (LOTL) — built-in Windows admin tools (winrs.exe, wmic /node:, Enter-PSSession, Invoke-Command)
+    Mitigation: Restrict WinRM and WMI access via Windows Firewall; require PAW (Privileged Access Workstation) for remote admin; log and alert on PowerShell remoting to non-standard targets
+    Detection: "These tools produce identical event telemetry to Impacket/NetExec (4624 LogonType 3, 4688 wmiprvse.exe child, 7045 service install) but with signed Microsoft binaries — no tool signature to match. Detection must be purely behavioral: network logon + protocol + execution primitive, regardless of which binary produced it. A 2024 analysis found 84% of high-severity attacks now use LOTL techniques."
+  - Bypass: Kerberos-based lateral movement (Overpass-the-Hash, Pass-the-Ticket, Silver/Golden Tickets)
+    Mitigation: Enable AES encryption for Kerberos; protect krbtgt account; monitor for anomalous TGS requests
+    Detection: "Bypasses NTLM-relay mitigations and NTLM-focused detection entirely. Detect via Kerberos anomalies: Event ID 4769 (TGS request) with RC4 encryption when AES is expected; Event ID 4768 (TGT request) from non-DC hosts; unusual ticket lifetime or service name patterns. Impacket's getST.py and Rubeus are common tools for ticket forging."
 
 YaraRules:
   - yara-rules/impacket-indicators.yar
 
-References:
-  - https://attack.mitre.org/techniques/T1021/002/
-  - https://attack.mitre.org/techniques/T1021/006/
-  - https://attack.mitre.org/techniques/T1047/
-  - https://github.com/fortra/impacket
-  - https://github.com/Pennyw0rth/NetExec
-  - https://www.socinvestigation.com/threat-hunting-with-eventid-5145-object-access-detailed-file-share/
-  - https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf

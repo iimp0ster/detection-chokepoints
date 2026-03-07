@@ -21,30 +21,30 @@ Description: >
   and service stop/delete capability are always required regardless of which ransomware
   family is executing. This pattern has remained consistent across all major ransomware
   families from 2021 to present, with kill lists expanding but the core behavior unchanged.
-LastUpdated: "2025-01-15"
+LastUpdated: "2026-03-07"
 Author: "@iimp0ster"
 
 Variations:
   - Name: BlackBasta
     FirstSeen: "2022"
-    Status: Active
-    Notes: "Targets AV, EDR, Veeam backup, SQL databases; avg TTR 6-12 hours"
+    Status: Inactive
+    Notes: "Targets AV, EDR, Veeam backup, SQL databases; avg TTR 6-12 hours; collapsed February 2025 after internal Matrix chat logs (196k messages) leaked by disgruntled member; former members migrated to CACTUS and SafePay"
   - Name: Alphv/BlackCat
     FirstSeen: "2021"
-    Status: Active
-    Notes: "Targets Sophos, Defender, VSS, SQL; cross-platform (Windows and Linux/ESXi)"
+    Status: Defunct
+    Notes: "Targets Sophos, Defender, VSS, SQL; cross-platform (Windows and Linux/ESXi); FBI disruption December 2023; exited via scam March 2024 after $22M Change Healthcare ransom — leadership withheld affiliate commissions and shut down infrastructure"
   - Name: Akira
     FirstSeen: "2023"
     Status: Active
     Notes: "Prioritizes Defender and backup agents; targets VPN appliances for initial access"
   - Name: Qilin
-    FirstSeen: "2024"
-    Status: Active
-    Notes: "Targets EDR, Veeam, databases; VMware ESXi variant active"
-  - Name: LockBit 3.0
     FirstSeen: "2022"
     Status: Active
-    Notes: "Comprehensive kill list (50+ services); Group Policy abuse for domain-wide deployment"
+    Notes: "Originally tracked as Agenda (Golang); rebranded to Qilin and rewrote in Rust in 2022; fully operational RaaS by February 2023; targets EDR, Veeam, databases; VMware ESXi variant active; surged to prominence with NHS/Synnovis attack June 2024"
+  - Name: LockBit 3.0
+    FirstSeen: "2022"
+    Status: Severely Disrupted
+    Notes: "Comprehensive kill list (50+ services); Group Policy abuse for domain-wide deployment; Operation Cronos (February 2024) seized 28 servers, source code, and 1000+ decryption keys — significantly reduced operational capacity"
 
 Prerequisites:
   - Admin or SYSTEM privileges on target system
@@ -73,6 +73,11 @@ EvolutionTimeline:
     Event: ESXi hypervisor service targeting increases
     Change: VM-based service disruption targeting vmware-hostd, vpxa, vsanmgmtd
     DetectionImpact: ESXi-specific logging (vSphere/vCenter) required; endpoint detection insufficient
+    TheConstant: "Admin privileges → service enumeration → service stop → service delete"
+  - Date: "2024-Q3"
+    Event: Purpose-built EDR killer tooling becomes standard
+    Change: Groups shift from opportunistic BYOVD to purpose-built, bundled EDR-kill tools — RansomHub ships EDRKillShifter; DeadLock embeds a weaponized Baidu driver; ~25% of 2024 ransomware attacks incorporated purpose-built EDR disablement
+    DetectionImpact: Cannot rely on known-bad driver hashes alone; monitor for driver load events (Sysmon EID 6) of unsigned or recently signed drivers immediately before service manipulation
     TheConstant: "Admin privileges → service enumeration → service stop → service delete"
 
 Detections:
@@ -128,18 +133,45 @@ Intel:
   - Name: Kaspersky Common TTPs of Modern Ransomware
     URL: https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf
     Description: Comprehensive analysis of service kill lists across major ransomware families
+  - Name: CISA StopRansomware — ALPHV Blackcat (AA23-353A)
+    URL: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-353a
+    Description: Official advisory detailing ALPHV/BlackCat TTPs including service manipulation and EDR bypass techniques
+  - Name: Trend Micro — Operation Cronos Aftermath
+    URL: https://www.trendmicro.com/en_us/research/24/d/operation-cronos-aftermath.html
+    Description: Post-disruption analysis of LockBit operations, affiliate structure, and residual activity following February 2024 law enforcement action
+  - Name: ReliaQuest — Black Basta Decline and Legacy
+    URL: https://reliaquest.com/blog/decline-and-legacy-of-black-basta-whats-next-ransomware-phishing/
+    Description: Detailed TTP breakdown drawn from leaked Black Basta chat logs; covers service kill sequences and tooling
+  - Name: Talos — BYOVD Loader Behind DeadLock Ransomware
+    URL: https://blog.talosintelligence.com/byovd-loader-deadlock-ransomware/
+    Description: Technical analysis of purpose-built EDR-kill tooling bundled with ransomware; covers driver weaponization and service termination via kernel calls
+  - Name: MITRE ATT&CK — T1562.001 Impair Defenses: Disable or Modify Tools
+    URL: https://attack.mitre.org/techniques/T1562/001/
+    Description: Technique definition, procedure examples, and detection guidance for disabling or modifying security tools
+  - Name: MITRE ATT&CK — T1489 Service Stop
+    URL: https://attack.mitre.org/techniques/T1489/
+    Description: Technique definition, procedure examples, and detection guidance for stopping services to impair system recovery
+  - Name: Mandiant M-Trends
+    URL: https://www.mandiant.com/m-trends
+    Description: Annual threat report covering ransomware dwell times, TTPs, and service manipulation trends observed across incident response engagements
 
 RelatedChokepoints:
   - remote-execution-tools
   - clickfix-techniques
 
 OsintSources:
-  - Platform: VirusTotal
-    Query: "behavior_processes:sc.exe type:ransomware"
-    Notes: Find ransomware samples using sc.exe to stop services; extract service kill lists
-  - Platform: GitHub
-    Query: "ransomware kill list sc stop service"
-    Notes: Security researchers often publish extracted kill lists from analyzed samples
+  - Platform: VirusTotal Intelligence
+    Query: 'behavior_processes:"sc.exe" tag:ransomware'
+    URL: "https://www.virustotal.com/gui/search/behavior_processes%3A%22sc.exe%22%20tag%3Aransomware"
+    Notes: "Requires VT Intelligence subscription. Returns ransomware samples where sc.exe was spawned during dynamic analysis. Pivot to behavior tab on any result to extract the full service kill list for that family."
+  - Platform: GitHub Code Search
+    Query: '"net stop" "sc delete" ransomware path:*.ps1 OR path:*.bat OR path:*.txt'
+    URL: "https://github.com/search?q=%22net+stop%22+%22sc+delete%22+ransomware&type=code"
+    Notes: "Finds scripts and extracted kill lists published by researchers after sample analysis. Narrow by filename extension to filter noise; .txt and .md files often contain raw kill lists ripped from decompiled samples."
+  - Platform: ANY.RUN Public Feed
+    Query: "ransomware tag:service-stop"
+    URL: "https://any.run/malware-trends/ransomware"
+    Notes: "Interactive sandbox with a public malware feed. Filter by ransomware family and inspect process trees live — sc.exe and net.exe child process chains are clearly visible without needing a local sandbox."
 
 KnownBypasses:
   - Bypass: Tamper protection enabled on EDR (requires kernel-level access to disable)
@@ -154,9 +186,10 @@ KnownBypasses:
   - Bypass: Process termination (taskkill /F) instead of service stop
     Mitigation: Protected Process Light (PPL) for EDR processes
     Detection: Monitor process termination events targeting security tool executables
+  - Bypass: WMI or PowerShell-based service stop (evades sc.exe/net.exe process-creation detections)
+    Mitigation: Monitor WMI activity broadly; restrict WMI remoting via host firewall where not operationally required
+    Detection: "Detect WMI calls to StopService method (Sysmon EID 19/20/21 for WMI subscriptions; EID 1 for wmic.exe with 'service' and 'call stopservice'; PowerShell script block logging for Stop-Service or Invoke-WmiMethod targeting security services)"
+  - Bypass: Purpose-built EDR killer tools (EDRKillShifter, weaponized drivers bundled with ransomware)
+    Mitigation: Enable HVCI (Hypervisor-Protected Code Integrity) and Microsoft Vulnerable Driver Blocklist; enforce driver signing policy
+    Detection: "Detect kernel driver loading (Sysmon EID 6) for drivers with newly issued or untrusted certificates immediately preceding bulk service termination; alert on loading of drivers matching Microsoft's blocklist"
 
-References:
-  - https://attack.mitre.org/techniques/T1562/001/
-  - https://attack.mitre.org/techniques/T1489/
-  - https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf
-  - https://www.mandiant.com/m-trends
