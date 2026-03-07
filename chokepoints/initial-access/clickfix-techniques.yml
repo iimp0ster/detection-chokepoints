@@ -137,7 +137,7 @@ Intel:
   - Name: Proofpoint — ClickFix Social Engineering Technique Floods Threat Landscape
     URL: https://www.proofpoint.com/us/blog/threat-insight/security-brief-clickfix-social-engineering-technique-floods-threat-landscape
     Description: Original Proofpoint research naming and first documenting ClickFix; covers TA571 initial campaigns and early payload taxonomy
-  - Name: "Proofpoint — Around the World in 90 Days: State-Sponsored Actors Try ClickFix"
+  - Name: Proofpoint — Around the World in 90 Days: State-Sponsored Actors Try ClickFix
     URL: https://www.proofpoint.com/us/blog/threat-insight/around-world-90-days-state-sponsored-actors-try-clickfix
     Description: Documents APT28, MuddyWater (TA450), Kimsuky (TA427), and UNK_RemoteRogue adoption of ClickFix between October 2024 and February 2025
   - Name: Microsoft Security Blog — Think Before You ClickFix
@@ -146,10 +146,10 @@ Intel:
   - Name: Huntress — Don't Sweat the ClickFix Techniques
     URL: https://huntress.com/blog/dont-sweat-clickfix-techniques
     Description: Primary reference for the ClickFix variant taxonomy (FileFix, TerminalFix, DownloadFix); explains why the chokepoint is stable across all variants
-  - Name: "mr.d0x — FileFix: A ClickFix Alternative"
+  - Name: mr.d0x — FileFix: A ClickFix Alternative
     URL: https://mrd0x.com/filefix-clickfix-alternative/
     Description: Original research introducing FileFix (June 2025); details the File Explorer address bar attack surface and why it bypasses Run-dialog detection heuristics
-  - Name: "MITRE ATT&CK — T1204.004 User Execution: Malicious Copy and Paste"
+  - Name: MITRE ATT&CK — T1204.004 User Execution: Malicious Copy and Paste
     URL: https://attack.mitre.org/techniques/T1204/004/
     Description: Official technique definition added March 18, 2025; procedure examples and detection guidance specific to clipboard-based social engineering
   - Name: ClickGrab

@@ -170,7 +170,7 @@ Intel:
   - Name: Huntress — A Series of Unfortunate (RMM) Events
     URL: https://www.huntress.com/blog/series-of-unfortunate-rmm-events
     Description: Covers RMM-to-RMM chaining, detection evasion patterns, and the broader RMM abuse landscape from an MSP incident response perspective
-  - Name: "Microsoft — Keys to the Kingdom: RMM Exploits in Human-Operated Intrusions 2024–25"
+  - Name: Microsoft — Keys to the Kingdom: RMM Exploits in Human-Operated Intrusions 2024–25
     URL: https://techcommunity.microsoft.com/blog/microsoftsecurityexperts/keys-to-the-kingdom-rmm-exploits-enabling-human-operated-intrusions-in-2024%E2%80%9325/4410903
     Description: Microsoft Security Experts analysis of RMM exploitation patterns across incident response engagements; covers both social engineering delivery and direct CVE exploitation vectors
   - Name: BleepingComputer — AnyDesk Production Servers Breached
