@@ -1,0 +1,145 @@
+title: EDR Bypass — Named Security Process Terminated by sc.exe or taskkill (High Confidence)
+id: c3f5a7b9-2d4e-6f8a-0c1e-4g6h8i0j2k4l
+status: experimental
+description: >
+  High-fidelity detection for direct EDR process or service termination targeting
+  a specific named security agent. Detects sc.exe stopping or deleting a named
+  security service, taskkill.exe force-killing a named security executable, or
+  netsh.exe/PowerShell adding Windows Filtering Platform (WFP) callout filters
+  that block EDR network communications (the EDRSilencer technique). Unlike the
+  hunt rule, this rule requires the command to target a small set of very specific
+  security agent identifiers — reducing false positives while maintaining coverage
+  across all BYOVD tool families (EDRKillShifter, Terminator, AuKill, POORTRY)
+  and PPL abuse tools (PPLKiller, PPLdump). The invariant is the final step:
+  regardless of which driver or technique is used to strip EDR protection, the
+  attacker must impair the security process, and that impairment always generates
+  a command-line observable event. This rule fires on that observable. Low false
+  positive rate; treat as Tier 1 incident escalation on first firing.
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+  - https://attack.mitre.org/techniques/T1562/004/
+  - https://www.secureworks.com/blog/ransomhub-uses-edrkilshifter-to-disable-security-tools
+  - https://www.sophos.com/en-us/press-office/press-releases/2023/05/sophos-uncovers-new-ransomware-driver-abusing-tool-terminator
+  - https://www.huntress.com/blog/edrkillshifter-analysis
+  - https://www.microsoft.com/en-us/security/blog/2024/07/29/ransomhub-ransomware/
+  - https://github.com/SOCFortress/EDRSilencer
+author: "@iimp0ster"
+date: 2026/03/08
+tags:
+  - attack.defense_evasion
+  - attack.t1562.001
+  - attack.t1562.004
+  - detection.maturity.analyst
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  # Selection A: sc.exe explicitly stopping or deleting a named high-value security service
+  selection_sc_named_service:
+    Image|endswith:
+      - '\sc.exe'
+      - '\net.exe'
+      - '\net1.exe'
+    CommandLine|contains:
+      - 'stop'
+      - 'delete'
+    CommandLine|contains|any:
+      - 'SophosFileScanner'
+      - 'SAVService'
+      - 'WinDefend'
+      - 'CSFalconService'
+      - 'CSAgent'
+      - 'SentinelAgent'
+      - 'CylanceSvc'
+      - 'cbsensor'
+      - 'bdagent'
+      - 'EPSecurityService'
+      - 'EPProtectedService'
+      - 'kavfs'
+      - 'McShield'
+      - 'ntrtscan'
+      - 'TRAPS'
+      - 'cyserver'
+      - 'MDCoreSvc'
+      - 'SenseIr'
+  # Selection B: taskkill force-killing a named security process image
+  selection_taskkill_named:
+    Image|endswith: '\taskkill.exe'
+    CommandLine|contains|all:
+      - '/F'
+    CommandLine|contains|any:
+      - 'MsMpEng.exe'
+      - 'SophosFileScanner.exe'
+      - 'SentinelAgent.exe'
+      - 'CSFalconService.exe'
+      - 'CylanceSvc.exe'
+      - 'cb.exe'
+      - 'cbsensor.exe'
+      - 'bdagent.exe'
+      - 'ekrn.exe'
+      - 'kavfs.exe'
+      - 'ntrtscan.exe'
+      - 'TRAPS.exe'
+  # Selection C: EDRSilencer — WFP filter add via netsh to block EDR network communication
+  selection_wfp_filter:
+    Image|endswith: '\netsh.exe'
+    CommandLine|contains|all:
+      - 'wfp'
+      - 'filter'
+      - 'add'
+  condition: selection_sc_named_service or selection_taskkill_named or selection_wfp_filter
+falsepositives:
+  - Authorized product removal during a major EDR platform migration (should be via orchestration, not ad-hoc CLI)
+  - Sophos/CrowdStrike/SentinelOne vendor-led support session with explicit authorization
+  - Automated upgrade scripts from approved security management platforms
+level: high
+# ─── Analyst Notes ─────────────────────────────────────────────────────────────
+#
+# TREAT AS INCIDENT ON FIRST FIRING. False positive rate is low when the command
+# is ad-hoc (not invoked by an approved orchestration parent). Escalate immediately.
+#
+# IMMEDIATE ENRICHMENT CHECKLIST:
+# 1. Parent process of sc.exe / taskkill.exe / netsh.exe
+#    → If cmd.exe, powershell.exe, wscript.exe, or rundll32.exe: HIGH confidence
+#    → If services.exe, msiexec.exe, or CCM: verify via change management
+# 2. Check for Sysmon EID 6 (DriverLoaded) within 120 seconds prior on same host
+#    → Any non-Microsoft driver loaded immediately before = confirmed BYOVD
+# 3. Check EID 4624 for a network logon (LogonType 3) from an unusual source IP
+#    within the last 10 minutes — indicates remote attacker
+# 4. Check for mass file rename/modification events on the same host (ransomware
+#    encryption activity begins within seconds of EDR being disabled)
+# 5. Check sibling hosts for same pattern from the same source IP (lateral spread)
+#
+# RESPONSE ACTIONS:
+# 1. Isolate the endpoint immediately — if EDR is disabled, encryption is imminent
+# 2. Snapshot VSS shadows before they are deleted: vssadmin list shadows
+# 3. Preserve memory dump if host is still accessible: procdump or winpmem
+# 4. Check for active remote sessions: qwinsta, query session, netstat -anob
+# 5. Review parent process tree to identify initial access vector
+# 6. Search for the driver file (if BYOVD confirmed): scan with loldrivers.io hash lookup
+# 7. Add driver hash to WDAC/AppLocker blocklist for environment-wide prevention
+#
+# ─── SIEM KQL (Microsoft Sentinel) ────────────────────────────────────────────
+# let securityServices = dynamic(["SophosFileScanner","WinDefend","CSFalconService",
+#     "SentinelAgent","CylanceSvc","cbsensor","bdagent","EPSecurityService","kavfs",
+#     "McShield","ntrtscan","TRAPS","cyserver","MDCoreSvc","SenseIr"]);
+# let securityProcs = dynamic(["MsMpEng.exe","SophosFileScanner.exe","SentinelAgent.exe",
+#     "CSFalconService.exe","CylanceSvc.exe","cb.exe","cbsensor.exe","bdagent.exe"]);
+# DeviceProcessEvents
+# | where FileName in~ ("sc.exe","net.exe","net1.exe","taskkill.exe","netsh.exe")
+# | where ProcessCommandLine has_any (array_concat(securityServices, securityProcs,
+#     dynamic(["stop","delete","/F","wfp filter add"])))
+# | where not (InitiatingProcessFolderPath has_any
+#     ("ccmexec","sccm","msiexec","orchestration"))
+# | extend RiskScore = iff(InitiatingProcessFileName in~ ("cmd.exe","powershell.exe",
+#     "wscript.exe","rundll32.exe"), 90, 60)
+# | project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine,
+#     InitiatingProcessFileName, InitiatingProcessCommandLine, RiskScore
+# | order by RiskScore desc, Timestamp desc
+#
+# ─── EDRSilencer Note ──────────────────────────────────────────────────────────
+# EDRSilencer (2024) adds WFP callout filters to block EDR telemetry upload without
+# killing the EDR process — the process remains running and appears healthy, but
+# all network communication is silently dropped. Security EID 5441 (A firewall rule
+# was added) with a non-system source process is an additional detection signal.
+# The netsh WFP filter add detection (Selection C) covers the most common CLI variant.

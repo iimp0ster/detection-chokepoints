@@ -1,0 +1,142 @@
+title: Web Shell — Web Server Spawning Shell Interpreter or Script File Dropped in Web Root
+id: e5b7d9f1-4c6e-8a0b-2d3f-6i8j0k2l4n6o
+status: experimental
+description: >
+  Detects two behavioral patterns associated with active web shell execution.
+  Pattern A captures web server processes (IIS, Apache, nginx, PHP, Tomcat, Java)
+  spawning OS shell interpreters (cmd.exe, powershell.exe, pwsh.exe) or common
+  reconnaissance and download utilities — the execution step after a web shell
+  receives an attacker HTTP command. Pattern B captures script file creation events
+  (Sysmon EID 11) in web-accessible directories for server-side script extensions
+  (.php, .asp, .aspx, .jsp) by processes outside an approved deployment toolchain —
+  the initial shell file drop step. Together these cover both active shell execution
+  (China Chopper, Godzilla, Behinder, AntSword) and new shell deployment. Fileless
+  IIS native module webshells (Microsoft, 2022) still generate w3wp.exe child process
+  events when commands execute, making Pattern A effective even against DLL-based shells.
+  Medium false positive rate — requires baselining (see research rule) to identify
+  what your web servers legitimately spawn before tuning.
+references:
+  - https://attack.mitre.org/techniques/T1505/003/
+  - https://attack.mitre.org/techniques/T1190/
+  - https://media.defense.gov/2020/Jun/09/2002313081/-1/-1/0/CSI-DETECT-AND-PREVENT-WEB-SHELL-MALWARE-20200422.PDF
+  - https://www.microsoft.com/en-us/security/blog/2022/12/12/iis-modules-the-evolution-of-web-shells-and-how-to-detect-them/
+  - https://arxiv.org/abs/2601.22182
+  - https://cloud.google.com/blog/topics/threat-intelligence/pst-want-shell-proxyshell-exploiting-microsoft-exchange-servers
+author: "@iimp0ster"
+date: 2026/03/08
+tags:
+  - attack.persistence
+  - attack.t1505.003
+  - attack.initial_access
+  - attack.t1190
+  - attack.execution
+  - attack.t1059.003
+  - attack.t1059.001
+  - detection.maturity.hunt
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  # Pattern A: Web server process spawning known shell interpreters or recon utilities
+  selection_spawn_web_parent:
+    ParentImage|endswith:
+      - '\w3wp.exe'
+      - '\httpd.exe'
+      - '\apache.exe'
+      - '\apache2.exe'
+      - '\nginx.exe'
+      - '\php-cgi.exe'
+      - '\php.exe'
+      - '\php-fpm.exe'
+      - '\tomcat.exe'
+      - '\tomcat9.exe'
+      - '\tomcat10.exe'
+      - '\java.exe'
+      - '\javaw.exe'
+  selection_spawn_child_shells:
+    Image|endswith:
+      - '\cmd.exe'
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\mshta.exe'
+      - '\certutil.exe'
+      - '\bitsadmin.exe'
+      - '\regsvr32.exe'
+      - '\rundll32.exe'
+      - '\msiexec.exe'
+      - '\wmic.exe'
+      - '\whoami.exe'
+      - '\net.exe'
+      - '\net1.exe'
+      - '\ipconfig.exe'
+      - '\systeminfo.exe'
+      - '\netstat.exe'
+      - '\curl.exe'
+      - '\wget.exe'
+  condition: (selection_spawn_web_parent and selection_spawn_child_shells)
+falsepositives:
+  - Legitimate CMS-triggered shell scripts via webhooks (Drupal, WordPress deployment)
+  - Development environments where web server invokes build scripts
+  - wkhtmltopdf or ImageMagick shell wrappers called by web applications
+  - Java application servers invoking legitimate scripts via Runtime.exec()
+  - Authorized administrative scripts triggered via web-based management interfaces
+level: medium
+# ─── Hunt Notes ────────────────────────────────────────────────────────────────
+#
+# HUNTING WORKFLOW — Pattern A (Shell Spawn):
+#
+# 1. REVIEW THE COMMAND LINE: The spawned process CommandLine is the most valuable
+#    field. Look for:
+#    - Recon: whoami, ipconfig, systeminfo, net user, net group, dir, type
+#    - Download: certutil -urlcache, bitsadmin /transfer, wget, curl, mshta http://
+#    - Obfuscation: powershell -enc, -nop -w hidden -c "IEX...", FromBase64String
+#    - Lateral: net use, wmic /node:, psexec, smbclient
+#
+# 2. CORRELATE WITH HTTP ACCESS LOGS: Find the HTTP POST or GET request that
+#    triggered the process. The web server access log timestamp should be within
+#    1-2 seconds of the Sysmon EID 1 event.
+#    - Look for: HTTP POST to a .php, .aspx, .jsp, .cfm file in an unexpected path
+#    - User-Agent: Python-requests, curl, empty strings → attacker tooling
+#    - Source IP: non-internal, unusual geolocation, or Tor/VPN exit node
+#
+# 3. CHECK FOR A RECENTLY CREATED SCRIPT FILE (Pattern B):
+#    If Pattern A fires without a recent file drop, the shell was planted earlier
+#    (dormant shell). Use file integrity monitoring to find when the shell appeared.
+#    If Sysmon EID 11 shows the file created minutes before Pattern A, the full
+#    exploit chain is visible — escalate to Analyst tier.
+#
+# ─── Pattern B: Script File Drop in Web Root ────────────────────────────────
+# For file-drop detection, add the following as a SEPARATE Sysmon EID 11 rule
+# or correlate in your SIEM:
+#
+# Event: Sysmon EID 11 (FileCreate)
+# TargetFilename contains:
+#   \inetpub\wwwroot\ OR \wwwroot\ OR \htdocs\ OR \public_html\ OR \webapps\
+# TargetFilename endswith:
+#   .php OR .asp OR .aspx OR .jsp OR .jspx OR .shtml OR .cfm
+# Image (creating process) NOT in:
+#   msiexec.exe, devenv.exe, git.exe, robocopy.exe, xcopy.exe, Deploy.exe
+#   (your approved deployment toolchain)
+#
+# HUNT PIVOT: When a script file drops in a web-accessible directory, immediately:
+#   a. Check web server access logs for HTTP requests to that exact filename
+#   b. Check for Process Creation events from w3wp.exe/httpd.exe after file creation
+#   c. Calculate file entropy — high entropy (>6.5 bits) suggests encoded/obfuscated shell
+#
+# ─── SIEM CORRELATION QUERY (Microsoft Sentinel) ──────────────────────────────
+# let webShellDrop = DeviceFileEvents
+# | where FolderPath has_any (@"\inetpub\wwwroot\",@"\wwwroot\",@"\htdocs\",@"\webapps\")
+# | where FileName endswith_cs ".php" or FileName endswith_cs ".aspx"
+#     or FileName endswith_cs ".asp" or FileName endswith_cs ".jsp"
+# | where InitiatingProcessFileName !in~ ("msiexec.exe","devenv.exe","git.exe")
+# | project FileDropTime=Timestamp, DeviceName, DroppedFile=FolderPath;
+# DeviceProcessEvents
+# | where InitiatingProcessFileName in~ ("w3wp.exe","httpd.exe","nginx.exe","java.exe")
+# | where FileName in~ ("cmd.exe","powershell.exe","pwsh.exe","wscript.exe",
+#     "certutil.exe","whoami.exe","net.exe","curl.exe")
+# | join kind=leftouter webShellDrop on DeviceName
+# | where FileDropTime < Timestamp and FileDropTime > ago(24h)
+# | project Timestamp, DeviceName, FileName, ProcessCommandLine,
+#     InitiatingProcessFileName, DroppedFile

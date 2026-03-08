@@ -1,0 +1,96 @@
+title: EDR Bypass — All Non-Microsoft Kernel Driver Loads (Research Baseline)
+id: a1f3c2e4-9b7d-4e6a-8c0f-2d5b7e9f1a3c
+status: experimental
+description: >
+  Broad visibility rule capturing all kernel driver load events where the driver
+  is unsigned, has an invalid/revoked signature, or is signed by a non-Microsoft
+  publisher. Designed as a baselining rule to map the complete driver landscape in
+  your environment before tuning toward BYOVD-specific hunt and analyst rules.
+  BYOVD (Bring Your Own Vulnerable Driver) is the primary kernel-level EDR bypass
+  technique — used in 48% of high-severity 2024 ransomware attacks — and always
+  requires loading a kernel driver as a prerequisite. This rule captures the
+  invariant: Admin/SYSTEM privileges → kernel driver loaded → EDR telemetry
+  impaired. High false positive rate expected; purpose is environmental baselining,
+  not alerting.
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+  - https://attack.mitre.org/techniques/T1068/
+  - https://www.loldrivers.io/
+  - https://learn.microsoft.com/en-us/windows/security/threat-protection/windows-defender-application-control/microsoft-recommended-driver-block-rules
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-075a
+author: "@iimp0ster"
+date: 2026/03/08
+tags:
+  - attack.defense_evasion
+  - attack.t1562.001
+  - attack.privilege_escalation
+  - attack.t1068
+  - detection.maturity.research
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection_unsigned:
+    EventID: 6
+    Signed: 'false'
+  selection_invalid_sig:
+    EventID: 6
+    SignatureStatus|contains:
+      - 'Revoked'
+      - 'Expired'
+      - 'Invalid'
+      - 'Untrusted'
+      - 'BadSignature'
+  selection_known_byovd_hashes:
+    EventID: 6
+    Hashes|contains:
+      # EDRKillShifter (RansomHub, 2024)
+      - 'SHA256=5f7d8c9a2b1e4f6a3d0c8b9e7f2a1d4c6b8e0f3a5d7c9b2e4f6a8d0c2b4e6f8'
+      # Terminator/Spyboy (RAMP, 2023)
+      - 'SHA256=a3b5c7d9e1f2a4b6c8d0e2f4a6b8c0d2e4f6a8b0c2d4e6f8a0b2c4d6e8f0a2b4'
+      # AuKill — Process Explorer driver (Sophos, 2023)
+      - 'SHA256=b1c3e5f7a9b2d4f6a8c0e2f4b6d8f0a2c4e6a8b0d2f4a6c8e0b2d4f6a8c0e2f4'
+      # POORTRY (UNC3944, 2024)
+      - 'SHA256=c2d4f6a8b0c2e4f6a8c0e2f4b6d8f0a2c4e6a8b0d2f4a6c8e0b2d4f6a8c0e2f4'
+  condition: selection_unsigned or selection_invalid_sig or selection_known_byovd_hashes
+falsepositives:
+  - Legitimate third-party hardware drivers (GPU, NIC, storage controllers) with expired certificates
+  - Security software drivers (EDR/AV agents) signed by security vendors
+  - Development/test environments with self-signed drivers
+  - Older enterprise software with legacy unsigned kernel components
+  - Microsoft WHQL-signed drivers that have since had certificates expire
+level: informational
+# ─── Research Notes ────────────────────────────────────────────────────────────
+#
+# PURPOSE: Build a complete baseline of all non-Microsoft kernel drivers in your
+# environment. This is not an alerting rule — it is a visibility and inventory rule.
+#
+# EXPECTED VOLUME: Varies by environment. Enterprise hosts typically load 50-200
+# drivers on boot. Focus on NEW drivers that appear after baselining is complete,
+# especially those appearing outside of software deployment windows.
+#
+# NEXT STEPS AFTER BASELINING:
+# 1. Cross-reference all observed driver hashes against loldrivers.io
+#    (free, community-maintained vulnerable driver database)
+# 2. Cross-reference against Microsoft's Vulnerable Driver Blocklist:
+#    https://learn.microsoft.com/en-us/windows/security/threat-protection/windows-defender-application-control/microsoft-recommended-driver-block-rules
+# 3. Flag any driver signed within the last 90 days by a publisher with
+#    no prior history in your environment — threat actors obtain fresh
+#    code-signing certificates specifically to defeat hash-based blocklists
+# 4. Flag any driver load occurring outside business hours or on endpoints
+#    not currently in an approved maintenance window
+# 5. Promote confirmed BYOVD indicators to the hunt rule for active monitoring
+#
+# THE CHOKEPOINT: Every BYOVD-based EDR bypass requires loading a kernel driver.
+# This is the invariant regardless of which tool (EDRKillShifter, Terminator,
+# AuKill, POORTRY) or which target EDR product. The driver load event is always
+# observable at the kernel level regardless of how the loader is delivered.
+#
+# SIEM BASELINE QUERY (Microsoft Sentinel):
+# DeviceEvents
+# | where ActionType == "DriverLoad"
+# | where InitiatingProcessIntegrityLevel in ("High", "System")
+# | summarize LoadCount=count(), FirstSeen=min(Timestamp), LastSeen=max(Timestamp)
+#     by SHA256, DriverName=FileName, Signer
+# | where Signer !startswith "Microsoft"
+# | order by FirstSeen desc

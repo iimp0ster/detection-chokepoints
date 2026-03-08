@@ -1,0 +1,158 @@
+title: EDR Bypass — Security Process Termination or Service Impairment via Admin Tool
+id: b2e4d6f8-1a3c-5e7f-9b0d-3f5a7c9e1b2d
+status: experimental
+description: >
+  Detects command-line invocation of sc.exe, net.exe, net1.exe, or taskkill.exe
+  explicitly targeting named security agent processes or services for termination,
+  deletion, or forced kill. This pattern covers the behavioral execution step in
+  BYOVD-based EDR bypass (after the driver is loaded, the driver's userland loader
+  calls these utilities to terminate the now-unprotected EDR agent), PPL abuse
+  (PPLKiller strips Protected Process Light then terminates the process), and
+  direct service manipulation (Terminator/Spyboy variant that targets service names
+  directly). Also detects Process Explorer-style handle close (OpenProcess with
+  PROCESS_TERMINATE on security agent PIDs). Moderate false positive rate —
+  legitimate EDR management workflows can trigger, but typically via orchestration
+  tools, not ad-hoc command lines.
+  Correlate with Sysmon EID 6 (driver load) occurring within 5 minutes prior on
+  the same host for highest-confidence BYOVD indicator.
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+  - https://attack.mitre.org/techniques/T1562/004/
+  - https://www.secureworks.com/blog/ransomhub-uses-edrkilshifter-to-disable-security-tools
+  - https://www.sophos.com/en-us/press-office/press-releases/2023/05/sophos-uncovers-new-ransomware-driver-abusing-tool-terminator
+  - https://github.com/Yaxser/CobaltStrike-BOF
+author: "@iimp0ster"
+date: 2026/03/08
+tags:
+  - attack.defense_evasion
+  - attack.t1562.001
+  - attack.t1562.004
+  - detection.maturity.hunt
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  # Selection A: sc.exe or net.exe stopping/deleting a named security service
+  selection_sc_stop:
+    Image|endswith:
+      - '\sc.exe'
+      - '\net.exe'
+      - '\net1.exe'
+    CommandLine|contains:
+      - 'stop'
+      - 'delete'
+    CommandLine|contains|any:
+      - 'SophosFileScanner'
+      - 'SAVService'
+      - 'SavService'
+      - 'Sophos'
+      - 'MsMpSvc'
+      - 'WinDefend'
+      - 'SecurityHealthService'
+      - 'SenseIr'
+      - 'MDCoreSvc'
+      - 'CSFalconService'
+      - 'CSAgent'
+      - 'SentinelAgent'
+      - 'SentinelOne'
+      - 'CylanceSvc'
+      - 'CylanceUI'
+      - 'cb'
+      - 'CarbonBlack'
+      - 'bdagent'
+      - 'bdredline'
+      - 'EPProtectedService'
+      - 'EPSecurityService'
+      - 'ekrn'
+      - 'ESET'
+      - 'kavfs'
+      - 'klim6'
+      - 'Kaspersky'
+      - 'McShield'
+      - 'masvc'
+      - 'McAfeeFramework'
+      - 'TmListen'
+      - 'ntrtscan'
+      - 'TrendMicro'
+      - 'TRAPS'
+      - 'cyverak'
+      - 'cyvrmtgn'
+      - 'Palo Alto'
+      - 'cyserver'
+  # Selection B: taskkill /IM targeting named security agent executables
+  selection_taskkill:
+    Image|endswith: '\taskkill.exe'
+    CommandLine|contains:
+      - '/IM'
+      - '/F'
+    CommandLine|contains|any:
+      - 'MsMpEng.exe'
+      - 'msmpeng.exe'
+      - 'SophosFileScanner.exe'
+      - 'SAVService.exe'
+      - 'SentinelAgent.exe'
+      - 'SentinelOne.exe'
+      - 'CSFalconService.exe'
+      - 'CSAgent.exe'
+      - 'CylanceSvc.exe'
+      - 'cb.exe'
+      - 'cbsensor.exe'
+      - 'bdagent.exe'
+      - 'bdredline.exe'
+      - 'TRAPS.exe'
+      - 'cyserver.exe'
+      - 'ekrn.exe'
+      - 'egui.exe'
+      - 'kavfs.exe'
+  condition: selection_sc_stop or selection_taskkill
+falsepositives:
+  - Authorized EDR/AV product upgrades performed by IT operations via orchestration tools
+  - Legitimate product uninstallation by software management platforms (SCCM, Intune)
+  - Security operations testing and validation workflows
+  - Vendor-led troubleshooting sessions with authorized remote access
+level: medium
+# ─── Hunt Notes ────────────────────────────────────────────────────────────────
+#
+# HUNTING WORKFLOW:
+# When this rule fires, immediately enrich with:
+#
+# 1. PARENT PROCESS: What spawned sc.exe or taskkill.exe?
+#    - cmd.exe / powershell.exe with no parent (orphaned) → HIGH suspicion
+#    - Expected parents: services.exe, msiexec.exe, CCM\CcmExec.exe (SCCM)
+#    - Unexpected parents: wscript.exe, cscript.exe, rundll32.exe, mshta.exe
+#
+# 2. DRIVER LOAD CORRELATION (the critical pivot):
+#    Look for Sysmon EID 6 within 5 minutes BEFORE this event on the same host.
+#    A non-Microsoft driver load immediately preceding security service termination
+#    is a near-definitive BYOVD indicator. Promote to Analyst tier immediately.
+#
+# 3. LOGON CONTEXT:
+#    - Was the initiating process running as SYSTEM? (Expected for services)
+#    - Was it running under a domain admin account? (Suspicious if interactive)
+#    - Check EID 4624 for a preceding network logon from an unusual IP
+#
+# 4. TIMING:
+#    - Outside business hours → significant suspicion increase
+#    - During an approved maintenance window → likely legitimate
+#
+# SIEM CORRELATION QUERY (Microsoft Sentinel):
+# let byovd_window = 5m;
+# let driver_loads = DeviceEvents
+# | where ActionType == "DriverLoad"
+# | where InitiatingProcessIntegrityLevel in ("High", "System")
+# | project DriverLoadTime=Timestamp, DeviceName, DriverHash=SHA256;
+# DeviceProcessEvents
+# | where FileName in~ ("sc.exe", "net.exe", "net1.exe", "taskkill.exe")
+# | where ProcessCommandLine has_any ("stop","delete","/IM","/F")
+# | where ProcessCommandLine has_any ("Sophos","WinDefend","Falcon","Sentinel","Cylance","CarbonBlack","bdagent","ESET","Kaspersky","McAfee","TrendMicro")
+# | join kind=inner driver_loads on DeviceName
+# | where DriverLoadTime between ((Timestamp - byovd_window) .. Timestamp)
+# | project Timestamp, DeviceName, ProcessCommandLine, DriverHash
+#
+# PROCESS ACCESS VARIANT (Sysmon EID 10):
+# Some BYOVD tools open a handle to the security process and call TerminateProcess()
+# directly, without using sc.exe or taskkill.exe. To cover this, additionally hunt:
+#   EventID: 10 (ProcessAccess)
+#   TargetImage endswith: MsMpEng.exe, SentinelAgent.exe, CSFalconService.exe, etc.
+#   GrantedAccess: contains '0x1' (PROCESS_TERMINATE bit set)
+#   SourceImage: NOT in {System, services.exe, svchost.exe, msiexec.exe}
