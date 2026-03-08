@@ -283,17 +283,21 @@ RelatedChokepoints:
 
 OsintSources:
   - Platform: Shodan
-    Query: 'http.title:"WSO" OR http.title:"b374k" OR http.title:"c99"'
+    Query: 'http.title:"WSO" OR http.title:"b374k" OR http.title:"c99" OR http.title:"FilesMan" OR http.title:"Antak Webshell"'
     URL: "https://www.shodan.io/search?query=http.title%3A%22WSO%22+OR+http.title%3A%22b374k%22+OR+http.title%3A%22c99%22"
-    Notes: "Finds internet-exposed web shells with default page titles still intact — common in mass exploitation campaigns where attacker cadence outpaces cleanup. Useful for identifying unprotected shells accessible to any attacker, not just the original deployer."
+    Notes: "Finds internet-exposed web shells with default page titles intact — common in mass exploitation campaigns where attacker cadence outpaces cleanup. FilesMan and Antak are additional shells frequently left exposed. Also try http.html:\"eval(base64_decode\" to catch obfuscated PHP shells that render without a recognizable title."
   - Platform: URLScan
-    Query: 'page.title:"WSO" OR filename:shell.php'
+    Query: 'page.title:"WSO" OR filename:shell.php OR filename:webshell.php OR filename:cmd.aspx'
     URL: "https://urlscan.io/search/#page.title%3A%22WSO%22+OR+filename%3Ashell.php"
-    Notes: "Finds recently scanned pages presenting known webshell UI or common shell filenames; useful for tracking active campaign infrastructure and identifying newly deployed shells before cleanup."
+    Notes: "Finds recently scanned pages presenting known webshell UI or common shell filenames; useful for tracking active campaign infrastructure and identifying newly deployed shells before cleanup. Add filenames specific to recent campaigns (e.g., human2.aspx for LEMURLOOT/MOVEit)."
   - Platform: VirusTotal Intelligence
     Query: 'tag:webshell positives:0 type:text'
     URL: "https://www.virustotal.com/gui/search/tag%3Awebshell%20positives%3A0%20type%3Atext"
-    Notes: "Requires VT Intelligence subscription. Finds webshell samples currently evading all commercial AV detection — the most dangerous variants in active use. Cross-reference with ShellForge paper finding that adversarially generated shells achieve 93.9% evasion rate against commercial engines."
+    Notes: "Requires VT Intelligence subscription. Finds webshell samples currently evading all commercial AV detection — the most dangerous variants in active use. Consistent with ShellForge paper (arXiv 2601.22182) finding 93.9% evasion against commercial engines. Sort by submission date to prioritize the newest evasive variants."
+  - Platform: Censys
+    Query: 'services.http.response.body: "eval(base64_decode" and services.http.response.status_code: 200'
+    URL: "https://search.censys.io/search?resource=hosts&q=services.http.response.body%3A+%22eval(base64_decode%22"
+    Notes: "Finds web servers returning HTTP 200 responses with the eval(base64_decode PHP obfuscation pattern — a near-universal indicator of a live obfuscated PHP shell. High precision; few legitimate pages contain this pattern. Requires Censys account."
 
 KnownBypasses:
   - Bypass: Multi-layer encoding (base64 + gzinflate + XOR + eval) bypasses keyword and signature scanning

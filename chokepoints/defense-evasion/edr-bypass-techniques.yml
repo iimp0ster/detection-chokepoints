@@ -280,6 +280,9 @@ OsintSources:
     Query: '"EtwEventWrite" "0xC3" path:*.c OR path:*.asm'
     URL: "https://github.com/search?q=%22EtwEventWrite%22+%220xC3%22&type=code"
     Notes: "Finds ETW patching implementations targeting EtwEventWrite with a RET opcode. New variants appear regularly; use to track new ETW bypass techniques before they reach production campaigns."
+  - Platform: LOLDrivers
+    URL: "https://www.loldrivers.io"
+    Notes: "Community-maintained catalog of known vulnerable (BYOVD) and malicious drivers with hashes, CVE references, and detection guidance. Feed driver hashes from this list into Sysmon EID 6 detection rules and your EDR's driver blocklist. Updated regularly as new BYOVD tools emerge. Filter by 'Type: Vulnerable' for BYOVD drivers; 'Type: Malicious' for purpose-built EDR killers like EDRKillShifter. Essential complement to Microsoft's Vulnerable Driver Blocklist, which lags behind community discovery."
 
 KnownBypasses:
   - Bypass: Using a driver signed within days of use (defeats static hash blocklists)
