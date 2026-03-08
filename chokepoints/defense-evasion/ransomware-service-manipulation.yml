@@ -163,15 +163,17 @@ OsintSources:
   - Platform: VirusTotal Intelligence
     Query: 'behavior_processes:"sc.exe" tag:ransomware'
     URL: "https://www.virustotal.com/gui/search/behavior_processes%3A%22sc.exe%22%20tag%3Aransomware"
-    Notes: "Requires VT Intelligence subscription. Returns ransomware samples where sc.exe was spawned during dynamic analysis. Pivot to behavior tab on any result to extract the full service kill list for that family."
+    Notes: "Requires VT Intelligence subscription. Returns ransomware samples where sc.exe was spawned during dynamic analysis. Pivot to behavior tab on any result to extract the full service kill list for that family — feed those service names into the analyst Sigma rule's service name filter list."
   - Platform: GitHub Code Search
     Query: '"net stop" "sc delete" ransomware path:*.ps1 OR path:*.bat OR path:*.txt'
     URL: "https://github.com/search?q=%22net+stop%22+%22sc+delete%22+ransomware&type=code"
-    Notes: "Finds scripts and extracted kill lists published by researchers after sample analysis. Narrow by filename extension to filter noise; .txt and .md files often contain raw kill lists ripped from decompiled samples."
+    Notes: "Finds scripts and extracted kill lists published by researchers after sample analysis. Filter by extension — .txt and .md files often contain raw kill lists ripped from decompiled samples. Update the analyst rule's service name list whenever new families are documented."
   - Platform: ANY.RUN Public Feed
-    Query: "ransomware tag:service-stop"
-    URL: "https://any.run/malware-trends/ransomware"
-    Notes: "Interactive sandbox with a public malware feed. Filter by ransomware family and inspect process trees live — sc.exe and net.exe child process chains are clearly visible without needing a local sandbox."
+    URL: "https://app.any.run/submissions#status=public&tag=ransomware"
+    Notes: "Interactive sandbox with a public task feed. Filter to public ransomware submissions and inspect process trees — sc.exe and net.exe child process chains are clearly visible without needing a local sandbox. Useful for rapid triage of new ransomware samples before full analysis."
+  - Platform: Ransomware.live
+    URL: "https://www.ransomware.live"
+    Notes: "Real-time ransomware group activity tracker sourced from dark web leak sites. Use to identify which ransomware families are currently most active — prioritize hunting for those families' service kill lists in your environment. Also see ransomlook.io (open-source, API access) for programmatic integration."
 
 KnownBypasses:
   - Bypass: Tamper protection enabled on EDR (requires kernel-level access to disable)

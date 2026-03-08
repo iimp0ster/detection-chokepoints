@@ -186,17 +186,20 @@ RelatedChokepoints:
 
 OsintSources:
   - Platform: Shodan
-    Query: "port:445 country:US"
-    URL: "https://www.shodan.io/search?query=port%3A445+country%3AUS"
-    Notes: "Find internet-exposed SMB — targets for external lateral movement and NTLM relay. Narrow with 'org:' or 'asn:' to scope to specific environments during red team or exposure assessments."
-  - Platform: Shodan
     Query: 'port:5985 product:"Microsoft HTTPAPI"'
     URL: "https://www.shodan.io/search?query=port%3A5985+product%3A%22Microsoft+HTTPAPI%22"
-    Notes: "Find internet-exposed WinRM endpoints (Evil-WinRM targets). Port 5986 is the HTTPS variant — run a second query substituting 5986 for full coverage."
+    Notes: "Finds internet-exposed WinRM endpoints (Evil-WinRM targets). Use as an exposure audit to identify unintentionally exposed WinRM in your own IP ranges (narrow with 'org:' or 'net:' filters). Port 5986 is the HTTPS variant — run a second query substituting 5986. Note: searching for exposed ports finds your attack surface, not attacker infrastructure — for hunting attacker C2, use the JARM query below."
+  - Platform: Shodan
+    Query: 'ssl.jarm:07d14d16d21d21d00042d41d00041de5fb3038104f457d92ba37e62256d5 port:443'
+    URL: "https://www.shodan.io/search?query=ssl.jarm%3A07d14d16d21d21d00042d41d00041de5fb3038104f457d92ba37e62256d5"
+    Notes: "Default Cobalt Strike JARM fingerprint. Clusters of hosts sharing this fingerprint are likely Cobalt Strike team servers — the most common C2 framework used alongside Impacket/NetExec in lateral movement chains. JARM fingerprints are more resilient to infrastructure rotation than IP/domain blocklists. Also search for Sliver C2 (ssl.jarm:29d29d00029d29d00042d41d00041d2aa5ce6a70de7ba95aef77a77b00a0af) and check hunt.io for current Havoc signatures."
   - Platform: GitHub Code Search
     Query: '"wmiexec" OR "smbexec" OR "atexec" path:*.py'
     URL: "https://github.com/search?q=%22wmiexec%22+OR+%22smbexec%22+OR+%22atexec%22+path%3A*.py&type=code"
-    Notes: "Finds community tools and forks built on Impacket execution primitives; more targeted than a keyword search. Monitor for new modules that extend the execution surface beyond the known chokepoint."
+    Notes: "Finds community tools and forks built on Impacket execution primitives. Monitor for new modules that extend the execution surface beyond the known chokepoint. This is a tool-tracking query (defender awareness), not infrastructure hunting — results are researcher repos, not attacker infrastructure."
+  - Platform: hunt.io
+    URL: "https://hunt.io"
+    Notes: "Specialized threat hunting platform that maps active C2 infrastructure in real time. Use to search for Cobalt Strike, Sliver, Havoc, and Metasploit infrastructure — the C2 frameworks most commonly paired with Impacket/NetExec lateral movement. The AttackCapture feed tags servers by framework based on banner, certificate, and behavioral fingerprints."
 
 KnownBypasses:
   - Bypass: Using legitimate service names that blend in with existing services
