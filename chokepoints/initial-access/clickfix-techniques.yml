@@ -168,17 +168,28 @@ RelatedChokepoints:
 
 OsintSources:
   - Platform: URLScan
-    Query: "page.url:*clickfix* OR page.url:*filefix*"
-    URL: "https://urlscan.io/search/#page.url%3A*clickfix*%20OR%20page.url%3A*filefix*"
-    Notes: Find active ClickFix lure pages; combine with page content search for clipboard JS
+    Query: "(page.body:navigator.clipboard OR page.body:ClipboardItem) AND (page.title:*verify* OR page.title:*update* OR page.title:*captcha*)"
+    URL: "https://urlscan.io/search/#(page.body%3Anavigator.clipboard%20OR%20page.body%3AClipboardItem)%20AND%20(page.title%3A*verify*%20OR%20page.title%3A*captcha*)"
+    Notes: "Clipboard API presence anchored to deceptive page titles (verify, update, captcha). Retains cross-variant resilience while reducing the false positive rate of searching clipboard API alone, which is widely used by legitimate sites."
   - Platform: URLScan
-    Query: "page.body:navigator.clipboard OR page.body:ClipboardItem"
-    URL: "https://urlscan.io/search/#page.body%3Anavigator.clipboard%20OR%20page.body%3AClipboardItem"
-    Notes: Find pages using clipboard manipulation JavaScript regardless of theme name; more resilient to lure-name changes than URL-based queries
+    Query: "page.body:\"I am not a robot\" AND page.body:navigator.clipboard"
+    URL: "https://urlscan.io/search/#page.body%3A%22I%20am%20not%20a%20robot%22%20AND%20page.body%3Anavigator.clipboard"
+    Notes: "Fake CAPTCHA pages that also write to the clipboard — the canonical ClickFix lure UI. High precision; catches Google reCAPTCHA and Cloudflare impersonation variants regardless of URL naming."
+  - Platform: URLScan
+    Query: "page.body:navigator.clipboard AND (page.body:\"Win+R\" OR page.body:\"Windows key\" OR page.body:\"Run dialog\" OR page.body:\"Ctrl+V\")"
+    URL: "https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22Win%2BR%22"
+    Notes: "Targets pages instructing users to open Run dialog or paste commands — the execution instruction unique to ClickFix. Catches variants (TerminalFix, DownloadFix) that skip the fake CAPTCHA UI entirely. Note: page.url:*clickfix* / *filefix* queries are not useful — these are researcher-coined names that never appear in actual threat actor infrastructure URLs."
   - Platform: VirusTotal Intelligence
-    Query: 'behavior_network:"pastebin.com" tag:powershell'
-    URL: "https://www.virustotal.com/gui/search/behavior_network%3A%22pastebin.com%22%20tag%3Apowershell"
-    Notes: "Requires VT Intelligence subscription. Finds PowerShell samples that contacted Pastebin during sandbox execution — common ClickFix payload staging pattern. Pivot to behavior tab to inspect the full execution chain."
+    Query: 'behavior_processes:"nslookup.exe" tag:powershell'
+    URL: "https://www.virustotal.com/gui/search/behavior_processes%3A%22nslookup.exe%22%20tag%3Apowershell"
+    Notes: "Requires VT Intelligence subscription. Targets DNS-based ClickFix staging (Microsoft disclosure, February 2026) where nslookup is used for payload retrieval instead of direct HTTP download. Pivot to behavior tab to confirm browser→powershell→nslookup execution chain."
+  - Platform: VirusTotal Intelligence
+    Query: 'behavior_processes:"powershell.exe" behavior_command_line:"-enc" tag:dropper'
+    URL: "https://www.virustotal.com/gui/search/behavior_processes%3A%22powershell.exe%22%20behavior_command_line%3A%22-enc%22%20tag%3Adropper"
+    Notes: "Requires VT Intelligence subscription. Finds encoded PowerShell droppers consistent with ClickFix payload obfuscation. Legacy query (behavior_network:\"pastebin.com\" tag:powershell) remains useful for older campaigns but Pastebin staging is declining — modern campaigns use DNS staging, direct IEX against .life/.top domains, and Discord/GitHub CDN hosting."
+  - Platform: hunt.io
+    URL: "https://hunt.io/blog/clickfix-pages-proactive-threat-hunting"
+    Notes: "Specialized infrastructure hunting platform with dedicated ClickFix page fingerprinting. Proactively indexes known ClickFix infrastructure patterns. Recommended as a complement to URLScan for infrastructure discovery."
 
 KnownBypasses:
   - Bypass: Hosting payload on legitimate platforms (Pastebin, GitHub, cloud storage)
