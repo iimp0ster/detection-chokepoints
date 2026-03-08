@@ -1,0 +1,330 @@
+---
+Name: Web Shell Persistence
+Id: 65bd1e30-9ba0-4815-9953-f063a637feeb
+MitreIds:
+  - T1505.003
+  - T1190
+  - T1059.004
+Tactics:
+  - Persistence
+  - Initial Access
+  - Execution
+Techniques:
+  - "Server Software Component: Web Shell"
+  - Exploit Public-Facing Application
+  - "Command and Scripting Interpreter: Unix Shell"
+DetectionPriority: CRITICAL
+ThreatPrevalence: HIGH
+DetectionDifficulty: MEDIUM
+Description: >
+  Adversaries plant web-accessible scripts (web shells) on compromised servers to
+  maintain persistent command execution via HTTP/HTTPS. Web shells are deployed in
+  virtually every major web-facing compromise — appearing in 35% of Q4 2024 IR
+  incidents (Cisco Talos) and serving as the primary persistence mechanism in
+  ProxyLogon, ProxyShell, MOVEit, Barracuda ESG, and Ivanti zero-day campaigns.
+  Despite diversity in language (PHP/ASP.NET/JSP/Python), encoding (base64, XOR,
+  gzinflate, multi-layer), and evasion technique (polyglot files, fileless IIS modules,
+  steganography), the chokepoint is invariant: the web server process must execute
+  attacker-controlled OS commands by spawning a child interpreter, and that
+  parent-child relationship is always kernel-observable regardless of obfuscation.
+  The ShellForge paper (arXiv 2601.22182) demonstrated that adversarially generated
+  webshells achieve 93.9% evasion against VirusTotal commercial engines, validating
+  that behavioral detection of process creation is essential over file-content scanning.
+LastUpdated: "2026-03-07"
+Author: "@iimp0ster"
+
+Variations:
+  - Name: China Chopper
+    FirstSeen: "2013"
+    Status: Active
+    Notes: >
+      Minimal two-component design: a one-line server-side stub (often <4KB) and a
+      separate attacker-controlled client. Supports PHP, ASP, ASP.NET, and JSP.
+      Extremely small footprint makes file-size-based detection ineffective. Used
+      across the full threat actor spectrum from APT groups to commodity attackers;
+      still actively deployed in 2024-2025 campaigns.
+  - Name: Godzilla
+    FirstSeen: "2020-Q4"
+    Status: Active
+    Notes: >
+      Created by BeichenDream; requires both a password AND encryption key for C2
+      communication, providing dual-layer authentication that prevents accidental
+      discovery by other threat actors. Supports ASP.NET, JSP, and PHP. Actively
+      tracked by HC3 in November 2024 healthcare sector campaigns; more sophisticated
+      authentication model than China Chopper.
+  - Name: "Behinder (Ice Scorpion)"
+    FirstSeen: "2020-Q1"
+    Status: Active
+    Notes: >
+      Publicly available and actively maintained (GitHub user rebeyond); uses
+      encryption-based C2 communication and randomizes User-Agent strings to evade
+      network and log analysis. Can load and execute compiled payloads in addition to
+      script commands. Supports ASP.NET, JSP, PHP. Particularly effective against
+      network-based detection due to encrypted traffic.
+  - Name: AntSword
+    FirstSeen: "2019"
+    Status: Active
+    Notes: "Modular client-server webshell framework; remarkably similar architecture to China Chopper but with improved extensibility. Open source on GitHub. Actively observed in targeted campaigns through 2024-2025."
+  - Name: "Neo-reGeorg / reGeorg"
+    FirstSeen: "2017"
+    Status: Active
+    Notes: >
+      HTTP tunnel/proxy webshell that forwards attacker traffic through the compromised
+      server; commonly used for lateral movement once initial shell access is achieved.
+      Neo-reGeorg is the actively maintained successor. Allows attackers to proxy
+      traffic to internal network segments not directly reachable from the internet.
+  - Name: "LEMURLOOT (MOVEit)"
+    FirstSeen: "2023-Q2"
+    Status: Active
+    Notes: >
+      C# ASP.NET webshell deployed by CL0P (TA505) via MOVEit Transfer CVE-2023-34362
+      SQL injection zero-day (May 2023). Named human2.aspx to masquerade as a legitimate
+      MOVEit file. Exfiltrated data from MOVEit databases and executed arbitrary commands.
+      Approximately 130 organizations victimized within 10 days; represents the targeted
+      appliance-specific webshell model deployed by ransomware operators.
+  - Name: "GLASSTOKEN / BUSHWALK (Ivanti)"
+    FirstSeen: "2024-Q1"
+    Status: Active
+    Notes: >
+      Webshells deployed against Ivanti Connect Secure appliances via CVE-2023-46805
+      (auth bypass) and CVE-2024-21887 (command injection). GLASSTOKEN was the initial
+      variant; BUSHWALK, LIGHTWIRE, and CHAINLINE were deployed post-mitigation bypass.
+      Over 1,700 appliances compromised. Demonstrates the shift from web application
+      webshells to network appliance webshells — same parent-child execution pattern,
+      different host OS environment.
+  - Name: "SALTWATER / SEASPY (Barracuda ESG)"
+    FirstSeen: "2023-Q2"
+    Status: Active
+    Notes: >
+      Webshell-style implants deployed by UNC4841 (China-nexus) against Barracuda Email
+      Security Gateway appliances via CVE-2023-2868 (remote command injection via TAR
+      file). Exploited as zero-day from October 2022; disclosed May 2023. CISA mandated
+      full appliance replacement — patches were insufficient. Demonstrates webshells
+      surviving factory reset via firmware-level persistence on physical appliances.
+  - Name: Fileless IIS Native Modules
+    FirstSeen: "2022-Q1"
+    Status: Active
+    Notes: >
+      Malicious IIS native modules (.DLL) that act as request handlers, intercepting all
+      HTTP traffic to the server. Documented by Microsoft in December 2022; avoids writing
+      script files to web-accessible directories entirely. Detected via IIS module
+      configuration review rather than file scanning. Same parent-child process
+      relationship (w3wp.exe spawning cmd.exe) applies when commands are executed.
+  - Name: Polyglot / Steganographic Shells
+    FirstSeen: "2020-Q1"
+    Status: Active
+    Notes: >
+      Webshell code embedded in valid image files (GIF89a header + PHP code) or hidden
+      via steganography. Bypass file-type validation and content inspection. When the web
+      server processes the file as a script, the embedded code executes. Primarily used
+      to evade upload restrictions; once uploaded, execution behavior is identical to
+      traditional webshells.
+  - Name: "Server-Side Template Injection (SSTI) Webshells"
+    FirstSeen: "2019"
+    Status: Active
+    Notes: >
+      Injects malicious code into server-side template expressions (Jinja2, Freemarker,
+      Velocity, Thymeleaf, JSP EL) to achieve RCE without uploading a dedicated shell
+      file. The template engine becomes the execution vehicle. SAP NetWeaver JSP webshells
+      (April 2025) demonstrated SSTI-based initial access at scale; no traditional shell
+      file exists on disk to scan.
+
+Prerequisites:
+  - Write access to a web-accessible directory on the target server (via file upload, path traversal, CVE exploitation, or CMS compromise)
+  - OR ability to modify web server configuration (for IIS native module approach)
+  - Web server must execute the shell's scripting language (PHP, ASP.NET, JSP, etc.)
+  - HTTP/HTTPS access to the deployed shell from attacker infrastructure
+  - Server must have OS command execution capability (not hardened to deny shell spawning)
+
+EvolutionTimeline:
+  - Date: "2013-2019"
+    Event: China Chopper establishes the minimal webshell model; reGeorg adds tunneling
+    Change: Two-component design (tiny server stub + attacker client) becomes the dominant pattern; HTTP tunneling via reGeorg enables lateral movement through the webshell into internal network segments
+    DetectionImpact: File-size-based detection fails against sub-4KB stubs; keyword/signature scanning becomes the primary but insufficient detection method
+    TheConstant: "HTTP request → web server process → child OS interpreter"
+  - Date: "2020"
+    Event: NSA/CISA joint advisory published; Microsoft reports 900% increase in web shell detections
+    Change: Attacker adoption surges; Behinder and Godzilla introduce encrypted C2 and dual-layer authentication; web shells become primary persistence in commodity and nation-state campaigns alike
+    DetectionImpact: Network-based detection ineffective against encrypted shells; process parent-child monitoring becomes essential; parent-child relationship detection begins gaining adoption in EDR and SIEM rules
+    TheConstant: "HTTP request → web server process → child OS interpreter"
+  - Date: "2021-Q1"
+    Event: ProxyLogon/ProxyShell plants webshells on hundreds of thousands of Exchange servers
+    Change: Mass exploitation of CVE-2021-26855 and CVE-2021-34473 drops webshells on every unpatched Exchange server globally within days; multiple threat actors use the same shells simultaneously
+    DetectionImpact: File hash detection partially effective but attacker variants proliferate immediately; behavioral detection of w3wp.exe spawning cmd.exe becomes an urgent priority signal
+    TheConstant: "HTTP request → web server process → child OS interpreter"
+  - Date: "2022-Q4"
+    Event: Microsoft documents fileless IIS native module webshells
+    Change: Malicious IIS DLLs intercept all web traffic with no script file in the web root and no keyword-scannable content; evades all file-based and directory-monitoring detection approaches
+    DetectionImpact: File integrity monitoring of web directories insufficient alone; IIS module configuration auditing required; w3wp.exe child process spawning remains the effective detection signal
+    TheConstant: "HTTP request → web server process → child OS interpreter"
+  - Date: "2023-Q2"
+    Event: MOVEit LEMURLOOT and Barracuda SALTWATER/SEASPY deployed on network appliances
+    Change: CL0P exploits MOVEit zero-day; UNC4841 exploits Barracuda zero-day. Webshells deployed on managed file transfer platforms and email security appliances rather than traditional web servers. CISA mandates Barracuda appliance replacement.
+    DetectionImpact: Traditional web server process monitoring insufficient for appliance-specific environments where telemetry is limited; generic parent-child detection applies where host telemetry is available
+    TheConstant: "HTTP request → web server process → child OS interpreter"
+  - Date: "2024-Q1"
+    Event: Ivanti Connect Secure mass exploitation deploys GLASSTOKEN across 1,700+ appliances
+    Change: CVE-2023-46805 auth bypass + CVE-2024-21887 command injection; webshells survive initial mitigation requiring new variant deployment (BUSHWALK, LIGHTWIRE); webshell operators actively adapt to defensive response in near-real-time
+    DetectionImpact: Integrity checking bypass documented; behavioral detection of process execution from appliance services becomes critical; out-of-band integrity verification required
+    TheConstant: "HTTP request → web server process → child OS interpreter"
+  - Date: "2024-Q4"
+    Event: Web shells present in 35% of all IR incidents (Cisco Talos)
+    Change: Web shell deployment reaches highest observed prevalence; shift toward exploiting unpatched public-facing applications as primary initial access vector, replacing phishing in many campaigns
+    DetectionImpact: Organizations without web server process creation monitoring have minimal detection capability; parent-child process detection must be a baseline capability, not an advanced one
+    TheConstant: "HTTP request → web server process → child OS interpreter"
+  - Date: "2025-Q1"
+    Event: Weaver Ant APT reveals multi-year covert access via chained webshells
+    Change: Chinese-nexus APT maintained persistent access to Asian telecom provider for years using chained webshells as encrypted tunnels; demonstrates webshells as long-term strategic persistence, not merely an initial foothold tool
+    DetectionImpact: Periodic file integrity checks insufficient; continuous monitoring of web server process behavior and outbound network connections required; dormant shells evade activity-based detection during inactive periods
+    TheConstant: "HTTP request → web server process → child OS interpreter"
+
+Detections:
+  - Level: Research
+    Description: Identify all child processes spawned by web server processes in the environment
+    LogSources:
+      - "Sysmon Event ID 1 (Process Creation)"
+      - "Windows Security Event ID 4688 (Process Creation with CommandLine auditing enabled)"
+      - "Linux auditd execve syscall events"
+    Logic: >
+      Process Created (EID 1 or 4688):
+        ParentImage: w3wp.exe OR httpd OR apache2 OR nginx OR java OR tomcat OR php-fpm
+        ChildImage: ANY
+      Purpose: Build full baseline of all child processes spawned by web server processes;
+      identify legitimate administration and deployment processes vs. anomalous execution
+    ExpectedFPRate: High
+    UseCase: Baseline legitimate web server child process behavior; identify environments with routine shell spawning (misconfigured) vs. those with no child process spawning (well-hardened)
+    SigmaRule: sigma-rules/web-shells/research.yml
+
+  - Level: Hunt
+    Description: Web server process spawning OS shell interpreters or reconnaissance utilities
+    LogSources:
+      - "Sysmon Event ID 1 (Process Creation)"
+      - "Sysmon Event ID 11 (File Created)"
+      - "Windows Security Event ID 4688 (Process Creation)"
+      - "Linux auditd execve + open syscalls"
+    Logic: >
+      Process Created (EID 1):
+        ParentImage: w3wp.exe OR httpd OR apache2 OR nginx OR java OR php-fpm OR tomcat
+        ChildImage:
+          cmd.exe OR powershell.exe OR pwsh.exe OR wscript.exe OR cscript.exe OR
+          /bin/sh OR /bin/bash OR /bin/dash OR python* OR perl OR ruby OR
+          whoami.exe OR net.exe OR ipconfig.exe OR ifconfig OR id OR wget OR curl
+      OR:
+        File Created (EID 11):
+          Path: contains \inetpub\wwwroot\ OR /var/www/ OR /srv/www/ OR /usr/share/nginx/
+          Extension: .php OR .asp OR .aspx OR .jsp OR .jspx OR .cfm OR .shtml
+          CreatingProcess: NOT in approved deployment toolchain
+    ExpectedFPRate: Medium
+    UseCase: Proactive hunt for active webshell execution and new shell file drops; distinguishes attacker activity from legitimate server-side scripting
+    SigmaRule: sigma-rules/web-shells/hunt.yml
+
+  - Level: Analyst
+    Description: Web server spawns shell interpreter with suspicious command AND web-accessible file recently created — direct webshell execution signal
+    LogSources:
+      - "Sysmon Event ID 1 (Process Creation)"
+      - "Sysmon Event ID 3 (Network Connection)"
+      - "Sysmon Event ID 11 (File Created)"
+      - "Windows Security Event ID 4688 (Process Creation)"
+      - "IIS/Apache/nginx access logs"
+    Logic: >
+      File Created (EID 11) in web-accessible path:
+        Extension: .php OR .asp OR .aspx OR .jsp OR .jspx
+        CreatingProcess: NOT approved CMS or deployment tool
+        Time: within last 24 hours
+      THEN within 60 minutes:
+        Process Created (EID 1):
+          ParentImage: w3wp.exe OR httpd OR apache2 OR java
+          ChildImage: cmd.exe OR powershell.exe OR /bin/sh OR /bin/bash
+          CommandLine: contains (whoami OR net user OR net group OR ipconfig OR
+                                 ifconfig OR id OR wget OR curl OR certutil)
+      OR (standalone — high confidence without file correlation):
+        ParentImage: w3wp.exe AND ChildImage: powershell.exe AND
+        CommandLine: contains (-enc OR -EncodedCommand OR IEX OR Invoke-Expression OR
+                              DownloadString OR WebClient OR FromBase64String)
+    ExpectedFPRate: Low
+    UseCase: SOC alerting; immediate IR escalation; highest confidence by correlating shell file creation with subsequent command execution
+    SigmaRule: sigma-rules/web-shells/analyst.yml
+
+Intel:
+  - Name: "ShellForge — Adversarial Co-Evolution of Webshell Generation and Detection"
+    URL: https://arxiv.org/abs/2601.22182
+    Description: January 2026 paper demonstrating adversarially generated webshells achieve 93.9% evasion rate against VirusTotal commercial engines; validates behavioral (process-creation) detection over file-content scanning; documents invariant functional requirements that survive all obfuscation
+  - Name: "NSA/ASD — Detect and Prevent Web Shell Malware"
+    URL: https://media.defense.gov/2020/Jun/09/2002313081/-1/-1/0/CSI-DETECT-AND-PREVENT-WEB-SHELL-MALWARE-20200422.PDF
+    Description: Foundational April 2020 joint advisory with detection guidance, Splunk queries, Snort rules, and file integrity monitoring recommendations; establishes process parent-child monitoring as the primary behavioral detection approach
+  - Name: "Microsoft — IIS Modules: The Evolution of Web Shells and How to Detect Them"
+    URL: https://www.microsoft.com/en-us/security/blog/2022/12/12/iis-modules-the-evolution-of-web-shells-and-how-to-detect-them/
+    Description: Documents the 2022 shift to fileless IIS native module webshells that bypass file-based detection; explains why w3wp.exe process behavior monitoring remains effective even against DLL-based shells
+  - Name: "CISA — CL0P Ransomware MOVEit Advisory (AA23-158A)"
+    URL: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a
+    Description: Documents LEMURLOOT webshell deployment via MOVEit CVE-2023-34362; includes IOCs, detection guidance, and timeline of CL0P exploitation across approximately 130 organizations
+  - Name: "CISA — Ivanti Connect Secure Advisory (AA24-060B)"
+    URL: https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-060b
+    Description: Documents GLASSTOKEN, BUSHWALK, LIGHTWIRE, and CHAINLINE webshell families deployed against 1,700+ Ivanti appliances; includes integrity-check bypass techniques and detection guidance
+  - Name: "Google Cloud — Barracuda ESG Zero-Day Exploitation by UNC4841"
+    URL: https://cloud.google.com/blog/topics/threat-intelligence/barracuda-esg-exploited-globally/
+    Description: Documents SALTWATER, SEASPY, and SEASIDE webshell-style implants deployed by China-nexus UNC4841 against Barracuda ESG; CISA mandated full appliance replacement over patching — webshells persisted through firmware
+  - Name: "Cisco Talos — IR Trends Q4 2024"
+    URL: https://blog.talosintelligence.com/talos-ir-trends-q4-2024/
+    Description: "Source for the statistic that web shells were present in 35% of all Q4 2024 IR incidents; documents the shift toward exploitation of vulnerable public-facing applications as primary initial access"
+  - Name: "Google Cloud — ProxyShell Exploiting Microsoft Exchange Servers"
+    URL: https://cloud.google.com/blog/topics/threat-intelligence/pst-want-shell-proxyshell-exploiting-microsoft-exchange-servers
+    Description: Technical analysis of CVE-2021-34473 ProxyShell exploitation; explains how attackers used the PST export mechanism to write ASPX webshells to Exchange OWA directories — creative abuse of legitimate server functionality
+  - Name: "MITRE ATT&CK — T1505.003 Server Software Component: Web Shell"
+    URL: https://attack.mitre.org/techniques/T1505/003/
+    Description: Primary technique definition with procedure examples linking to documented threat actor usage; extensive list of APT groups and ransomware operators observed deploying web shells as persistence mechanism
+  - Name: "Microsoft — Web Shell Attacks Continue to Rise"
+    URL: https://www.microsoft.com/en-us/security/blog/2021/02/11/web-shell-attacks-continue-to-rise/
+    Description: Documents the doubling of web shell detections in 2020-2021; includes monthly detection data and attack vector analysis; establishes process creation monitoring as the most reliable detection approach
+
+RelatedChokepoints:
+  - remote-execution-tools
+  - edr-bypass-techniques
+
+OsintSources:
+  - Platform: Shodan
+    Query: 'http.title:"WSO" OR http.title:"b374k" OR http.title:"c99"'
+    URL: "https://www.shodan.io/search?query=http.title%3A%22WSO%22+OR+http.title%3A%22b374k%22+OR+http.title%3A%22c99%22"
+    Notes: "Finds internet-exposed web shells with default page titles still intact — common in mass exploitation campaigns where attacker cadence outpaces cleanup. Useful for identifying unprotected shells accessible to any attacker, not just the original deployer."
+  - Platform: URLScan
+    Query: 'page.title:"WSO" OR filename:shell.php'
+    URL: "https://urlscan.io/search/#page.title%3A%22WSO%22+OR+filename%3Ashell.php"
+    Notes: "Finds recently scanned pages presenting known webshell UI or common shell filenames; useful for tracking active campaign infrastructure and identifying newly deployed shells before cleanup."
+  - Platform: VirusTotal Intelligence
+    Query: 'tag:webshell positives:0 type:text'
+    URL: "https://www.virustotal.com/gui/search/tag%3Awebshell%20positives%3A0%20type%3Atext"
+    Notes: "Requires VT Intelligence subscription. Finds webshell samples currently evading all commercial AV detection — the most dangerous variants in active use. Cross-reference with ShellForge paper finding that adversarially generated shells achieve 93.9% evasion rate against commercial engines."
+
+KnownBypasses:
+  - Bypass: Multi-layer encoding (base64 + gzinflate + XOR + eval) bypasses keyword and signature scanning
+    Mitigation: Deploy file integrity monitoring against known-good baselines; do not rely on keyword scanning alone
+    Detection: >
+      Focus on process behavior, not file content. The encoded shell still executes via
+      eval or assert, and the resulting OS command still spawns a child process. Shannon
+      entropy analysis of files in web directories can flag highly encoded content (entropy
+      above 7.0 is suspicious); combine with process creation monitoring for confirmation.
+  - Bypass: Fileless IIS native module webshells write no script file to the web root
+    Mitigation: Audit IIS module configuration regularly; allowlist approved IIS modules; monitor applicationHost.config for unauthorized entries
+    Detection: "Sysmon EID 7 (Image Loaded) for unexpected DLLs loaded by w3wp.exe; IIS module list review via appcmd.exe list module; w3wp.exe child process spawning still occurs when commands execute and remains the reliable detection signal."
+  - Bypass: Polyglot and steganographic shells bypass file-type validation on upload
+    Mitigation: Validate file content via magic byte inspection rather than extension or MIME type; restrict script execution in upload directories (Linux noexec mount, IIS deny-execute permissions)
+    Detection: File creation events in web directories followed by HTTP requests to those files; web server access logs showing direct requests to recently uploaded files without an HTTP referrer header
+  - Bypass: Dormant shells that activate only on demand evade activity-based detection during idle periods
+    Mitigation: Continuous file integrity monitoring rather than periodic scheduled scans; maintain a cryptographic baseline of all web-accessible paths
+    Detection: >
+      File integrity monitoring detects the shell at rest regardless of activation state.
+      Web server access log analysis can identify direct requests to unexpected file paths
+      even when no OS command is executed during the request, revealing attacker reconnaissance.
+  - Bypass: SSTI-based execution requires no uploaded file — exploits existing template processing
+    Mitigation: Sanitize all user input before passing to template engines; disable dangerous template evaluation features; enforce context-aware output encoding
+    Detection: "WAF rules for SSTI payload patterns (${{, <%=, #{7*7}); web server access logs showing injection payloads in request parameters; process spawning from template engine processes (Java Freemarker/Velocity spawning cmd.exe or /bin/sh)."
+  - Bypass: Encrypted C2 channels (Godzilla, Behinder) bypass network-based detection of webshell traffic
+    Mitigation: TLS inspection at network boundary; behavioral analysis of HTTP traffic patterns (high POST frequency to a single endpoint, fixed-interval requests, unusual or rotating User-Agent strings)
+    Detection: >
+      Network-layer detection is unreliable against encrypted shells. Process creation
+      monitoring remains effective — even Godzilla and Behinder must spawn child processes
+      to execute OS commands. The invariant signal is the endpoint: w3wp.exe or java
+      spawning cmd.exe or /bin/sh, regardless of how the HTTP command request was encrypted.
+
+YaraRules:
+  - yara-rules/webshell-indicators.yar
