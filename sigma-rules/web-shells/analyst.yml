@@ -1,0 +1,196 @@
+title: Web Shell — High-Confidence Execution via Web Server Spawning Shell with Suspicious Command
+id: f6c8e0a2-5d7f-9b1c-3e4g-7j9k1l3m5o7p
+status: experimental
+description: >
+  High-fidelity detection for active web shell command execution. Detects a web
+  server worker process (w3wp.exe, httpd.exe, apache2.exe, nginx.exe, java.exe,
+  php-cgi.exe) spawning a shell interpreter (cmd.exe, powershell.exe) where the
+  spawned process command line contains explicit attacker reconnaissance, exfiltration,
+  or download indicators. This two-condition structure (web server parent AND
+  suspicious child command line) provides strong specificity over the hunt rule's
+  broader shell-spawn coverage. A second high-confidence selection covers PowerShell
+  encoded command execution from a web server parent — a near-universal indicator
+  of China Chopper, Godzilla, Behinder, and AntSword webshell variants, all of
+  which use PowerShell encoded commands or IEX/WebClient patterns for payload delivery.
+  The chokepoint invariant (HTTP request → web server process → child OS interpreter)
+  holds regardless of shell language, encoding, or C2 encryption used; this rule
+  detects the observable execution artifact at the endpoint layer. Low false positive
+  rate; treat as immediate SOC escalation.
+references:
+  - https://attack.mitre.org/techniques/T1505/003/
+  - https://attack.mitre.org/techniques/T1190/
+  - https://attack.mitre.org/techniques/T1059/001/
+  - https://media.defense.gov/2020/Jun/09/2002313081/-1/-1/0/CSI-DETECT-AND-PREVENT-WEB-SHELL-MALWARE-20200422.PDF
+  - https://www.microsoft.com/en-us/security/blog/2022/12/12/iis-modules-the-evolution-of-web-shells-and-how-to-detect-them/
+  - https://arxiv.org/abs/2601.22182
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-060b
+author: "@iimp0ster"
+date: 2026/03/08
+tags:
+  - attack.persistence
+  - attack.t1505.003
+  - attack.initial_access
+  - attack.t1190
+  - attack.execution
+  - attack.t1059.001
+  - attack.t1059.003
+  - detection.maturity.analyst
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  # Shared filter: parent must be a web server process
+  selection_web_server_parent:
+    ParentImage|endswith:
+      - '\w3wp.exe'
+      - '\httpd.exe'
+      - '\apache.exe'
+      - '\apache2.exe'
+      - '\nginx.exe'
+      - '\php-cgi.exe'
+      - '\php.exe'
+      - '\php-fpm.exe'
+      - '\tomcat.exe'
+      - '\tomcat9.exe'
+      - '\tomcat10.exe'
+      - '\java.exe'
+      - '\javaw.exe'
+
+  # Selection A: cmd.exe spawned by web server with recon/exfil/download command
+  selection_cmd_recon:
+    Image|endswith: '\cmd.exe'
+    CommandLine|contains|any:
+      - 'whoami'
+      - 'net user'
+      - 'net group'
+      - 'net localgroup'
+      - 'ipconfig'
+      - 'systeminfo'
+      - 'netstat'
+      - 'tasklist'
+      - 'quser'
+      - 'qwinsta'
+      - 'dir '
+      - 'type '
+      - 'copy '
+      - 'move '
+      - 'certutil'
+      - 'bitsadmin'
+      - 'mshta'
+      - 'curl'
+      - 'wget'
+      - 'nltest'
+      - 'arp '
+      - 'ping '
+      - 'nslookup'
+      - 'reg query'
+      - 'reg add'
+      - 'schtasks'
+      - 'at '
+      - 'net use'
+      - 'wmic'
+
+  # Selection B: PowerShell with encoded command or downloader/execution pattern
+  selection_powershell_encoded:
+    Image|endswith:
+      - '\powershell.exe'
+      - '\pwsh.exe'
+    CommandLine|contains|any:
+      - '-enc'
+      - '-EncodedCommand'
+      - '-e '
+      - 'IEX'
+      - 'Invoke-Expression'
+      - 'DownloadString'
+      - 'DownloadFile'
+      - 'WebClient'
+      - 'Net.WebClient'
+      - 'FromBase64String'
+      - 'ToBase64String'
+      - 'BitsTransfer'
+      - 'Start-BitsTransfer'
+      - 'Invoke-WebRequest'
+      - '-nop'
+      - '-noprofile'
+      - 'bypass'
+      - 'hidden'
+      - 'Add-MpPreference'
+      - 'Set-MpPreference'
+      - 'whoami'
+      - 'net user'
+      - 'net group'
+
+  condition: selection_web_server_parent and (selection_cmd_recon or selection_powershell_encoded)
+falsepositives:
+  - Legitimate web applications that invoke system utilities as part of documented functionality (file conversion, health checks)
+  - Authorized administrative web interfaces that invoke PowerShell for server management
+  - Development environments where web applications execute scripts for testing
+level: high
+# ─── Analyst Notes ─────────────────────────────────────────────────────────────
+#
+# TREAT AS INCIDENT ON FIRST FIRING unless the environment is known to use
+# web-triggered shell commands as a documented application function (validate via
+# parent process CommandLine and HTTP access log correlation).
+#
+# IMMEDIATE ENRICHMENT CHECKLIST:
+#
+# 1. HTTP ACCESS LOG (highest priority):
+#    Find the HTTP request that triggered execution (timestamp ± 2 seconds).
+#    Key fields: source IP, URI path, HTTP method, User-Agent, POST body size.
+#    - POST to .php/.aspx/.jsp in unexpected path → shell file location identified
+#    - Unusual User-Agent (Python-requests, curl, empty) → attacker tooling confirmed
+#    - Source IP → geolocate, check threat intel, check for VPN/Tor exit node
+#
+# 2. PROCESS COMMAND LINE:
+#    Decode any base64-encoded PowerShell: [System.Text.Encoding]::Unicode.GetString(
+#    [Convert]::FromBase64String('<base64>')) in CyberChef or similar tool.
+#
+# 3. FILE INTEGRITY:
+#    Find the shell file: IIS access log URI → check if that file was recently
+#    created (Sysmon EID 11). Shell file path, creation timestamp, and creating
+#    process are the root-cause artifacts.
+#
+# 4. LATERAL MOVEMENT CHECK:
+#    Did the attacker run "net use", "wmic /node:", or initiate outbound SMB?
+#    Check for Sysmon EID 3 (NetworkConnect) from w3wp.exe or child process.
+#
+# 5. PERSISTENCE CHECK:
+#    Did the attacker run schtasks, at.exe, reg add for Run key, or drop additional
+#    files outside the web root? Web shell access often precedes secondary persistence.
+#
+# RESPONSE ACTIONS:
+# 1. Identify and quarantine the web shell file (IIS access log → URI → file path)
+# 2. Rotate all credentials accessible from the compromised web server
+# 3. Block the source IP at the perimeter and WAF immediately
+# 4. Check all web-accessible directories for additional shell files
+# 5. Review IIS/Apache access logs 30 days back for prior access to identified shell
+# 6. Search for web requests to the shell from other source IPs (multiple actors)
+# 7. Check all internal hosts the web server could reach for lateral spread indicators
+# 8. Preserve full IIS/Apache/nginx access logs and Sysmon logs for forensics
+#
+# ─── SIEM KQL (Microsoft Sentinel) ────────────────────────────────────────────
+# let webServers = dynamic(["w3wp.exe","httpd.exe","apache.exe","nginx.exe",
+#     "php-cgi.exe","php.exe","tomcat.exe","java.exe","javaw.exe"]);
+# let reconCommands = dynamic(["whoami","net user","net group","ipconfig","systeminfo",
+#     "netstat","certutil","bitsadmin","curl","wget","nltest","wmic"]);
+# let encodedPS = dynamic(["-enc","-EncodedCommand","IEX","Invoke-Expression",
+#     "DownloadString","WebClient","FromBase64String","-nop","bypass"]);
+# DeviceProcessEvents
+# | where InitiatingProcessFileName in~ (webServers)
+# | where FileName in~ ("cmd.exe","powershell.exe","pwsh.exe")
+# | where ProcessCommandLine has_any (array_concat(reconCommands, encodedPS))
+# | project Timestamp, DeviceName, AccountName, InitiatingProcessFileName,
+#     FileName, ProcessCommandLine
+# | order by Timestamp desc
+#
+# ─── Coverage Notes ────────────────────────────────────────────────────────────
+# - China Chopper: Typically uses cmd.exe /c [command] via eval — covered by Selection A
+# - Godzilla/Behinder (encrypted C2): Encrypted HTTP, but OS command execution still
+#   spawns child process — covered by Selection A/B at endpoint layer
+# - Fileless IIS native modules: DLL intercepts requests, but cmd.exe is still spawned
+#   when attacker sends OS command → w3wp.exe parent relationship preserved
+# - LEMURLOOT (MOVEit), GLASSTOKEN (Ivanti): ASP.NET shells using w3wp.exe parent;
+#   PowerShell invocation covered by Selection B
+# - ProxyShell/ProxyLogon: w3wp.exe spawning powershell.exe -enc confirmed in
+#   forensic reports; Selection B is the primary coverage vector
