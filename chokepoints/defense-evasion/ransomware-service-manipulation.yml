@@ -195,3 +195,74 @@ KnownBypasses:
     Mitigation: Enable HVCI (Hypervisor-Protected Code Integrity) and Microsoft Vulnerable Driver Blocklist; enforce driver signing policy
     Detection: "Detect kernel driver loading (Sysmon EID 6) for drivers with newly issued or untrusted certificates immediately preceding bulk service termination; alert on loading of drivers matching Microsoft's blocklist"
 
+
+RawLogs:
+  - Type: Sysmon
+    EventId: 1
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: sc.exe used to stop a backup service - first service in rapid bulk-stop sequence
+    MatchedRules: [Hunt, Analyst]
+    Sample: |
+      EventID: 1 (Process Create)
+      UtcTime: 2024-06-17 22:11:03.447
+      ProcessId: 5532
+      Image: C:\Windows\System32\sc.exe
+      CommandLine: sc  stop  VeeamBackupSvc
+      ParentImage: C:\Windows\System32\cmd.exe
+
+  - Type: Windows Event Log
+    EventId: 7036
+    Source: Service Control Manager
+    Description: Veeam backup service stopped as part of ransomware pre-encryption service kill
+    MatchedRules: [Research, Hunt, Analyst]
+    Sample: |
+      EventID: 7036 (The service entered the stopped state)
+      TimeCreated: 2024-06-17T22:11:03.8834120Z
+      Channel: System
+      param1: Veeam Backup Service
+      param2: stopped
+
+  - Type: Sysmon
+    EventId: 1
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: sc.exe disables service to prevent automatic restart
+    MatchedRules: [Hunt, Analyst]
+    Sample: |
+      EventID: 1 (Process Create)
+      UtcTime: 2024-06-17 22:11:04.112
+      ProcessId: 5540
+      Image: C:\Windows\System32\sc.exe
+      CommandLine: sc  config  VeeamBackupSvc  start=  disabled
+      ParentImage: C:\Windows\System32\cmd.exe
+
+  - Type: Windows Event Log
+    EventId: 7040
+    Source: Service Control Manager
+    Description: Backup service start type changed to disabled - prevents auto-restart
+    MatchedRules: [Hunt, Analyst]
+    Sample: |
+      EventID: 7040 (The start type of the service was changed)
+      TimeCreated: 2024-06-17T22:11:04.2201830Z
+      Channel: System
+      param1: Veeam Backup Service
+      param2: disabled
+
+  - Type: Sysmon
+    EventId: 1
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: Service deleted to remove backup infrastructure entirely
+    MatchedRules: [Hunt, Analyst]
+    Sample: |
+      EventID: 1 (Process Create)
+      UtcTime: 2024-06-17 22:11:07.883
+      ProcessId: 5548
+      Image: C:\Windows\System32\sc.exe
+      CommandLine: sc  delete  VeeamBackupSvc
+      ParentImage: C:\Windows\System32\cmd.exe
+
+EmulationScript:
+  File: emulation/ransomware-service-manipulation/emulate.ps1
+  Language: powershell
+  Description: Simulates bulk service stop, disable, and delete pattern used by ransomware pre-encryption
+  SafetyNotes: Requires Administrator. Creates dummy test services. Optionally targets VSS. Lab VM only.
+  AtomicRef: T1562.001

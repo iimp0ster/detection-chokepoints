@@ -224,3 +224,80 @@ KnownBypasses:
 YaraRules:
   - yara-rules/impacket-indicators.yar
 
+RawLogs:
+  - Type: Windows Event Log
+    EventId: 4624
+    Source: Microsoft-Windows-Security-Auditing
+    Description: Network logon (Type 3) from attacker IP before remote execution
+    MatchedRules: [Research, Analyst]
+    Sample: |
+      EventID: 4624 (An account was successfully logged on)
+      TimeCreated: 2024-07-09T01:33:47.2284110Z
+      Channel: Security
+
+      LogonType: 3
+      NewLogonUserName: Administrator
+      NewLogonDomain: CORP
+      AuthenticationPackageName: NTLM
+      LogonProcessName: NtLmSsp
+      IpAddress: 10.10.50.5
+      IpPort: 49221
+      # LogonType=3 (Network) from internal IP — pre-execution authentication
+
+  - Type: Windows Event Log
+    EventId: 5145
+    Source: Microsoft-Windows-Security-Auditing
+    Description: IPC$ share access — PsExec/Impacket opens IPC$/svcctl before service creation
+    MatchedRules: [Analyst]
+    Sample: |
+      EventID: 5145 (A network share object was checked for access)
+      TimeCreated: 2024-07-09T01:33:47.4418230Z
+      Channel: Security
+
+      SubjectUserName: Administrator
+      ShareName: \\*\IPC$
+      RelativeTargetName: svcctl
+      AccessList: %%4416 (ReadData)
+      IpAddress: 10.10.50.5
+      # IPC$/svcctl access = opening service control manager over SMB (PsExec/Impacket pattern)
+
+  - Type: Windows Event Log
+    EventId: 7045
+    Source: Service Control Manager
+    Description: Random-named service installed from TEMP path — classic PsExec/Impacket signature
+    MatchedRules: [Research, Hunt, Analyst]
+    Sample: |
+      EventID: 7045 (A new service was installed in the system)
+      TimeCreated: 2024-07-09T01:33:47.8834120Z
+      Channel: System
+
+      ServiceName: xvkbmrfe
+      ServiceFileName: C:\Windows\Temp\xvkbmrfe.exe
+      ServiceType: user mode service
+      ServiceStartType: demand start
+      ServiceAccount: LocalSystem
+      # 8-char random name + TEMP binary path = PsExec/Impacket/CrackMapExec pattern
+
+  - Type: Sysmon
+    EventId: 1
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: cmd.exe spawned from services.exe — service binary executing attacker commands
+    MatchedRules: [Hunt, Analyst]
+    Sample: |
+      EventID: 1 (Process Create)
+      UtcTime: 2024-07-09 01:33:48.227
+      ProcessId: 4096
+      Image: C:\Windows\System32\cmd.exe
+      CommandLine: cmd.exe /Q /c whoami 1>\\127.0.0.1\ADMIN$\__1720488827.18 2>&1
+      ParentProcessId: 612
+      ParentImage: C:\Windows\System32\services.exe
+      # services.exe → cmd.exe is the canonical PsExec parent chain
+      # Output redirected to ADMIN$ share — PsExec output capture pattern
+
+EmulationScript:
+  File: emulation/remote-execution-tools/emulate.ps1
+  Language: powershell
+  Description: Simulates network logon, IPC$ access, random-named service creation, and cmd.exe execution
+  SafetyNotes: Requires Administrator. All activity targets localhost only. Run in isolated lab VM.
+  AtomicRef: T1021.002
+

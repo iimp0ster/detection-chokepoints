@@ -317,3 +317,78 @@ KnownBypasses:
 
 YaraRules:
   - yara-rules/edr-bypass-drivers.yar
+
+RawLogs:
+  - Type: Sysmon
+    EventId: 6
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: Vulnerable/recently-signed kernel driver loaded — BYOVD technique initiation
+    MatchedRules: [Research]
+    Sample: |
+      EventID: 6 (Driver Loaded)
+      UtcTime: 2024-08-22 03:44:11.774
+      ImageLoaded: C:\Windows\Temp\truesight.sys
+      Hashes: SHA256=3BE39706C4B3B49B8D5C49FEF3EFC2B748D6B3F8A1D0E9C2B4A6F8D0E2C4A6B8
+      Signed: true
+      Signature: Raynet Inc.
+      SignatureStatus: Valid
+      # Driver signed by "Raynet Inc." — a certificate issued 6 days prior to this event
+      # Hash matches Microsoft Vulnerable Driver Blocklist (truesight.sys / RogueKiller driver)
+      # Research rule: non-Microsoft driver OR recently-signed OR blocklist match
+
+  - Type: Sysmon
+    EventId: 10
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: BYOVD process opens handle to EDR process — pre-kill access request
+    MatchedRules: [Hunt, Analyst]
+    Sample: |
+      EventID: 10 (ProcessAccess)
+      UtcTime: 2024-08-22 03:44:12.891
+      SourceProcessGUID: {d4e5f6a7-4567-8901-defa-123456789012}
+      SourceProcessId: 2048
+      SourceImage: C:\Windows\Temp\killer.exe
+      TargetProcessGUID: {00000000-0000-0000-0000-000000000000}
+      TargetProcessId: 1876
+      TargetImage: C:\Program Files\Windows Defender\MsMpEng.exe
+      GrantedAccess: 0x1FFFFF
+      # PROCESS_ALL_ACCESS from non-trusted process to security process
+      # Follows driver load within 5 minutes — Hunt rule correlation
+
+  - Type: Windows Event Log
+    EventId: 7036
+    Source: Service Control Manager
+    Description: Windows Defender service stopped after BYOVD driver loaded
+    MatchedRules: [Hunt, Analyst]
+    Sample: |
+      EventID: 7036 (The service entered the stopped state)
+      TimeCreated: 2024-08-22T03:44:13.4417820Z
+      Channel: System
+
+      param1: Windows Defender Antivirus Service
+      param2: stopped
+      # WinDefend stops within 120 seconds of driver load event
+      # Combined with EID 6 (driver) + EID 10 (process access) = full Analyst kill chain
+
+  - Type: Windows Event Log
+    EventId: 7040
+    Source: Service Control Manager
+    Description: Attacker disables WinDefend to prevent restart after stopping it
+    MatchedRules: [Analyst]
+    Sample: |
+      EventID: 7040 (The start type of the service was changed)
+      TimeCreated: 2024-08-22T03:44:13.6124330Z
+      Channel: System
+
+      param1: Windows Defender Antivirus Service
+      param2: disabled
+      # Service start type changed to "disabled" immediately after service stop
+      # Prevents restart via Task Scheduler or manual sc start
+
+EmulationScript:
+  File: emulation/edr-bypass-techniques/emulate.ps1
+  Language: powershell
+  Description: Simulates EDR process handle opening, service stop/disable, and driver install event
+  SafetyNotes: >
+    Requires Administrator. Temporarily stops WinDefend for service stop telemetry (re-enables immediately).
+    Does NOT load vulnerable kernel drivers. Run in isolated lab VM only.
+  AtomicRef: T1562.001

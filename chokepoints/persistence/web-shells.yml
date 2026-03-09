@@ -332,3 +332,79 @@ KnownBypasses:
 
 YaraRules:
   - yara-rules/webshell-indicators.yar
+
+RawLogs:
+  - Type: Sysmon
+    EventId: 11
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: ASPX web shell file created in IIS web root by non-deployment process
+    MatchedRules: [Hunt, Analyst]
+    Sample: |
+      EventID: 11 (FileCreate)
+      UtcTime: 2024-09-03 07:14:32.441
+      ProcessId: 4
+      Image: System
+      TargetFilename: C:\inetpub\wwwroot\upload\cmd8473.aspx
+      CreationUtcTime: 2024-09-03 07:14:32.441
+      # File created in web root with .aspx extension by SYSTEM/non-deployment process
+      # Timestamp correlation: shell accessed via HTTP within 60 minutes of this event
+
+  - Type: Sysmon
+    EventId: 1
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: cmd.exe spawned by w3wp.exe after HTTP request to the web shell
+    MatchedRules: [Research, Hunt, Analyst]
+    Sample: |
+      EventID: 1 (Process Create)
+      UtcTime: 2024-09-03 07:18:44.113
+      ProcessId: 7832
+      Image: C:\Windows\System32\cmd.exe
+      CommandLine: cmd /c whoami
+      CurrentDirectory: C:\Windows\system32\
+      ParentProcessId: 2840
+      ParentImage: C:\Windows\System32\inetsrv\w3wp.exe
+      ParentCommandLine: c:\windows\system32\inetsrv\w3wp.exe -ap "DefaultAppPool"
+      # w3wp.exe → cmd.exe is the canonical IIS web shell execution pattern
+      # Research rule: any w3wp child; Hunt/Analyst rule: cmd.exe/powershell.exe child
+
+  - Type: Sysmon
+    EventId: 1
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: PowerShell with encoded command spawned by w3wp.exe — encoded web shell execution
+    MatchedRules: [Hunt, Analyst]
+    Sample: |
+      EventID: 1 (Process Create)
+      UtcTime: 2024-09-03 07:19:02.774
+      ProcessId: 8104
+      Image: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+      CommandLine: powershell.exe -NonInteractive -enc aQBlAHgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkA
+      ParentProcessId: 2840
+      ParentImage: C:\Windows\System32\inetsrv\w3wp.exe
+      # w3wp → powershell.exe with -enc flag = high-confidence Analyst rule signal
+
+  - Type: Sysmon
+    EventId: 3
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: Outbound reverse shell / download connection from w3wp.exe child process
+    MatchedRules: [Analyst]
+    Sample: |
+      EventID: 3 (NetworkConnect)
+      UtcTime: 2024-09-03 07:19:04.882
+      ProcessId: 8104
+      Image: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+      User: IIS APPPOOL\DefaultAppPool
+      Protocol: tcp
+      Initiated: true
+      SourceIp: 10.20.1.15
+      SourcePort: 52741
+      DestinationIp: 185.220.101.55
+      DestinationHostname: -
+      DestinationPort: 4444
+      # w3wp child process making outbound TCP connection to non-RFC1918 IP on non-standard port
+
+EmulationScript:
+  File: emulation/web-shells/emulate.ps1
+  Language: powershell
+  Description: Simulates web shell file creation, interpreter spawn with recon commands, and outbound connection
+  SafetyNotes: Run in isolated lab VM only. Creates a text file (not executable) in a test web directory.
+  AtomicRef: T1505.003

@@ -225,3 +225,69 @@ KnownBypasses:
     Mitigation: Block unsigned or unapproved portable executables via application control; monitor Downloads/Temp for executable creation
     Detection: "CISA AA23-025A specifically highlights that portable executables don't require admin privileges and bypass software installation audit controls. Detection must focus on process execution from user-writable paths rather than relying on install events."
 
+
+RawLogs:
+  - Type: Sysmon
+    EventId: 11
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: Renamed RMM binary dropped to Downloads folder by browser process
+    MatchedRules: [Hunt, Analyst]
+    Sample: |
+      EventID: 11 (FileCreate)
+      UtcTime: 2024-10-15 09:34:12.881
+      ProcessGuid: {c3d4e5f6-3456-7890-cdef-012345678901}
+      ProcessId: 3284
+      Image: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
+      TargetFilename: C:\Users\jsmith\Downloads\tax-document-2024.exe
+      CreationUtcTime: 2024-10-15 09:34:12.881
+      # Browser drops .exe directly to Downloads — combined with execution signals Hunt/Analyst rules
+
+  - Type: Sysmon
+    EventId: 1
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: Renamed RMM binary executed — OriginalFilename mismatch is the Analyst signal
+    MatchedRules: [Research, Hunt, Analyst]
+    Sample: |
+      EventID: 1 (Process Create)
+      UtcTime: 2024-10-15 09:34:28.103
+      ProcessGuid: {c3d4e5f6-3456-7890-cdef-012345678902}
+      ProcessId: 9876
+      Image: C:\Users\jsmith\Downloads\tax-document-2024.exe
+      OriginalFileName: AnyDesk.exe
+      CommandLine: "C:\Users\jsmith\Downloads\tax-document-2024.exe"
+      CurrentDirectory: C:\Users\jsmith\Downloads\
+      ParentProcessId: 3284
+      ParentImage: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
+      FileVersion: 8.0.8.0
+      Description: AnyDesk
+      Company: AnyDesk Software GmbH
+      # KEY SIGNAL: Image=tax-document-2024.exe but OriginalFileName=AnyDesk.exe
+      # File signer: AnyDesk Software GmbH certificate on a file named "tax-document-2024.exe"
+
+  - Type: Sysmon
+    EventId: 3
+    Source: Microsoft-Windows-Sysmon/Operational
+    Description: Renamed AnyDesk binary connects to AnyDesk relay infrastructure
+    MatchedRules: [Analyst]
+    Sample: |
+      EventID: 3 (NetworkConnect)
+      UtcTime: 2024-10-15 09:34:29.441
+      ProcessGuid: {c3d4e5f6-3456-7890-cdef-012345678902}
+      ProcessId: 9876
+      Image: C:\Users\jsmith\Downloads\tax-document-2024.exe
+      User: CORP\jsmith
+      Protocol: tcp
+      Initiated: true
+      SourceIp: 10.10.5.22
+      SourcePort: 51876
+      DestinationIp: 195.201.29.30
+      DestinationHostname: relay.anydesk.com
+      DestinationPort: 443
+      # Non-RMM-named binary connecting to relay.anydesk.com within 2 min of browser download
+
+EmulationScript:
+  File: emulation/renamed-rmm-tools/emulate.ps1
+  Language: powershell
+  Description: Simulates renamed RMM binary drop, execution with metadata mismatch, and outbound connection
+  SafetyNotes: Run in isolated lab VM only. Uses a benign Windows binary renamed to a campaign filename.
+  AtomicRef: T1219.002
