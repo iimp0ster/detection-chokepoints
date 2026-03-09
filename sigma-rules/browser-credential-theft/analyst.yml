@@ -1,0 +1,214 @@
+title: Infostealer — Combined Login Data and Local State Access by Non-Browser Process (High Confidence)
+id: b8e1369a-dcdd-413a-84a0-b7a953b8ff09
+status: experimental
+description: >
+  High-fidelity detection for the complete Chromium infostealer credential harvest chain:
+  a non-browser process accesses BOTH Chrome Login Data (encrypted credential SQLite DB)
+  AND Local State (contains the App-Bound Encryption master key) within a single session.
+  This combined access pattern is a near-definitive infostealer indicator because:
+  (1) Login Data alone can be accessed by backup tools and AV scanners;
+  (2) Local State alone is accessed by the browser itself for configuration;
+  (3) combined access to BOTH by the same non-browser process has no legitimate use case
+      outside infostealer credential decryption.
+  This pattern is consistent across all Chromium-targeting stealer families — LummaC2,
+  RedLine, Raccoon v2, Stealc, Vidar 2.0, Medusa, EDDIESTEALER — and across all three
+  Chrome App-Bound Encryption bypass techniques (COM elevation, Chrome DevTools Protocol,
+  and in-process memory injection). The file paths are dictated by the browser and cannot
+  be changed by the attacker.
+  A secondary high-confidence variant detects GoogleChromeElevationService being accessed
+  via COM by a non-updater process — the first App-Bound Encryption bypass documented
+  September 12, 2024, 45 days after Google's encryption was introduced.
+  Treat every firing of this rule as a Tier 1 incident pending immediate triage.
+references:
+  - https://attack.mitre.org/techniques/T1555/003/
+  - https://attack.mitre.org/techniques/T1539/
+  - https://security.googleblog.com/2024/07/improving-security-of-chrome-cookies-on.html
+  - https://security.googleblog.com/2024/09/improving-security-of-chrome-cookies.html
+  - https://cloud.google.com/blog/topics/threat-intelligence/unc5537-snowflake-data-theft-extortion/
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-071a
+  - https://blog.sekoia.io/lummac2-stealer-an-in-depth-analysis/
+author: "@iimp0ster"
+date: 2026/03/08
+tags:
+  - attack.credential_access
+  - attack.t1555.003
+  - attack.t1539
+  - attack.collection
+  - attack.t1005
+  - detection.maturity.analyst
+logsource:
+  category: file_event
+  product: windows
+detection:
+  # NOTE: This rule requires temporal correlation across two file events from the same process.
+  # In Sigma, this is expressed as a grouped detection requiring both TargetFilename patterns
+  # to appear from the same Image within a session window. SIEM-specific correlation is
+  # required for full implementation — see the KQL and SPL queries in the analyst notes below.
+  # The single-event approximation (either Login Data OR Local State by non-browser) is
+  # captured as selection_combined for platforms that can apply process-grouped detection.
+
+  # Selection A: Access to Login Data (encrypted credential SQLite database)
+  selection_login_data:
+    TargetFilename|contains:
+      - '\Google\Chrome\User Data\Default\Login Data'
+      - '\Microsoft\Edge\User Data\Default\Login Data'
+      - '\BraveSoftware\Brave-Browser\User Data\Default\Login Data'
+      - '\Opera Software\Opera Stable\Login Data'
+      - '\Chromium\User Data\Default\Login Data'
+
+  # Selection B: Access to Local State (App-Bound Encryption master key file)
+  selection_local_state:
+    TargetFilename|contains:
+      - '\Google\Chrome\User Data\Local State'
+      - '\Microsoft\Edge\User Data\Local State'
+      - '\BraveSoftware\Brave-Browser\User Data\Local State'
+
+  # Selection C: COM access to GoogleChromeElevationService by non-updater process
+  # (App-Bound Encryption bypass via IElevator::DecryptData — Sept 2024 bypass)
+  selection_abe_com_bypass:
+    EventID: 4688  # Process creation as COM host
+    CommandLine|contains:
+      - 'GoogleChromeElevationService'
+    CommandLine|not|contains:
+      - 'GoogleUpdate'
+      - 'update'
+      - 'install'
+
+  # Selection D: Cross-process memory access to chrome.exe (memory injection bypass — Vidar 2.0)
+  selection_chrome_injection:
+    EventID: 10  # Sysmon ProcessAccess
+    TargetImage|endswith: '\chrome.exe'
+    GrantedAccess|contains:
+      - '0x1010'   # PROCESS_VM_READ | PROCESS_QUERY_INFORMATION
+      - '0x1438'   # PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION
+      - '0x143a'
+    SourceImage|not|endswith:
+      - '\chrome.exe'
+      - '\msedge.exe'
+      - '\MsMpEng.exe'
+      - '\SentinelAgent.exe'
+      - '\CSFalconService.exe'
+
+  filter_legitimate_browsers:
+    Image|endswith:
+      - '\chrome.exe'
+      - '\msedge.exe'
+      - '\brave.exe'
+      - '\firefox.exe'
+      - '\opera.exe'
+      - '\vivaldi.exe'
+      - '\chromium.exe'
+      - '\GoogleUpdate.exe'
+      - '\MicrosoftEdgeUpdate.exe'
+      - '\elevation_service.exe'
+
+  filter_system_processes:
+    Image|startswith:
+      - 'C:\Windows\System32\'
+      - 'C:\Windows\SysWOW64\'
+      - 'C:\Program Files\Windows Defender\'
+
+  condition: >
+    (selection_login_data and not (filter_legitimate_browsers or filter_system_processes))
+    or (selection_local_state and not (filter_legitimate_browsers or filter_system_processes))
+    or selection_abe_com_bypass
+    or selection_chrome_injection
+falsepositives:
+  - Enterprise password manager products (1Password, Bitwarden for Teams) — these should
+    appear in the research baseline allowlist before this rule is deployed
+  - Endpoint backup solutions performing AppData backup (Veeam, Acronis) — exclude by
+    known backup agent path
+  - EDR products performing behavioral analysis on browser credential files — verify by
+    confirming the accessing process is signed by the EDR vendor and running from Program Files
+  - Chrome's own elevation service (elevation_service.exe) accessing Local State — filtered
+    above; if filtering fails, verify Image path is Google's installation directory
+level: high
+# ─── Analyst Notes ─────────────────────────────────────────────────────────────
+#
+# TREAT AS INCIDENT ON FIRST FIRING (unless accessing process is a known allowlisted tool).
+# The Login Data + Local State combined access pattern has no legitimate non-browser use.
+# If your research baseline identified any legitimate processes accessing these files,
+# add them to filter_known_good before deploying this rule.
+#
+# IMMEDIATE ENRICHMENT CHECKLIST:
+# 1. ACCESSING PROCESS
+#    → Full image path: is it in %TEMP%, %APPDATA%, Downloads, Desktop? → HIGH confidence
+#    → Is it signed? Unsigned process accessing browser credentials = confirmed malicious
+#    → What is the parent process? ClickFix delivery = PowerShell/mshta.exe parent
+#    → Hash on VirusTotal? Query: behavior_files:"Login Data" AND submissionName:<hash>
+#
+# 2. CREDENTIAL PATHS ACCESSED (scope of theft)
+#    → Login Data only: stored passwords at risk
+#    → Login Data + Local State: stored passwords + App-Bound key (full Chromium harvest)
+#    → Login Data + Local State + Cookies: stored passwords + session cookies = MFA bypass
+#    → logins.json + key4.db: Firefox stored passwords at risk
+#    → All paths accessed: complete browser credential theft across all installed browsers
+#
+# 3. NETWORK EXFILTRATION (immediate pivot)
+#    Check for outbound network connection by the same process within 5 minutes:
+#    → Destination is a public IP on port 80/443/8080: active C2 exfiltration in progress
+#    → If exfiltration is still ongoing: isolate the endpoint NOW to cut off the data transfer
+#    → Preserve memory before isolation if host is still accessible (active exfiltration
+#      means the process is still running and credentials may be in plaintext in memory)
+#
+# 4. APP-BOUND ENCRYPTION BYPASS (Selection C — COM elevation):
+#    If GoogleChromeElevationService was accessed by a non-updater process:
+#    → The App-Bound Encryption bypass succeeded — assume ALL Chrome cookies are compromised
+#    → Focus incident response on session cookie theft (T1539) — the attacker has MFA-bypass
+#      capability for all services the victim was authenticated to in Chrome
+#    → Check for subsequent impossible travel or new-device logins to corporate SaaS
+#      (Okta, Azure AD, Google Workspace) within 1-6 hours of this event
+#
+# 5. CHROME INJECTION BYPASS (Selection D — Vidar 2.0 / memory injection):
+#    PROCESS_VM_READ access to chrome.exe from a non-trusted process indicates memory
+#    injection for in-process App-Bound decryption:
+#    → Check for named pipe creation by the same source process (Vidar 2.0 specific)
+#    → Sysmon EID 17/18 (PipeCreated/PipeConnected) from the same Image within 60 seconds
+#    → Treat as highest confidence — memory injection to chrome.exe is not legitimate
+#
+# RESPONSE ACTIONS:
+# 1. Isolate the endpoint if exfiltration is in progress or confirmed complete
+# 2. Reset ALL browser-stored passwords for the victim user immediately — treat every
+#    saved credential as compromised regardless of which browsers were targeted
+# 3. Revoke all active sessions for the victim's corporate accounts (Okta, Azure AD,
+#    Google Workspace, VPN) — session cookies allow re-authentication without the password
+# 4. Check enterprise SaaS for impossible travel or new device logins from unusual ASNs
+#    in the 6 hours following this event
+# 5. Search for the stealer binary: quarantine, submit to sandbox, extract C2 IOCs
+# 6. Hunt for lateral spread: did the stolen credentials enable access to other systems?
+#    Check IdP logs for logins using the victim's credentials from non-corporate IPs
+# 7. Check Hudson Rock Cavalier / SpyCloud for this victim in known stealer logs
+#
+# ─── SIEM KQL: Combined Login Data + Local State Correlation (Microsoft Sentinel) ─
+# let sessionWindow = 5m;
+# let browserCredPaths = dynamic(["Login Data","Local State"]);
+# let browsers = dynamic(["chrome.exe","msedge.exe","brave.exe","firefox.exe",
+#     "opera.exe","vivaldi.exe","GoogleUpdate.exe","MicrosoftEdgeUpdate.exe"]);
+# let loginDataAccess = DeviceFileEvents
+# | where FolderPath has "Login Data"
+# | where InitiatingProcessFileName !in~ (browsers)
+# | project LoginDataTime=Timestamp, DeviceName, PID=InitiatingProcessId,
+#     ProcessName=InitiatingProcessFileName, ProcessPath=InitiatingProcessFolderPath,
+#     ProcessCmdLine=InitiatingProcessCommandLine;
+# let localStateAccess = DeviceFileEvents
+# | where FolderPath has "Local State"
+# | where InitiatingProcessFileName !in~ (browsers)
+# | project LocalStateTime=Timestamp, DeviceName, PID=InitiatingProcessId;
+# loginDataAccess
+# | join kind=inner localStateAccess on DeviceName, PID
+# | where abs(datetime_diff('second', LoginDataTime, LocalStateTime)) < 300
+# | extend HighConfidence = iff(ProcessPath has_any ("Temp","Downloads","AppData\\Roaming",
+#     "Desktop","ProgramData"), true, false)
+# | project LoginDataTime, LocalStateTime, DeviceName, ProcessName, ProcessPath,
+#     ProcessCmdLine, HighConfidence
+# | order by LoginDataTime desc
+#
+# ─── Sigma Note on Multi-Event Correlation ─────────────────────────────────────
+# Standard Sigma does not natively support temporal correlation across two file events
+# from the same process. The condition above triggers on EITHER Login Data OR Local State
+# access by a non-browser (necessary for SIEM platforms that process events individually).
+# For full Login Data + Local State combined detection, use the KQL query above or
+# implement as a scheduled analytics rule with a process-grouped join in your SIEM.
+# The combined detection is the highest-fidelity signal; single-event detection maintains
+# coverage at the cost of higher false positive rate from backup/AV tools.
+#
