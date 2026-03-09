@@ -530,5 +530,101 @@ a:hover { text-decoration: underline; }
 [data-theme="light"] .icon-sun  { display: none;  }
 [data-theme="light"] .icon-moon { display: block; }
 
+/* ─── Highlight.js overrides ─────────────────────────────────────────────── */
+/* Use site's code background so highlight.js adapts to dark/light theme */
+.hljs { background: var(--bg-code) !important; color: var(--text) !important; }
+/* Keep existing pre padding/radius; hljs adds its own padding so reset it */
+pre .hljs { padding: 0 !important; }
+
+/* ─── Collapsible sections ───────────────────────────────────────────────── */
+.collapsible-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  list-style: none;
+}
+.collapsible-header::-webkit-details-marker { display: none; }
+.collapsible-chevron {
+  display: inline-block;
+  transition: transform .2s ease;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.collapsible-header[aria-expanded="false"] .collapsible-chevron { transform: rotate(-90deg); }
+.collapsible-body {
+  overflow: hidden;
+  transition: max-height .3s ease, opacity .2s ease;
+  max-height: 9999px;
+  opacity: 1;
+}
+.collapsible-body.collapsed {
+  max-height: 0 !important;
+  opacity: 0;
+}
+
+/* ─── Raw Logs section ───────────────────────────────────────────────────── */
+.raw-log-item { margin-bottom: 1.5rem; }
+.raw-log-item:last-child { margin-bottom: 0; }
+.raw-log-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem; }
+.raw-log-type {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text-dim);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: .15rem .5rem;
+}
+.raw-log-eid {
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  color: var(--text-muted);
+}
+.raw-log-desc { font-size: .875rem; color: var(--text); flex: 1; min-width: 100%; }
+.rule-match-badges { display: flex; flex-wrap: wrap; gap: .3rem; }
+.rule-match-badge {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: .15rem .45rem;
+  border-radius: 3px;
+}
+.rule-match-badge.research { background: rgba(100,180,255,.15); color: #64b4ff; border: 1px solid rgba(100,180,255,.3); }
+.rule-match-badge.hunt     { background: rgba(255,190,80,.15);  color: #ffbe50; border: 1px solid rgba(255,190,80,.3); }
+.rule-match-badge.analyst  { background: rgba(80,220,130,.15);  color: #50dc82; border: 1px solid rgba(80,220,130,.3); }
+
+/* ─── Emulation Script section ───────────────────────────────────────────── */
+.emulation-warning {
+  background: rgba(255,190,50,.08);
+  border: 1px solid rgba(255,190,50,.35);
+  border-radius: var(--radius);
+  padding: .75rem 1rem;
+  font-size: .875rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+}
+.emulation-warning strong { color: #ffbe50; }
+.emulation-meta { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; align-items: center; }
+.emulation-badge {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: .15rem .5rem;
+  border-radius: 3px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.emulation-badge.lang-powershell { color: #569cd6; border-color: rgba(86,156,214,.4); background: rgba(86,156,214,.08); }
+
 /* ─── Utilities ──────────────────────────────────────────────────────────── */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }

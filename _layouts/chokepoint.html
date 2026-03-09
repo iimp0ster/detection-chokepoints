@@ -150,7 +150,7 @@ layout: default
             </div>
             {% if detection.Logic %}
             <h4 class="mb-2">Detection Logic</h4>
-            <pre class="logic-block rounded-lg p-4 overflow-x-auto text-[.8rem]"><code>{{ detection.Logic | strip }}</code></pre>
+            <pre class="logic-block rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="language-plaintext">{{ detection.Logic | strip }}</code></pre>
             {% endif %}
           </div>
           {% endif %}
@@ -230,17 +230,120 @@ layout: default
   </section>
   {% endif %}
 
+  <!-- ── Raw Logs ───────────────────────────────────────────────── -->
+  {% if cp.RawLogs %}
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-0 collapsible-header"
+        aria-expanded="false"
+        aria-controls="raw-logs-body"
+        data-target="raw-logs-body">
+      <span class="collapsible-chevron">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+      Raw Log Samples
+      <span class="section-sub text-xs font-normal normal-case tracking-normal ml-1" style="color:var(--text-dim)">({{ cp.RawLogs.size }} sample{% if cp.RawLogs.size != 1 %}s{% endif %} — click to expand)</span>
+    </h2>
+    <div class="collapsible-body collapsed mt-4" id="raw-logs-body">
+      <p class="section-intro mb-5">Real-world log events produced by this technique and which sigma rules they trigger.</p>
+      {% for log in cp.RawLogs %}
+      <div class="raw-log-item">
+        <div class="raw-log-meta">
+          <span class="raw-log-type">{{ log.Type }}</span>
+          {% if log.EventId %}<span class="raw-log-eid">EID {{ log.EventId }}</span>{% endif %}
+          {% if log.MatchedRules %}
+          <div class="rule-match-badges">
+            {% for rule in log.MatchedRules %}
+            <span class="rule-match-badge {{ rule | downcase }}">{{ rule }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <span class="raw-log-desc">{{ log.Description }}</span>
+        </div>
+        {% if log.Sample %}
+        {% assign log_type_lower = log.Type | downcase %}
+        {% if log_type_lower contains "event log" or log_type_lower contains "wel" %}
+          {% assign log_lang = "language-xml" %}
+        {% else %}
+          {% assign log_lang = "language-plaintext" %}
+        {% endif %}
+        <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="{{ log_lang }}">{{ log.Sample | xml_escape }}</code></pre>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ── Emulation Script ────────────────────────────────────────── -->
+  {% if cp.EmulationScript and cp._emulation_content %}
+  <section class="mb-10">
+    {% assign emu = cp.EmulationScript %}
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-0 collapsible-header"
+        aria-expanded="false"
+        aria-controls="emulation-body"
+        data-target="emulation-body">
+      <span class="collapsible-chevron">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+      Emulation Script
+      <span class="section-sub text-xs font-normal normal-case tracking-normal ml-1" style="color:var(--text-dim)">(click to expand)</span>
+    </h2>
+    <div class="collapsible-body collapsed mt-4" id="emulation-body">
+      {% if emu.SafetyNotes %}
+      <div class="emulation-warning">
+        <span>&#9888;</span>
+        <span><strong>Lab use only.</strong> {{ emu.SafetyNotes }}</span>
+      </div>
+      {% endif %}
+      <div class="emulation-meta">
+        {% if emu.Language %}
+        <span class="emulation-badge lang-{{ emu.Language | downcase }}">{{ emu.Language }}</span>
+        {% endif %}
+        {% if emu.AtomicRef %}
+        <span class="emulation-badge">ATT&amp;CK: {{ emu.AtomicRef }}</span>
+        {% endif %}
+        {% if emu.Description %}
+        <span class="text-sm" style="color:var(--text-dim)">{{ emu.Description }}</span>
+        {% endif %}
+      </div>
+      <div class="sigma-rule-block">
+        <div class="sigma-rule-header mb-3">
+          <span class="sigma-label">{{ emu.Language | upcase | default: "Script" }}</span>
+          <div class="sigma-actions">
+            {% if emu.File %}
+            <a class="btn-sm"
+               href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ emu.File }}"
+               target="_blank" rel="noopener">View on GitHub</a>
+            <a class="btn-sm"
+               href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ emu.File }}"
+               download>Download</a>
+            {% endif %}
+            <button class="btn-sm copy-btn" data-target="emulation-code">Copy</button>
+          </div>
+        </div>
+        {% assign emu_lang = "language-" | append: (emu.Language | downcase | default: "plaintext") %}
+        <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"
+             id="emulation-code"><code class="{{ emu_lang }}">{{ cp._emulation_content | xml_escape }}</code></pre>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
   <!-- ── OSINT Sources ──────────────────────────────────────────── -->
   {% if cp.OsintSources %}
   <section class="mb-10">
     <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">OSINT Sources</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {% for src in cp.OsintSources %}
+      {% if src.URL %}
+      <a class="osint-card rounded-xl p-4" href="{{ src.URL }}" target="_blank" rel="noopener">
+      {% else %}
       <div class="osint-card rounded-xl p-4">
+      {% endif %}
         <span class="osint-platform">{{ src.Platform }}</span>
         <code class="osint-query">{{ src.Query }}</code>
         {% if src.Notes %}<p class="osint-notes">{{ src.Notes }}</p>{% endif %}
-      </div>
+      {% if src.URL %}</a>{% else %}</div>{% endif %}
       {% endfor %}
     </div>
   </section>
@@ -294,6 +397,12 @@ layout: default
 
 </article>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/powershell.min.js"></script>
+<script>
+hljs.highlightAll();
+</script>
 <script>
 /* Tab switching for sigma rules */
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -323,6 +432,16 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
     } catch {
       btn.textContent = 'Failed';
     }
+  });
+});
+
+/* Collapsible sections (Raw Logs, Emulation Script) */
+document.querySelectorAll('.collapsible-header').forEach(header => {
+  header.addEventListener('click', () => {
+    const expanded = header.getAttribute('aria-expanded') === 'true';
+    header.setAttribute('aria-expanded', String(!expanded));
+    const body = document.getElementById(header.dataset.target);
+    if (body) body.classList.toggle('collapsed', expanded);
   });
 });
 </script>
