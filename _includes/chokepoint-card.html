@@ -1,7 +1,7 @@
 {% assign cp = include.cp %}
 {% assign priority_class = cp.DetectionPriority | downcase %}
 <article class="chokepoint-card rounded-xl transition-all"
-         data-tactic="{{ cp.Tactic | downcase }}"
+         data-tactic="{{ cp._tactic }}"
          data-priority="{{ cp.DetectionPriority }}"
          data-difficulty="{{ cp.Difficulty }}">
   <a href="{{ cp._slug | prepend: '/chokepoints/' | append: '/' | relative_url }}"

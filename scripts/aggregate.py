@@ -83,6 +83,20 @@ def load_chokepoints():
         for level in SIGMA_LEVELS:
             data[f"_sigma_{level}"] = sigma_rules.get(level)
 
+        # Embed emulation script content (if referenced)
+        emulation = data.get("EmulationScript") or {}
+        emulation_file = emulation.get("File", "") if isinstance(emulation, dict) else ""
+        if emulation_file:
+            script_path = os.path.join(REPO_ROOT, emulation_file.replace("/", os.sep))
+            if os.path.exists(script_path):
+                with open(script_path, "r", encoding="utf-8") as fh:
+                    data["_emulation_content"] = fh.read()
+            else:
+                data["_emulation_content"] = None
+                print(f"Warning: emulation script not found: {script_path}", file=sys.stderr)
+        else:
+            data["_emulation_content"] = None
+
         # Flatten text fields for search index
         prereqs = data.get("Prerequisites", []) or []
         data["_prerequisites_text"] = " ".join(str(p) for p in prereqs)
