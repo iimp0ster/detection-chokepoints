@@ -1,0 +1,128 @@
+title: Infostealer — Non-Browser Process Access to Browser Credential Database (Research Baseline)
+id: 632a951f-4e57-4c9f-b1dc-32641904d61f
+status: experimental
+description: >
+  Broad visibility rule capturing all file access events where a non-browser process
+  opens a browser credential database file (Chrome Login Data, Cookies, Local State;
+  Firefox logins.json or key4.db; Edge/Brave/Opera equivalents). This is the invariant
+  behavior across every major infostealer family — LummaC2, RedLine, Raccoon v2, Vidar,
+  Stealc, AMOS, Medusa, and EDDIESTEALER — regardless of obfuscation, packer, or
+  Chrome App-Bound Encryption bypass technique. The browser process writes these files;
+  only the browser, known password managers, and backup agents should legitimately read
+  them. Any other process accessing these paths is anomalous by design.
+  High false positive rate expected; purpose is environmental baselining to identify
+  legitimate third-party access (password managers, backup tools, AV on-access scan)
+  before tuning toward the hunt and analyst tiers.
+references:
+  - https://attack.mitre.org/techniques/T1555/003/
+  - https://attack.mitre.org/techniques/T1539/
+  - https://www.infostealers.com/article/2026-infostealer-trends-im-monitoring-at-hudson-rock/
+  - https://cloud.google.com/blog/topics/threat-intelligence/unc5537-snowflake-data-theft-extortion/
+  - https://blog.sekoia.io/lummac2-stealer-an-in-depth-analysis/
+author: "@iimp0ster"
+date: 2026/03/08
+tags:
+  - attack.credential_access
+  - attack.t1555.003
+  - attack.collection
+  - attack.t1005
+  - detection.maturity.research
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection_browser_credential_paths:
+    TargetFilename|contains:
+      # Chrome credential databases
+      - '\Google\Chrome\User Data\Default\Login Data'
+      - '\Google\Chrome\User Data\Default\Cookies'
+      - '\Google\Chrome\User Data\Local State'
+      # Edge credential databases
+      - '\Microsoft\Edge\User Data\Default\Login Data'
+      - '\Microsoft\Edge\User Data\Default\Cookies'
+      - '\Microsoft\Edge\User Data\Local State'
+      # Brave credential databases
+      - '\BraveSoftware\Brave-Browser\User Data\Default\Login Data'
+      - '\BraveSoftware\Brave-Browser\User Data\Default\Cookies'
+      # Firefox credential databases
+      - '\Mozilla\Firefox\Profiles\'
+      # Opera credential databases
+      - '\Opera Software\Opera Stable\Login Data'
+      - '\Opera Software\Opera Stable\Cookies'
+      # Chromium (generic)
+      - '\Chromium\User Data\Default\Login Data'
+  filter_legitimate_browsers:
+    Image|endswith:
+      - '\chrome.exe'
+      - '\msedge.exe'
+      - '\brave.exe'
+      - '\firefox.exe'
+      - '\opera.exe'
+      - '\vivaldi.exe'
+      - '\chromium.exe'
+      - '\iexplore.exe'
+      # Browser update/crash handler processes
+      - '\chrome_crashpad_handler.exe'
+      - '\crashpad_handler.exe'
+      - '\elevation_service.exe'
+      - '\GoogleUpdate.exe'
+      - '\MicrosoftEdgeUpdate.exe'
+  filter_system_paths:
+    Image|startswith:
+      - 'C:\Windows\System32\'
+      - 'C:\Windows\SysWOW64\'
+      - 'C:\Program Files\Windows Defender\'
+  condition: selection_browser_credential_paths and not (filter_legitimate_browsers or filter_system_paths)
+falsepositives:
+  - Password managers (1Password, Bitwarden, Dashlane, KeePass, LastPass) accessing browser databases for import/sync
+  - Backup software (Veeam, Acronis, Windows Backup) performing file-level backup of AppData
+  - Antivirus on-access scanning of AppData files
+  - Browser sync utilities and profile migration tools
+  - IT asset management tools inventorying installed software and profiles
+  - Privacy cleaners (CCleaner, BleachBit) clearing browser history/cookies
+level: informational
+# ─── Research Notes ────────────────────────────────────────────────────────────
+#
+# PURPOSE: Build a complete baseline of all non-browser processes that access
+# browser credential database files in your environment. This is NOT an alerting
+# rule — it is an inventory and visibility rule.
+#
+# EXPECTED VOLUME: 10-50 events per endpoint per day in environments with password
+# managers or backup tools. In environments without these, near-zero is expected.
+# Any sustained non-zero baseline from unexpected processes warrants investigation.
+#
+# NEXT STEPS AFTER BASELINING:
+# 1. Build an allowlist of ALL legitimate processes that access browser credential
+#    paths (password managers, backup agents, AV scanner paths) — these become
+#    filter_known_good entries in the Hunt rule
+# 2. Flag any process accessing these paths from a TEMP, Downloads, AppData\Roaming,
+#    or other writable non-program-files path — legitimate tools are always installed
+#    under Program Files or a vendor-specific path
+# 3. Flag any process accessing BOTH Login Data AND Local State in the same session —
+#    this combined access is a near-definitive infostealer indicator (Local State
+#    contains the App-Bound Encryption key material used to decrypt cookies)
+# 4. Cross-reference accessing process hashes with VirusTotal:
+#    VT query: behavior_files:"Login Data" behavior_files:"Local State" positives:0
+#    (finds zero-detection infostealer samples with known file access behavior)
+#
+# THE CHOKEPOINT: Chrome App-Bound Encryption (July 2024) changed HOW infostealers
+# decrypt cookies but NOT whether they access the files. All bypass techniques
+# (COM elevation, Chrome DevTools Protocol, memory injection) still require the
+# stealer to locate and read the credential database files. This rule catches every
+# known bypass approach because the file system access is invariant.
+#
+# LOGSOURCE NOTE: This rule uses Sysmon EID 11 (FileCreate) which covers file
+# creation and open events depending on Sysmon configuration. For file READ detection
+# without creation (e.g., reading existing Login Data), configure Sysmon with
+# <FileCreateTime> or use EDR file open telemetry (Microsoft Defender for Endpoint
+# DeviceFileEvents, CrowdStrike FDR FileOpenInfo events).
+#
+# SIEM BASELINE QUERY (Microsoft Sentinel):
+# DeviceFileEvents
+# | where FolderPath has_any ("Login Data", "logins.json", "key4.db", "Local State")
+# | where InitiatingProcessFileName !in~ ("chrome.exe","msedge.exe","brave.exe",
+#     "firefox.exe","opera.exe","vivaldi.exe","GoogleUpdate.exe","MicrosoftEdgeUpdate.exe")
+# | summarize AccessCount=count(), FirstSeen=min(Timestamp), LastSeen=max(Timestamp)
+#     by InitiatingProcessFileName, InitiatingProcessFolderPath, DeviceName
+# | order by AccessCount desc
+#

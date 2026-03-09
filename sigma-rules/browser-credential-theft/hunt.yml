@@ -1,0 +1,185 @@
+title: Infostealer — Non-Browser Process Accesses Browser Credential DB from Suspicious Parent or Path
+id: 790a46d5-2643-4afe-9718-18742e7eecd7
+status: experimental
+description: >
+  Detects a non-browser process accessing browser credential database files (Chrome Login Data,
+  Cookies, Local State; Firefox logins.json or key4.db) where the accessing process originates
+  from a suspicious execution context — specifically: spawned by a script interpreter
+  (PowerShell, wscript, cscript, mshta), executing from a writable user-controlled path
+  (TEMP, Downloads, AppData\Roaming), or loaded as an unsigned binary. This intermediate
+  tier narrows the broad research baseline by requiring a suspicious parent or process
+  origin, dramatically reducing false positives from legitimate password managers while
+  retaining coverage across all major infostealer families.
+  ClickFix delivery (517% surge in 2025) spawns PowerShell or mshta.exe which executes
+  the infostealer — this rule captures that delivery context combined with the invariant
+  credential file access. The Chrome DevTools Protocol bypass (EDDIESTEALER) appears as
+  Chrome spawned with --remote-debugging-port by an unexpected parent process.
+  Also detects nss3.dll (Firefox NSS3 decryption library) loaded by any non-Mozilla
+  process — the Firefox equivalent of DPAPI credential decryption.
+references:
+  - https://attack.mitre.org/techniques/T1555/003/
+  - https://attack.mitre.org/techniques/T1539/
+  - https://attack.mitre.org/techniques/T1059.001/
+  - https://www.infostealers.com/article/2026-infostealer-trends-im-monitoring-at-hudson-rock/
+  - https://blog.sekoia.io/lummac2-stealer-an-in-depth-analysis/
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-071a
+  - https://security.googleblog.com/2024/09/improving-security-of-chrome-cookies.html
+author: "@iimp0ster"
+date: 2026/03/08
+tags:
+  - attack.credential_access
+  - attack.t1555.003
+  - attack.t1539
+  - attack.execution
+  - attack.t1059.001
+  - detection.maturity.hunt
+logsource:
+  category: file_event
+  product: windows
+detection:
+  # Selection A: Browser credential DB access by process with suspicious parent (ClickFix chain)
+  selection_credential_path:
+    TargetFilename|contains:
+      - '\Google\Chrome\User Data\Default\Login Data'
+      - '\Google\Chrome\User Data\Default\Cookies'
+      - '\Google\Chrome\User Data\Local State'
+      - '\Microsoft\Edge\User Data\Default\Login Data'
+      - '\Microsoft\Edge\User Data\Default\Cookies'
+      - '\BraveSoftware\Brave-Browser\User Data\Default\Login Data'
+      - '\Mozilla\Firefox\Profiles\'
+      - '\Opera Software\Opera Stable\Login Data'
+
+  selection_suspicious_parent:
+    ParentImage|endswith:
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\mshta.exe'
+      - '\wmic.exe'
+      - '\rundll32.exe'
+      - '\regsvr32.exe'
+      - '\cmd.exe'
+      - '\curl.exe'
+      - '\certutil.exe'
+
+  selection_suspicious_path:
+    Image|contains:
+      - '\AppData\Local\Temp\'
+      - '\AppData\Roaming\'
+      - '\Downloads\'
+      - '\Desktop\'
+      - '\Public\'
+      - '\ProgramData\'
+    Image|endswith:
+      - '.exe'
+
+  filter_legitimate_browsers:
+    Image|endswith:
+      - '\chrome.exe'
+      - '\msedge.exe'
+      - '\brave.exe'
+      - '\firefox.exe'
+      - '\opera.exe'
+      - '\vivaldi.exe'
+      - '\chromium.exe'
+      - '\GoogleUpdate.exe'
+      - '\MicrosoftEdgeUpdate.exe'
+      - '\elevation_service.exe'
+
+  # Selection B: Chrome spawned with debug port by non-Chrome parent (CDP bypass — EDDIESTEALER)
+  selection_cdp_bypass:
+    Image|endswith: '\chrome.exe'
+    CommandLine|contains: '--remote-debugging-port'
+    ParentImage|endswith:
+      - '.exe'
+    ParentImage|not|endswith:
+      - '\chrome.exe'
+      - '\msedge.exe'
+      - '\explorer.exe'
+      - '\svchost.exe'
+
+  # Selection C: nss3.dll loaded by non-Mozilla process (Firefox credential decryption)
+  selection_nss3_non_firefox:
+    ImageLoaded|endswith: '\nss3.dll'
+    Image|endswith:
+      - '.exe'
+    Image|not|endswith:
+      - '\firefox.exe'
+      - '\thunderbird.exe'
+      - '\seamonkey.exe'
+      - '\waterfox.exe'
+      - '\librewolf.exe'
+      - '\palemoon.exe'
+
+  condition: >
+    (selection_credential_path and (selection_suspicious_parent or selection_suspicious_path)
+    and not filter_legitimate_browsers)
+    or selection_cdp_bypass
+    or selection_nss3_non_firefox
+falsepositives:
+  - Password managers installed in non-standard paths (unlikely for enterprise software)
+  - Developer tools or automation scripts legitimately testing browser automation
+  - EDR products loading nss3.dll for Firefox credential inspection during on-access scan
+  - Browser migration or import tools spawned from cmd.exe by IT staff
+  - Software deployment scripts (SCCM/Intune) triggering browser profile operations during setup
+level: medium
+# ─── Hunt Notes ────────────────────────────────────────────────────────────────
+#
+# HUNTING WORKFLOW: When this rule fires, pivot on the following immediately:
+#
+# 1. PROCESS ORIGIN — What is the full execution chain?
+#    → ClickFix chain: browser.exe → mshta.exe/wscript.exe → PowerShell.exe → stealer.exe
+#    → Malvertising chain: browser.exe → downloads stealer → stealer.exe runs from %TEMP%
+#    → Expected: explorer.exe → software installer → password_manager.exe (from Program Files)
+#    Any stealer process running from TEMP/Downloads with no software installer parent
+#    should be treated as confirmed malware.
+#
+# 2. FILE ACCESS SEQUENCE — What credential paths were accessed?
+#    → Login Data only: password theft focus (standard stealer)
+#    → Login Data + Local State: password + App-Bound Encryption key (full Chromium harvest)
+#    → Login Data + Local State + Cookies: complete browser session theft (MFA bypass capable)
+#    → logins.json + key4.db: Firefox harvest
+#    Combined Login Data + Local State access in a single process session is the strongest
+#    single-event indicator of Chromium infostealer activity.
+#
+# 3. CDP BYPASS INDICATORS (Selection B):
+#    If chrome.exe is spawned with --remote-debugging-port by an unexpected parent:
+#    → Check the parent process for subsequent network connections to 127.0.0.1:9222
+#      (the default CDP port) — confirms the parent is using CDP to extract credentials
+#    → The spawning process will typically then make an outbound connection to exfiltrate
+#      — correlate Sysmon EID 3 (NetworkConnect) from the parent process
+#
+# 4. NSS3 LOAD (Selection C):
+#    nss3.dll loaded outside Mozilla products means the process is performing Firefox
+#    NSS3 key derivation. Immediately pivot:
+#    → What is the full path of the loading process? (should NOT be in Program Files)
+#    → Did the loading process access logins.json and key4.db immediately after?
+#    → Did the loading process make an outbound network connection within 5 minutes?
+#
+# 5. NETWORK CORRELATION (pivot to network logs):
+#    Sysmon EID 3 from the same Image as the file access, within 300 seconds,
+#    to a public IP on port 80/443/8080 = complete harvest-and-exfiltrate chain.
+#    This correlation promotes the event to Analyst tier confidence.
+#
+# SIEM CORRELATION QUERY (Microsoft Sentinel):
+# let suspiciousParents = dynamic(["powershell.exe","pwsh.exe","wscript.exe",
+#     "cscript.exe","mshta.exe","rundll32.exe","regsvr32.exe","cmd.exe"]);
+# let browserCredPaths = dynamic(["Login Data","Local State","logins.json","key4.db",
+#     "\\Cookies"]);
+# let fileEvents = DeviceFileEvents
+# | where FolderPath has_any (browserCredPaths)
+# | where InitiatingProcessFileName !in~ ("chrome.exe","msedge.exe","brave.exe",
+#     "firefox.exe","opera.exe","GoogleUpdate.exe")
+# | where InitiatingProcessParentFileName in~ (suspiciousParents)
+#     or InitiatingProcessFolderPath has_any ("Temp","Downloads","Desktop","ProgramData");
+# let cdpEvents = DeviceProcessEvents
+# | where FileName =~ "chrome.exe"
+# | where ProcessCommandLine contains "--remote-debugging-port"
+# | where InitiatingProcessFileName !in~ ("chrome.exe","msedge.exe","explorer.exe","svchost.exe");
+# union fileEvents, cdpEvents
+# | project Timestamp, DeviceName, ActionType, FolderPath, FileName,
+#     InitiatingProcessFileName, InitiatingProcessCommandLine,
+#     InitiatingProcessParentFileName, InitiatingProcessFolderPath
+# | order by Timestamp desc
+#
