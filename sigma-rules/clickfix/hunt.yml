@@ -2,17 +2,21 @@ title: Browser or Explorer Spawning Script Interpreter
 id: a7b3c9d2-5e8f-4a1b-9c6d-3f2e8b0a4d7e
 status: experimental
 description: >
-  Detects scripting interpreters (PowerShell, cmd, wscript) spawned directly by web
-  browsers or Windows Explorer. This is a hunt-level rule targeting the ClickFix
-  chokepoint, where users are socially engineered to paste and execute malicious
-  commands. Browsers and Explorer should rarely directly spawn scripting interpreters
-  in normal enterprise operations.
+  Detects scripting interpreters (PowerShell, cmd, wscript, mshta) spawned directly by
+  web browsers, Windows Explorer, or Windows Terminal. This is a hunt-level rule
+  targeting the ClickFix chokepoint, where users are socially engineered to paste and
+  execute malicious commands. The Windows Terminal path (wt.exe parent) covers the
+  March 2026 variant disclosed by Microsoft Defender Experts (Lumma Stealer delivery
+  via Win+X→I terminal lure). Browsers and Explorer should rarely directly spawn
+  scripting interpreters in normal enterprise operations.
 references:
   - https://huntress.com/blog/dont-sweat-clickfix-techniques
   - https://staging.huntress.com/blog/dont-sweat-clickfix-techniques
   - https://mhaggis.github.io/ClickGrab/
   - https://www.aitmfeed.com/blog/blog-1/tracking-clickfix-infrastructure-4
   - https://attack.mitre.org/techniques/T1204/001/
+  - https://thehackernews.com/2026/03/microsoft-reveals-clickfix-campaign.html
+  - https://www.bleepingcomputer.com/news/security/new-clickfix-attack-abuses-nslookup-to-retrieve-powershell-payload-via-dns/
 author: "@iimp0ster"
 date: 2025/01/15
 tags:
@@ -45,6 +49,8 @@ detection:
   selection_parent_explorer:
     ParentImage|endswith:
       - '\explorer.exe'
+      - '\wt.exe'
+      - '\WindowsTerminal.exe'
   filter_known_legit:
     # Browser-launched shell integrations for file associations (rare but legitimate)
     CommandLine|contains:
@@ -65,3 +71,9 @@ level: medium
 #
 # Key pivot: Is the command line encoded or obfuscated? (→ promote to Analyst rule)
 # Key pivot: Does the spawning match a ClickGrab payload? (https://mhaggis.github.io/ClickGrab/)
+# Key pivot: Parent is wt.exe / WindowsTerminal.exe? Likely Windows Terminal ClickFix
+#   (March 2026 variant, Lumma Stealer). Check for hex/XOR-encoded PowerShell and
+#   subsequent MSBuild.exe LOLBin execution.
+# Key pivot: cmd.exe spawning nslookup.exe with a non-RFC1918 IP argument?
+#   Likely KongTuke DNS-staging variant (Feb 2026). Check for ModeloRAT / VBScript
+#   dropped to %Temp% and Startup folder shortcuts.

@@ -1,0 +1,81 @@
+title: Browser Process Writing Scripting Payload to Clipboard (ETW)
+id: f3b8e2d1-7c4a-4b9e-a2f6-1d8e5c0b3a7f
+status: experimental
+description: >
+  Detects browser processes writing PowerShell or command-interpreter keywords to the
+  Windows clipboard via ETW (Microsoft-Windows-Win32k SetClipboardData events). This is
+  the ClickFix chokepoint at the pre-execution layer — the clipboard write fires before
+  the user pastes and executes the payload. Covers all ClickFix variants (ClickFix,
+  FileFix, WebDAV ClickFix, Windows Terminal ClickFix, InstallFix, DNS-based ClickFix)
+  because clipboard seeding is an inescapable prerequisite for the attack regardless of
+  which paste target the lure page instructs the user to use.
+references:
+  - https://gist.github.com/mattifestation/04e8299d8bc97ef825affe733310f7bd
+  - https://github.com/mandiant/SilkETW
+  - https://www.proofpoint.com/us/blog/threat-insight/security-brief-clickfix-social-engineering-technique-floods-threat-landscape
+  - https://attack.mitre.org/techniques/T1204/004/
+author: "@iimp0ster"
+date: 2026/03/10
+tags:
+  - attack.initial_access
+  - attack.t1204.004
+  - detection.maturity.hunt
+  - detection.datasource.etw
+logsource:
+  product: windows
+  category: clipboard
+  # Requires ETW infrastructure. Two provider options:
+  #   Microsoft-Windows-Win32k   GUID: 8c416c79-d49b-4f01-a467-e56d3aa8234c
+  #   Microsoft.Windows.OLE.Clipboard  GUID: 3e0e3a92-b00b-4456-9dee-f40aba77f00e
+  # Configure SilkETW (github.com/mandiant/SilkETW) with either provider and route
+  # output to Windows Event Log or forward to SIEM via Windows Event Forwarding (WEF).
+  # Field names below reflect SilkETW JSON serialization defaults — adjust to match
+  # your ingestion pipeline's schema.
+detection:
+  selection_browser:
+    ProcessName|endswith:
+      - '\chrome.exe'
+      - '\firefox.exe'
+      - '\msedge.exe'
+      - '\iexplore.exe'
+      - '\brave.exe'
+      - '\opera.exe'
+      - '\vivaldi.exe'
+      - '\waterfox.exe'
+  selection_payload_keywords:
+    ClipboardContent|contains:
+      - 'powershell'
+      - '-EncodedCommand'
+      - '-enc '
+      - 'mshta'
+      - 'nslookup'
+      - 'cmd.exe'
+      - 'wscript'
+      - 'cscript'
+      - 'IEX'
+      - 'Invoke-Expression'
+      - '\\\\'   # UNC path prefix — WebDAV ClickFix variant
+  condition: selection_browser and selection_payload_keywords
+falsepositives:
+  - Developer tools or documentation sites that copy script examples to clipboard (rare
+    match against these specific keywords in combination with a browser process)
+  - Code snippet managers or password managers with keyboard shortcut triggers
+level: high
+# ─── ETW Detection Notes ─────────────────────────────────────────────────────────
+# Kill chain position: PRE-EXECUTION — fires when the malicious site writes to the
+# clipboard, before the user pastes. This is the earliest on-host detection point.
+#
+# Pivot workflow:
+#   1. Alert fires on ClipboardContent keyword match from browser ProcessId X
+#   2. Check Sysmon EID 1 for processes spawned within the next 60–120 seconds
+#      with ParentProcessId X or from the same user session
+#   3. If powershell.exe / cmd.exe / mshta.exe spawned → user pasted and executed
+#   4. Check Sysmon EID 3 from that child process for outbound network connection
+#
+# Coverage map (all variants detected at this layer):
+#   ClickFix (original)     — browser writes PS/cmd payload to clipboard
+#   FileFix                 — browser writes PS payload; user pastes into File Explorer
+#   WebDAV ClickFix         — browser writes mshta UNC path to clipboard
+#   Windows Terminal ClickFix — browser writes hex-encoded PS to clipboard
+#   DNS-based ClickFix      — browser writes nslookup command to clipboard
+#   InstallFix              — browser writes mshta/curl command to clipboard
