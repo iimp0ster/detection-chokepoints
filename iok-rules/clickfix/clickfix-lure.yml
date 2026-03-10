@@ -1,0 +1,65 @@
+title: ClickFix Lure Page — Clipboard API Write with Execution Instruction
+description: >
+  Detects ClickFix-family lure pages that combine a JavaScript Clipboard API write
+  (navigator.clipboard.writeText / ClipboardItem) with instructions directing the user
+  to paste into a Run dialog, Windows Terminal, File Explorer address bar, or similar
+  execution context. The co-occurrence of clipboard seeding AND an execution instruction
+  is the stable invariant across all ClickFix variants regardless of visual design,
+  threat actor, or obfuscation technique. Covers: ClickFix (original), FileFix, WebDAV
+  ClickFix, Windows Terminal ClickFix, InstallFix, DNS-based ClickFix, and future variants
+  that have not yet been named.
+tags:
+  - clickfix
+  - initial_access
+  - t1204.004
+references:
+  - https://www.proofpoint.com/us/blog/threat-insight/security-brief-clickfix-social-engineering-technique-floods-threat-landscape
+  - https://mrd0x.com/filefix-clickfix-alternative/
+  - https://thehackernews.com/2026/03/microsoft-reveals-clickfix-campaign.html
+  - https://attack.mitre.org/techniques/T1204/004/
+  - https://phish.report/docs/iok-rule-reference
+detection:
+  clipboard_api:
+    js|contains:
+      - 'navigator.clipboard.writeText'
+      - 'navigator.clipboard.write'
+      - 'ClipboardItem'
+  execution_hint:
+    html|contains:
+      - 'Win+R'
+      - 'Windows key'
+      - 'Run dialog'
+      - 'Ctrl+V'
+      - 'Windows Terminal'
+      - 'Win+X'
+      - 'address bar'
+      - 'Ctrl+L'
+  condition: clipboard_api and execution_hint
+# ─── IOK Detection Notes ─────────────────────────────────────────────────────────
+# Kill chain position: PRE-INTERACTION — fires against the lure page itself, before
+# the user copies or executes anything. Earliest possible detection point.
+#
+# Why this condition is stable across all variants:
+#   clipboard_api   — the browser MUST write the payload to the clipboard; without this
+#                     the user cannot paste it. Cannot be removed without breaking the attack.
+#   execution_hint  — the page MUST instruct the user where to paste; without this the
+#                     user will not execute the payload. Cannot be removed without breaking
+#                     the social engineering component.
+#
+# False positive profile:
+#   clipboard_api alone → HIGH FP (widely used by legitimate sites for copy buttons)
+#   execution_hint alone → LOW FP (paste-into-shell instructions are unusual on legit sites)
+#   clipboard_api AND execution_hint → VERY LOW FP (near-unique to ClickFix)
+#
+# Evasion considerations:
+#   - Obfuscated clipboard writes (e.g., atob() + eval(), string concatenation) evade
+#     js|contains; add dom|contains matchers if your scanner supports post-JS rendering.
+#   - Multilingual lures: add translated execution instructions for your threat landscape
+#     (e.g., Japanese: 'を押して', Korean: '실행', etc.)
+#   - Dynamically injected clipboard write (loaded from external JS) evades js|contains;
+#     pair with requests|contains for known ClickFix JS CDN patterns.
+#
+# Usage:
+#   - Submit to phish.report/IOK for community feed inclusion.
+#   - Run against URLScan.io live scan API for proactive infrastructure hunting.
+#   - Integrate with web proxy content inspection for real-time blocking.

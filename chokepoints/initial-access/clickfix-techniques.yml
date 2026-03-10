@@ -161,6 +161,46 @@ Detections:
     UseCase: Automated SOC alerting; immediate IR response trigger
     SigmaRule: sigma-rules/clickfix/analyst.yml
 
+EarlyDetections:
+  # These layers detect ClickFix before the user executes the clipboard payload.
+  # They use different data sources than the Sysmon-based Detections above and
+  # should be evaluated independently as complementary, earlier kill chain coverage.
+
+  - Layer: "Pre-Execution — ETW Clipboard Write"
+    Description: >
+      Browser process writing scripting keywords to the Windows clipboard via ETW
+      (Microsoft-Windows-Win32k SetClipboardData). Fires before the user pastes.
+      Clipboard seeding is an inescapable prerequisite for all ClickFix variants.
+    LogSources:
+      - "ETW Microsoft-Windows-Win32k (GUID: 8c416c79-d49b-4f01-a467-e56d3aa8234c)"
+      - "ETW Microsoft.Windows.OLE.Clipboard (GUID: 3e0e3a92-b00b-4456-9dee-f40aba77f00e)"
+      - "SilkETW or EDR with Win32k telemetry → Windows Event Forwarding"
+    Logic: >
+      Process: [any browser] writing to clipboard
+      ClipboardContent contains: powershell, -enc, mshta, nslookup, cmd.exe, IEX, \\\\ (UNC)
+    ExpectedFPRate: Medium
+    UseCase: On-host pre-execution detection; pairs with Sysmon EID 1 to confirm paste
+    SigmaRule: sigma-rules/clickfix/etw-clipboard.yml
+    Notes: "Requires SilkETW or compatible EDR; not available via standard Sysmon config"
+
+  - Layer: "Pre-Interaction — IOK Lure Page"
+    Description: >
+      Lure page combining a JavaScript Clipboard API write with a paste-into-shell instruction.
+      The co-occurrence of these two elements is the invariant fingerprint of all ClickFix
+      variants regardless of visual design, threat actor, or domain. Fires at the delivery
+      layer, before the user interacts with the page.
+    LogSources:
+      - "Web proxy with JS/HTML content inspection"
+      - "phish.report IOK community rule feed"
+      - "URLScan.io live scan API"
+    Logic: >
+      js contains: navigator.clipboard.writeText OR navigator.clipboard.write OR ClipboardItem
+      html contains: Win+R OR Run dialog OR Ctrl+V OR Windows Terminal OR Win+X OR address bar
+      Condition: clipboard_api AND execution_hint
+    ExpectedFPRate: Low
+    UseCase: Proactive infrastructure blocking; phishing triage; threat intel enrichment
+    IokRule: iok-rules/clickfix/clickfix-lure.yml
+
 Intel:
   - Name: Proofpoint — ClickFix Social Engineering Technique Floods Threat Landscape
     URL: https://www.proofpoint.com/us/blog/threat-insight/security-brief-clickfix-social-engineering-technique-floods-threat-landscape
@@ -204,6 +244,18 @@ Intel:
   - Name: "BleepingComputer — InstallFix: Fake Claude Code install page delivers Amatera infostealer"
     URL: https://www.bleepingcomputer.com/news/security/installfix-fake-claude-code-install-page-delivers-amatera-infostealer/
     Description: InstallFix campaign targeting developers via Google Ads malvertising; cloned Claude Code CLI install page; mshta.exe → conhost.exe → Amatera infostealer chain; documented February–March 2026
+  - Name: "Matt Graeber — Microsoft.Windows.OLE.Clipboard ETW Provider"
+    URL: https://gist.github.com/mattifestation/04e8299d8bc97ef825affe733310f7bd
+    Description: "Discovery and documentation of the OLE Clipboard ETW provider (GUID: 3e0e3a92-b00b-4456-9dee-f40aba77f00e); foundational reference for clipboard write ETW monitoring and ClickFix pre-execution detection"
+  - Name: "Mandiant — SilkETW"
+    URL: https://github.com/mandiant/SilkETW
+    Description: "C# ETW wrapper for security telemetry; enables Microsoft-Windows-Win32k and OLE Clipboard provider monitoring with JSON output and Windows Event Log forwarding; required infrastructure for the ETW clipboard detection layer"
+  - Name: "phish.report — IOK Rule Reference"
+    URL: https://phish.report/docs/iok-rule-reference
+    Description: "IOK (Indicator of Kit) rule format documentation; Sigma-based syntax for detecting phishing and lure page infrastructure; community rule feed at phish.report/IOK; supports html, js, dom, requests, and headers matchers"
+  - Name: "phish.report — IOK GitHub Repository"
+    URL: https://github.com/phish-report/IOK
+    Description: "Community IOK rule repository (215+ rules); ClickFix lure rule (iok-rules/clickfix/clickfix-lure.yml) should be contributed here for scanning against phishing submissions and URLScan data"
 
 RelatedChokepoints:
   - renamed-rmm-tools
