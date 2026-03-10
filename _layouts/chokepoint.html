@@ -186,6 +186,92 @@ layout: default
     </div>
   </section>
 
+  <!-- ── Early Detection Layers ──────────────────────────────────── -->
+  {% if cp.EarlyDetections %}
+  <section class="mb-10">
+    <h2 class="section-heading text-sm font-bold uppercase tracking-[.08em] pb-2 mb-4">
+      Early Detection Layers
+    </h2>
+    <p class="section-intro mb-5">
+      Detect before the user pastes or executes — earlier in the kill chain than the
+      Sysmon-based rules above, using different data sources.
+    </p>
+
+    <div class="flex flex-col gap-6">
+      {% for ed in cp.EarlyDetections %}
+      <div class="sigma-rule-block rounded-xl p-0 overflow-hidden">
+
+        <div class="tab-buttons" style="border-radius: 0; border-bottom: none;">
+          <span class="tab-btn active text-sm font-medium px-5 py-2.5" style="cursor:default">
+            {{ ed.Layer }}
+          </span>
+        </div>
+
+        <div class="tab-panel active rounded-b-xl p-6">
+          <div class="detection-meta mb-5">
+            <p class="detection-goal mb-4"><strong>Goal:</strong> {{ ed.Description }}</p>
+            <div class="detection-two-col grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
+              <div>
+                <h4>Log Sources</h4>
+                <ul class="log-sources mt-2">
+                  {% for src in ed.LogSources %}
+                    <li>{{ src }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <p><strong>FP Rate:</strong> {{ ed.ExpectedFPRate }}</p>
+                <p class="mt-2"><strong>Use Case:</strong> {{ ed.UseCase }}</p>
+                {% if ed.Notes %}
+                <p class="mt-2 text-sm" style="color:var(--text-dim)"><strong>Note:</strong> {{ ed.Notes }}</p>
+                {% endif %}
+              </div>
+            </div>
+            {% if ed.Logic %}
+            <h4 class="mb-2">Detection Logic</h4>
+            <pre class="logic-block rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="language-plaintext">{{ ed.Logic | strip }}</code></pre>
+            {% endif %}
+          </div>
+
+          <div class="sigma-rule-block">
+            <div class="sigma-rule-header mb-3">
+              {% if ed.IokRule %}
+                <span class="sigma-label">IOK Rule</span>
+              {% else %}
+                <span class="sigma-label">Sigma Rule</span>
+              {% endif %}
+              <div class="sigma-actions">
+                {% assign rule_path = ed.SigmaRule | default: ed.IokRule %}
+                {% if rule_path %}
+                <a class="btn-sm"
+                   href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ rule_path }}"
+                   target="_blank" rel="noopener">View on GitHub</a>
+                <a class="btn-sm"
+                   href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ rule_path }}"
+                   download>Download</a>
+                {% endif %}
+                {% assign copy_id = "early-rule-" | append: forloop.index %}
+                <button class="btn-sm copy-btn" data-target="{{ copy_id }}">Copy</button>
+              </div>
+            </div>
+            {% if ed._rule_content %}
+            <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"
+                 id="{{ copy_id }}"><code class="language-yaml">{{ ed._rule_content | xml_escape }}</code></pre>
+            {% else %}
+            <p class="no-sigma">Rule file not found.
+              <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md"
+                 target="_blank" rel="noopener">Contribute one</a>.
+            </p>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
   <!-- ── Evolution Timeline ─────────────────────────────────────── -->
   {% if cp.EvolutionTimeline %}
   <section class="mb-10">
