@@ -58,6 +58,27 @@ def read_sigma_rules(sigma_dir):
     return rules
 
 
+def enrich_early_detections(early_detections):
+    """Embed rule file content into each EarlyDetections entry.
+
+    Reads the file at SigmaRule or IokRule path and stores the raw text as
+    _rule_content so templates can render it without further file I/O.
+    """
+    for ed in early_detections or []:
+        rule_path_rel = ed.get("SigmaRule") or ed.get("IokRule")
+        if rule_path_rel:
+            abs_path = os.path.join(REPO_ROOT, rule_path_rel.replace("/", os.sep))
+            if os.path.exists(abs_path):
+                with open(abs_path, "r", encoding="utf-8") as fh:
+                    ed["_rule_content"] = fh.read()
+            else:
+                ed["_rule_content"] = None
+                print(f"Warning: early detection rule not found: {abs_path}", file=sys.stderr)
+        else:
+            ed["_rule_content"] = None
+    return early_detections
+
+
 def load_chokepoints():
     """Load, enrich, and return all chokepoint entries as a list of dicts."""
     entries = []
@@ -82,6 +103,9 @@ def load_chokepoints():
         sigma_rules = read_sigma_rules(sigma_dir)
         for level in SIGMA_LEVELS:
             data[f"_sigma_{level}"] = sigma_rules.get(level)
+
+        early_detections = data.get("EarlyDetections", [])
+        data["EarlyDetections"] = enrich_early_detections(early_detections)
 
         # Embed emulation script content (if referenced)
         emulation = data.get("EmulationScript") or {}
