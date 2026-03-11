@@ -1,0 +1,119 @@
+---
+layout: default
+---
+
+<div class="ac-page max-w-[1280px] mx-auto px-6 py-10">
+
+  <!-- Breadcrumb -->
+  <nav class="ac-breadcrumb mb-6" aria-label="Breadcrumb">
+    <a href="{{ '/attack-chains/' | relative_url }}" class="ac-back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+           stroke-linejoin="round" aria-hidden="true" style="display:inline;vertical-align:middle;margin-right:4px;">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>Attack Chains
+    </a>
+  </nav>
+
+  <!-- Header -->
+  <header class="ac-header mb-8">
+    <h1 class="ac-title">{{ page.title }}</h1>
+    {% if page.subtitle %}<p class="ac-subtitle">{{ page.subtitle }}</p>{% endif %}
+    {% if page.last_updated %}<p class="ac-meta">Last updated: {{ page.last_updated }}</p>{% endif %}
+  </header>
+
+  <!-- Core Insight callout -->
+  <div class="ac-insight mb-8" role="note">
+    <div class="ac-insight-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    </div>
+    <div>
+      <strong class="ac-insight-headline">The Chokepoint Convergence Principle</strong>
+      <p class="ac-insight-body">
+        Every actor in the matrix below follows the same sequence of stages — they <em>must</em>, because each
+        stage reflects an unavoidable prerequisite condition. Their tools, loaders, and C2 infrastructure
+        change constantly. The underlying chokepoints do not. Detect the prerequisite; catch any actor.
+      </p>
+    </div>
+  </div>
+
+  {% if page.stages %}
+  <!-- Stage flow diagram -->
+  <section class="ac-section mb-8">
+    <h2 class="ac-section-title">Attack Chain Stages</h2>
+    <div class="ac-stage-flow" role="list" aria-label="Attack chain stages">
+      {% for stage in page.stages %}
+      <div class="ac-stage-pill" role="listitem">
+        <span class="ac-stage-num">{{ forloop.index }}</span>
+        <span class="ac-stage-label">{{ stage.label }}</span>
+      </div>
+      {% unless forloop.last %}
+      <div class="ac-stage-arrow" aria-hidden="true">→</div>
+      {% endunless %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Actor Convergence Matrix -->
+  {% if page.actors %}
+  <section class="ac-section mb-10">
+    <h2 class="ac-section-title">Actor Convergence Matrix
+      <span class="ac-section-badge">{{ page.actors | size }} actors tracked</span>
+    </h2>
+    <p class="ac-section-desc">
+      Different tools. Different operators. Same chokepoints. The highlighted bottom row shows the
+      invariant prerequisite condition your detections must cover — regardless of which actor you're facing.
+    </p>
+
+    <div class="ac-matrix-wrapper">
+      <table class="ac-matrix" aria-label="Actor convergence matrix">
+        <thead>
+          <tr>
+            <th class="ac-actor-col" scope="col">Actor</th>
+            {% for stage in page.stages %}
+            <th scope="col">{{ stage.label }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for actor in page.actors %}
+          <tr>
+            <td class="ac-actor-name">{{ actor.name }}</td>
+            {% for stage in page.stages %}
+            <td>{{ actor[stage.id] }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+        {% if page.chokepoints %}
+        <tfoot>
+          <tr class="ac-chokepoint-row">
+            <td class="ac-chokepoint-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                   stroke-linejoin="round" aria-hidden="true" style="display:inline;vertical-align:middle;margin-right:4px;">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>The Chokepoint
+            </td>
+            {% for stage in page.stages %}
+            <td class="ac-chokepoint-cell">{{ page.chokepoints[stage.id] }}</td>
+            {% endfor %}
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </section>
+  {% endif %}
+  {% endif %}
+
+  <!-- Prose content (existing markdown body) -->
+  <div class="ac-prose">
+    {{ content }}
+  </div>
+
+</div>

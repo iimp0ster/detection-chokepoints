@@ -35,7 +35,6 @@ exclude:
   - templates/
   - chokepoints/
   - sigma-rules/
-  - attack-chains/
   - trends/
   - intel/
   - README.md

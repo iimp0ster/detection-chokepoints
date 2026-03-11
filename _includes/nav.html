@@ -18,9 +18,9 @@
         </a>
       </li>
       <li>
-        <a class="text-sm px-3 py-1.5 rounded transition-colors"
-           href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/attack-chains"
-           target="_blank" rel="noopener">Attack Chains</a>
+        <a class="text-sm px-3 py-1.5 rounded transition-colors
+                  {% if page.url contains '/attack-chains' %}active{% endif %}"
+           href="{{ '/attack-chains/' | relative_url }}">Attack Chains</a>
       </li>
       <li>
         <a class="text-sm px-3 py-1.5 rounded transition-colors"
