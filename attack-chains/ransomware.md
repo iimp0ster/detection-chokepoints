@@ -1,3 +1,62 @@
+---
+layout: attack-chain
+title: Ransomware Attack Chain
+subtitle: "How ransomware operators all follow the same five-stage chokepoint sequence — regardless of group, brand, or tooling."
+last_updated: 2025-01-15
+permalink: /attack-chains/ransomware/
+
+stages:
+  - id: initial_access
+    label: Initial Access
+  - id: credential_access
+    label: Credential Access
+  - id: lateral_movement
+    label: Lateral Movement
+  - id: defense_evasion
+    label: Defense Evasion
+  - id: impact
+    label: Impact
+
+actors:
+  - name: BlackBasta
+    initial_access: "QakBot / phishing email lure"
+    credential_access: "LSASS dump + Kerberoasting"
+    lateral_movement: "PsExec + Cobalt Strike beacon"
+    defense_evasion: "Sophos / Defender stop via sc.exe"
+    impact: "VSS delete + ChaCha20 file encrypt"
+  - name: LockBit 3.0
+    initial_access: "Stolen RDP creds / exposed RMM"
+    credential_access: "LSASS dump + SAM hive export"
+    lateral_movement: "PsExec + GPO mass-deploy"
+    defense_evasion: "Comprehensive service kill list"
+    impact: "VSS delete + fastest-in-class encrypt"
+  - name: Akira
+    initial_access: "VPN compromise (no MFA / cred stuffing)"
+    credential_access: "LSASS dump + credential file harvest"
+    lateral_movement: "RDP hop + AnyDesk"
+    defense_evasion: "Defender disable via PowerShell"
+    impact: "VSS delete + dual-extension encrypt"
+  - name: Alphv/BlackCat
+    initial_access: "Stolen creds / exposed web services"
+    credential_access: "LSASS dump + AD enumeration (BloodHound)"
+    lateral_movement: "PsExec + RDP + WMI"
+    defense_evasion: "Multi-vendor EDR termination (Impacket)"
+    impact: "VSS delete + cross-platform Rust encrypt"
+  - name: Play
+    initial_access: "N-day exploits (FortiOS, Exchange ProxyNotShell)"
+    credential_access: "LSASS dump + Kerberoasting"
+    lateral_movement: "PsExec + WMI lateral movement"
+    defense_evasion: "AV/EDR service termination"
+    impact: "VSS delete + selective file encrypt"
+
+chokepoints:
+  initial_access: "User executes payload OR exposed service is network-reachable"
+  credential_access: "Elevated process reads memory/registry containing credential material"
+  lateral_movement: "Valid admin credentials + network path open (445 / 3389 / 135)"
+  defense_evasion: "SYSTEM-level process with service stop/delete permission"
+  impact: "File system write access + encryption library loaded"
+---
+
 # Ransomware Attack Chain
 
 **Last Updated:** 2025-01-15
@@ -178,6 +237,12 @@ T+7:30  - Ransom note deployed, TTR = 7.5 hours
 - **Lateral Movement**: PsExec, Group Policy
 - **Evasion**: Comprehensive service killing
 - **Avg TTR**: 3-6 hours
+
+### Play
+- **Initial Access**: N-day exploits (FortiOS CVE-2022-42475, Exchange ProxyNotShell)
+- **Lateral Movement**: PsExec, WMI
+- **Evasion**: AV/EDR service termination
+- **Avg TTR**: 12-24 hours
 
 ---
 

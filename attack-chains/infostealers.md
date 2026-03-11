@@ -1,3 +1,62 @@
+---
+layout: attack-chain
+title: Infostealer Attack Chain
+subtitle: "How infostealer operators all follow the same five-stage chokepoint sequence — regardless of family, brand, or C2 infrastructure."
+last_updated: 2025-01-15
+permalink: /attack-chains/infostealers/
+
+stages:
+  - id: distribution
+    label: Distribution
+  - id: execution
+    label: Execution
+  - id: collection
+    label: Collection
+  - id: exfiltration
+    label: Exfiltration
+  - id: monetization
+    label: Monetization
+
+actors:
+  - name: RedLine
+    distribution: "Malvertising / cracked software SEO"
+    execution: "User double-clicks fake installer EXE"
+    collection: "Chrome/Firefox SQLite + crypto wallets (DPAPI)"
+    exfiltration: "HTTPS POST to C2 panel"
+    monetization: "IAB dark web marketplace sale"
+  - name: LummaC2
+    distribution: "Fake CAPTCHA / ClickFix lure pages"
+    execution: "LOLBin chain (mshta → wscript → rundll32)"
+    collection: "Browsers + 2FA extensions + crypto wallets (DPAPI)"
+    exfiltration: "Encrypted HTTPS POST to rotating C2"
+    monetization: "IAB sale + direct RaaS operator supply"
+  - name: Vidar
+    distribution: "Malvertising / YouTube description links"
+    execution: "MSI / NSIS installer execution"
+    collection: "Browsers + 2FA tokens + crypto wallets (DPAPI + Telegram token)"
+    exfiltration: "HTTP POST + Telegram Bot API C2"
+    monetization: "IAB marketplace listing"
+  - name: StealC
+    distribution: "SEO poisoning / malvertising"
+    execution: "User-executed signed-looking binary"
+    collection: "Browsers + Discord tokens + Telegram sessions"
+    exfiltration: "HTTP POST to admin panel"
+    monetization: "IAB sale / direct buyer negotiation"
+  - name: Raccoon
+    distribution: "Phishing / malvertising"
+    execution: "User-executed EXE or MSI"
+    collection: "Browsers + email clients + crypto wallets"
+    exfiltration: "HTTP POST to C2"
+    monetization: "IAB marketplace"
+
+chokepoints:
+  distribution: "Delivery mechanism reaches target user's endpoint"
+  execution: "User action triggers payload (no AV block / sandbox)"
+  collection: "File system access to browser profile dirs + DPAPI decryption privilege"
+  exfiltration: "Outbound network connectivity from infected host"
+  monetization: "Harvested credential data has market value; buyer infrastructure exists"
+---
+
 # Infostealer Attack Chain
 
 **Last Updated:** 2025-01-15
@@ -141,11 +200,12 @@ Distribution → Execution → Collection → Exfiltration → Monetization
 - **Prevalence**: High
 
 ### LummaC2
-- **Distribution**: Malvertising, fake CAPTCHA pages
-- **Collection**: Browsers, 2FA extensions, crypto wallets
-- **Exfiltration**: HTTP POST with encryption
+- **Distribution**: Fake CAPTCHA / ClickFix lure pages, malvertising, GitHub/GitLab comment spam
+- **Execution**: LOLBin chain — mshta → wscript → rundll32 (evades simple process-tree detections)
+- **Collection**: Browsers, 2FA extensions, crypto wallets, VPN configs
+- **Exfiltration**: Encrypted HTTP POST to rotating C2 domains
 - **Active Since**: 2022
-- **Prevalence**: Rising
+- **Prevalence**: Rising (dominant stealer-as-a-service in 2024–2025)
 
 ### StealC
 - **Distribution**: Malvertising, SEO poisoning
