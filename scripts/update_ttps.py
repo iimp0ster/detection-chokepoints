@@ -45,8 +45,10 @@ import sys
 import time
 from pathlib import Path
 
+import xml.etree.ElementTree as ET
+from email.utils import parsedate_to_datetime
+
 import anthropic
-import feedparser
 import requests
 import yaml
 
@@ -114,40 +116,89 @@ def load_chokepoints() -> list:
 # Intel fetching
 # ---------------------------------------------------------------------------
 
+def _parse_feed_date(date_str: str):
+    """Parse RFC 2822 (RSS) or ISO 8601 (Atom) date strings into an aware datetime."""
+    if not date_str:
+        return None
+    date_str = date_str.strip()
+    # ISO 8601 / Atom variants
+    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%d"):
+        try:
+            dt = datetime.datetime.strptime(date_str, fmt)
+            return dt if dt.tzinfo else dt.replace(tzinfo=datetime.timezone.utc)
+        except ValueError:
+            pass
+    # RFC 2822 (RSS pubDate)
+    try:
+        return parsedate_to_datetime(date_str)
+    except Exception:
+        return None
+
+
+def _text_from_elem(elem) -> str:
+    """Recursively extract all text from an XML element."""
+    parts = []
+    if elem.text:
+        parts.append(elem.text)
+    for child in elem:
+        parts.append(_text_from_elem(child))
+        if child.tail:
+            parts.append(child.tail)
+    return " ".join(p for p in parts if p)
+
+
+_ATOM_NS = "http://www.w3.org/2005/Atom"
+_CONTENT_NS = "http://purl.org/rss/1.0/modules/content/"
+_DC_NS = "http://purl.org/dc/elements/1.1/"
+
+
 def fetch_rss_articles(feeds: list, lookback_days: int, seen: set) -> list:
-    """Fetch and filter recent articles from RSS/Atom feeds."""
+    """Fetch and filter recent articles from RSS/Atom feeds using stdlib XML parsing."""
     articles = []
     cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=lookback_days)
+    headers = {"User-Agent": "DetectionChokepoints-TTPUpdater/1.0"}
 
     for feed_cfg in feeds:
         name = feed_cfg.get("name", feed_cfg.get("url", "unknown"))
         try:
-            parsed = feedparser.parse(feed_cfg["url"])
+            resp = requests.get(feed_cfg["url"], timeout=15, headers=headers)
+            resp.raise_for_status()
+            root = ET.fromstring(resp.content)
         except Exception as exc:
             print(f"  [WARN] {name}: fetch failed — {exc}", file=sys.stderr)
             continue
 
-        for entry in parsed.entries:
-            published = entry.get("published_parsed") or entry.get("updated_parsed")
-            if published:
-                pub_dt = datetime.datetime(*published[:6], tzinfo=datetime.timezone.utc)
-                if pub_dt < cutoff:
-                    continue
+        # Detect Atom vs RSS by root tag and build a flat (title, url, date, body) list
+        root_tag = root.tag
+        entries = []
+        if root_tag == f"{{{_ATOM_NS}}}feed" or "atom" in root_tag.lower():
+            for item in root.findall(f"{{{_ATOM_NS}}}entry"):
+                t = (item.findtext(f"{{{_ATOM_NS}}}title") or "").strip()
+                le = item.find(f"{{{_ATOM_NS}}}link[@rel='alternate']") or item.find(f"{{{_ATOM_NS}}}link")
+                u = (le.get("href", "") if le is not None else "").strip()
+                d = item.findtext(f"{{{_ATOM_NS}}}published") or item.findtext(f"{{{_ATOM_NS}}}updated") or ""
+                se = item.find(f"{{{_ATOM_NS}}}summary") or item.find(f"{{{_ATOM_NS}}}content")
+                b = _text_from_elem(se) if se is not None else ""
+                entries.append((t, u, d, b))
+        else:
+            ch = root.find("channel") or root
+            for item in ch.findall("item"):
+                t = (item.findtext("title") or "").strip()
+                u = (item.findtext("link") or "").strip()
+                d = item.findtext("pubDate") or item.findtext(f"{{{_DC_NS}}}date") or ""
+                b = item.findtext(f"{{{_CONTENT_NS}}}encoded") or item.findtext("description") or ""
+                entries.append((t, u, d, b))
 
-            url = entry.get("link", "")
-            title = entry.get("title", "")
+        for title, url, date_str, body in entries:
+            pub_dt = _parse_feed_date(date_str)
+            if pub_dt and pub_dt < cutoff:
+                continue
+
             aid = article_id(url, title)
             if aid in seen:
                 continue
 
-            # Merge summary + full content
-            parts = [title]
-            if entry.get("summary"):
-                parts.append(entry.summary)
-            for content_block in entry.get("content", []):
-                parts.append(content_block.get("value", ""))
-            text = "\n\n".join(parts)[:MAX_ARTICLE_CHARS]
-
+            text = f"{title}\n\n{body}"[:MAX_ARTICLE_CHARS]
             if len(text.strip()) < 100:
                 continue
 
@@ -156,7 +207,7 @@ def fetch_rss_articles(feeds: list, lookback_days: int, seen: set) -> list:
                 "url": url,
                 "title": title,
                 "source": name,
-                "published": str(published) if published else "unknown",
+                "published": date_str or "unknown",
                 "text": text,
             })
 
