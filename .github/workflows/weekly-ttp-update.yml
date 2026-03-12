@@ -90,7 +90,9 @@ jobs:
           git checkout -b "$BRANCH"
 
           # Stage chokepoint YAML changes (new TTPs) and the seen-articles cache
-          git add chokepoints/ scripts/.seen_articles.json scripts/.update-status.json
+          # Use --ignore-errors so missing cache files on first run don't abort the step
+          git add chokepoints/
+          git add --ignore-errors scripts/.seen_articles.json scripts/.update-status.json
 
           # Only commit if there are staged changes
           if ! git diff --cached --quiet; then
@@ -102,8 +104,7 @@ jobs:
           gh pr create \
             --title "$TITLE" \
             --body-file /tmp/ttp-update-report.md \
-            --base main \
-            --label "automated,ttp-update"
+            --base main
 
       - name: No PR needed
         if: |
