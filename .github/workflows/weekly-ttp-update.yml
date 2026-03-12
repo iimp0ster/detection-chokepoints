@@ -99,7 +99,7 @@ jobs:
             git commit -m "$TITLE"
           fi
 
-          git push -u origin "$BRANCH"
+          git push --force -u origin "$BRANCH"
 
           gh pr create \
             --title "$TITLE" \
