@@ -57,6 +57,33 @@ layout: default
     </div>
   </section>
 
+  <!-- Attack Flow Visualization (Mermaid) -->
+  {% if page.chokepoints %}
+  <section class="ac-section ac-flowviz-section mb-8">
+    <h2 class="ac-section-title">Attack Flow Visualization</h2>
+    <p class="ac-section-desc">
+      Orange nodes are the chokepoints — the invariant prerequisites every actor must satisfy to
+      advance. Tools and TTPs vary; these conditions do not.
+    </p>
+    <div class="ac-flowviz-wrap">
+<pre class="mermaid">
+flowchart LR
+{% for stage in page.stages %}  S{{ forloop.index }}["{{ stage.label }}"]
+{% endfor %}
+{% for stage in page.stages %}{% unless forloop.last %}{% assign nxt = forloop.index | plus: 1 %}  S{{ forloop.index }} --> S{{ nxt }}
+{% endunless %}{% endfor %}
+{% for stage in page.stages %}{% if page.chokepoints[stage.id] %}  S{{ forloop.index }} -.->|"⚡"| CP{{ forloop.index }}["{{ page.chokepoints[stage.id] }}"]
+{% endif %}{% endfor %}
+  classDef stage fill:#21262d,stroke:#444d56,color:#c9d1d9,rx:6
+  classDef cp fill:#f0883e,stroke:#d97706,color:#1a1a1a,rx:6
+{% for stage in page.stages %}  class S{{ forloop.index }} stage
+{% endfor %}{% for stage in page.stages %}{% if page.chokepoints[stage.id] %}  class CP{{ forloop.index }} cp
+{% endif %}{% endfor %}
+</pre>
+    </div>
+  </section>
+  {% endif %}
+
   <!-- Actor Convergence Matrix -->
   {% if page.actors %}
   <section class="ac-section mb-10">
@@ -117,3 +144,23 @@ layout: default
   </div>
 
 </div>
+
+{% if page.chokepoints %}
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    themeVariables: {
+      background: 'transparent',
+      primaryColor: '#21262d',
+      primaryTextColor: '#c9d1d9',
+      primaryBorderColor: '#444d56',
+      lineColor: '#8b949e',
+      edgeLabelBackground: 'transparent'
+    },
+    flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: false }
+  });
+  mermaid.run({ querySelector: '.mermaid' });
+</script>
+{% endif %}

@@ -763,6 +763,23 @@ pre .hljs { padding: 0 !important; }
   flex-shrink: 0;
 }
 
+/* Attack flow visualization (Mermaid) */
+.ac-flowviz-wrap {
+  overflow-x: auto;
+  padding: .5rem 0;
+}
+.ac-flowviz-wrap pre.mermaid {
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+}
+.ac-flowviz-wrap .mermaid svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
 /* Convergence matrix */
 .ac-matrix-wrapper {
   overflow-x: auto;
