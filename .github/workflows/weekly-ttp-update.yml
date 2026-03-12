@@ -1,0 +1,112 @@
+name: Weekly TTP Update
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"   # Every Sunday at midnight UTC
+  workflow_dispatch:        # Manual trigger (useful for testing)
+    inputs:
+      dry_run:
+        description: "Dry run (preview changes without writing files or creating PR)"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-ttps:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-update.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-update.txt
+
+      - name: Run TTP update + accuracy validation
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          DRY_RUN_FLAG=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          python scripts/update_ttps.py $DRY_RUN_FLAG
+
+      - name: Read update status
+        id: status
+        run: |
+          if [ -f scripts/.update-status.json ]; then
+            echo "has_changes=$(jq -r '.has_changes' scripts/.update-status.json)" >> $GITHUB_OUTPUT
+            echo "has_issues=$(jq -r '.has_issues' scripts/.update-status.json)" >> $GITHUB_OUTPUT
+            echo "applied=$(jq -r '.applied_count' scripts/.update-status.json)" >> $GITHUB_OUTPUT
+            echo "issues=$(jq -r '.non_stale_issues_count' scripts/.update-status.json)" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+            echo "applied=0" >> $GITHUB_OUTPUT
+            echo "issues=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create PR for changes or accuracy issues
+        if: |
+          steps.status.outputs.has_changes == 'true' ||
+          steps.status.outputs.has_issues == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          BRANCH="chore/weekly-ttp-update-${DATE}"
+          APPLIED="${{ steps.status.outputs.applied }}"
+          ISSUES="${{ steps.status.outputs.issues }}"
+
+          # Build PR title
+          TITLE_PARTS=()
+          if [ "$APPLIED" -gt "0" ]; then
+            TITLE_PARTS+=("${APPLIED} new variant(s)")
+          fi
+          if [ "$ISSUES" -gt "0" ]; then
+            TITLE_PARTS+=("${ISSUES} accuracy issue(s)")
+          fi
+          TITLE=$(IFS=", "; echo "chore: weekly TTP update ${DATE} — ${TITLE_PARTS[*]}")
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
+
+          # Stage chokepoint YAML changes (new TTPs) and the seen-articles cache
+          git add chokepoints/ scripts/.seen_articles.json scripts/.update-status.json
+
+          # Only commit if there are staged changes
+          if ! git diff --cached --quiet; then
+            git commit -m "$TITLE"
+          fi
+
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --title "$TITLE" \
+            --body-file /tmp/ttp-update-report.md \
+            --base main \
+            --label "automated,ttp-update"
+
+      - name: No PR needed
+        if: |
+          steps.status.outputs.has_changes != 'true' &&
+          steps.status.outputs.has_issues != 'true'
+        run: echo "No new TTPs or accuracy issues this week — skipping PR."

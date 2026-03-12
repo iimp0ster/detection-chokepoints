@@ -1,0 +1,46 @@
+# Intel sources for the weekly TTP update pipeline.
+# Edit this file to add/remove feeds or tune collection settings.
+
+# How many days back to look for new articles
+lookback_days: 7
+
+# Max articles to process per run (controls Claude API cost)
+max_articles: 30
+
+# CISA Known Exploited Vulnerabilities JSON feed
+cisa_kev_url: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+
+# MITRE ATT&CK STIX (used for technique ID validation)
+mitre_attack_url: "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"
+
+# RSS/Atom feeds — threat intel blogs and security news
+rss_feeds:
+  - name: "Proofpoint Threat Insight"
+    url: "https://www.proofpoint.com/us/blog/threat-insight/rss.xml"
+
+  - name: "Microsoft Security Blog"
+    url: "https://www.microsoft.com/en-us/security/blog/feed/"
+
+  - name: "BleepingComputer Security"
+    url: "https://www.bleepingcomputer.com/feed/"
+
+  - name: "Huntress Blog"
+    url: "https://www.huntress.com/blog/rss.xml"
+
+  - name: "Trend Micro Research"
+    url: "https://www.trendmicro.com/en_us/research.rss"
+
+  - name: "Cisco Talos Intelligence"
+    url: "https://blog.talosintelligence.com/rss/"
+
+  - name: "Mandiant Threat Intelligence"
+    url: "https://cloud.google.com/blog/topics/threat-intelligence/rss.xml"
+
+  - name: "Recorded Future (free)"
+    url: "https://www.recordedfuture.com/feed"
+
+  - name: "SANS Internet Storm Center"
+    url: "https://isc.sans.edu/rssfeed_full.xml"
+
+  - name: "Unit 42 (Palo Alto)"
+    url: "https://unit42.paloaltonetworks.com/feed/"
