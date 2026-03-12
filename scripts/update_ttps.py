@@ -369,7 +369,6 @@ RULES:
         with client.messages.stream(
             model=MODEL,
             max_tokens=2048,
-            thinking={"type": "adaptive"},
             system=system,
             messages=[{"role": "user", "content": user}],
         ) as stream:
@@ -452,7 +451,6 @@ Return ONLY valid JSON."""
         with client.messages.stream(
             model=MODEL,
             max_tokens=1024,
-            thinking={"type": "adaptive"},
             system=system,
             messages=[{"role": "user", "content": user}],
         ) as stream:
