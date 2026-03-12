@@ -10,3 +10,7 @@ node_modules/
 _data/chokepoints.yml
 assets/js/search-index.json
 _chokepoints/
+
+# Weekly TTP update script caches
+scripts/.mitre_cache.json
+scripts/__pycache__/
