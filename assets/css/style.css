@@ -992,3 +992,283 @@ pre .hljs { padding: 0 !important; }
   margin-bottom: .6rem;
 }
 .ac-index-hero p { font-size: 1rem; color: var(--text-muted); max-width: 600px; line-height: 1.7; }
+
+/* ════════════════════════════════════════════════════════════════════
+   Attack Flow SVG Swimlane Diagram  (.af-*)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Wrapper ──────────────────────────────────────────────────────── */
+.af-svg-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  background: var(--surface, #161b22);
+  position: relative;   /* tooltip anchor */
+}
+.af-svg-wrap svg {
+  display: block;
+  min-width: 480px;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── Swimlane chrome ──────────────────────────────────────────────── */
+.af-lane-bg { fill: transparent; }
+.af-lane-bg--2 { fill: rgba(240, 136, 62, 0.025); }   /* subtle ATT&CK tint */
+.af-swimlane-rule {
+  stroke: var(--border, #30363d);
+  stroke-width: 1;
+}
+.af-swimlane-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  fill: var(--text-muted, #8b949e);
+}
+
+/* ── Stage boxes ──────────────────────────────────────────────────── */
+.af-stage { cursor: pointer; outline: none; }
+.af-stage-rect {
+  fill: var(--surface-raised, #21262d);
+  stroke: var(--border, #30363d);
+  stroke-width: 1.5;
+  transition: stroke 0.15s, stroke-width 0.15s;
+}
+.af-stage:hover .af-stage-rect,
+.af-stage:focus .af-stage-rect,
+.af-stage:focus-visible .af-stage-rect {
+  stroke: var(--accent, #f0883e);
+  stroke-width: 2;
+}
+.af-stage-label {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text-primary, #e6edf3);
+  letter-spacing: 0.01em;
+}
+.af-tactic-id {
+  font-size: 9px;
+  font-weight: 600;
+  fill: var(--text-muted, #8b949e);
+  letter-spacing: 0.03em;
+}
+.af-action-text {
+  font-size: 9px;
+  fill: var(--text-muted, #8b949e);
+}
+.af-technique-id {
+  font-size: 9px;
+  font-weight: 700;
+  fill: var(--accent, #f0883e);
+  letter-spacing: 0.02em;
+}
+
+/* ── Detection status ─────────────────────────────────────────────── */
+.af-status-dot { stroke: none; transition: r 0.15s; }
+.af-stage:hover .af-status-dot,
+.af-stage:focus .af-status-dot { r: 12; }
+
+.af-status--exploited { fill: #da3633; }
+.af-status--detected  { fill: #e3b341; }
+.af-status--blocked   { fill: #3fb950; }
+.af-status--unknown   { fill: #444d56; }
+
+.af-dot-icon        { font-size: 10px; dominant-baseline: middle; }
+.af-dot-icon--dark  { fill: #1a1a1a; }
+.af-dot-icon--light { fill: #fff; }
+.af-dot-icon--muted { fill: #8b949e; }
+
+.af-status-text {
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.af-status-text--exploited { fill: #da3633; }
+.af-status-text--detected  { fill: #e3b341; }
+.af-status-text--blocked   { fill: #3fb950; }
+.af-status-text--unknown   { fill: #8b949e; }
+
+.af-systems-text {
+  font-size: 8px;
+  fill: var(--text-muted, #8b949e);
+}
+
+/* ── Connecting edges ─────────────────────────────────────────────── */
+/* stroke style + pattern encodes status for color-blind users */
+.af-edge { fill: none; stroke-linecap: round; }
+.af-edge--exploited { stroke: #da3633; stroke-width: 2; stroke-dasharray: 3 3; }
+.af-edge--detected  { stroke: #e3b341; stroke-width: 2; stroke-dasharray: 6 3; }
+.af-edge--blocked   { stroke: #3fb950; stroke-width: 2; }
+.af-edge--unknown   { stroke: #444d56; stroke-width: 1.5; stroke-dasharray: 4 4; }
+
+/* ── Tooltip ──────────────────────────────────────────────────────── */
+.af-tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: var(--surface-raised, #21262d);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 7px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--text-primary, #e6edf3);
+  max-width: 240px;
+  z-index: 200;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  /* hidden by default via aria-hidden in JS; we use visibility so it
+     doesn't capture clicks when visible (pointer-events: none above) */
+}
+.af-tooltip[aria-hidden="true"]  { visibility: hidden; opacity: 0; }
+.af-tooltip[aria-hidden="false"] { visibility: visible; opacity: 1; }
+
+.af-tip-title {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary, #e6edf3);
+  margin-bottom: 0.2rem;
+}
+.af-tip-tactic {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted, #8b949e);
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.04em;
+}
+.af-tip-techs {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.3rem;
+}
+.af-tip-techs li {
+  font-size: 0.68rem;
+  color: var(--accent, #f0883e);
+  padding-left: 0.6rem;
+  position: relative;
+}
+.af-tip-techs li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: var(--text-muted, #8b949e);
+}
+.af-tip-status {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 0.3rem;
+}
+.af-tip-status--exploited { background: rgba(218,54,51,0.15); color: #da3633; }
+.af-tip-status--detected  { background: rgba(227,179,65,0.15); color: #e3b341; }
+.af-tip-status--blocked   { background: rgba(63,185,80,0.15);  color: #3fb950; }
+.af-tip-status--unknown   { background: rgba(68,77,86,0.2);    color: #8b949e; }
+
+.af-tip-sigs-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted, #8b949e);
+  margin-top: 0.3rem;
+  margin-bottom: 0.15rem;
+}
+.af-tip-sigs {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.af-tip-sigs li {
+  font-size: 0.65rem;
+  color: var(--text-secondary, #c9d1d9);
+  padding-left: 0.6rem;
+  position: relative;
+  line-height: 1.4;
+}
+.af-tip-sigs li::before {
+  content: "›";
+  position: absolute;
+  left: 0;
+  color: var(--text-muted, #8b949e);
+}
+
+/* ── Legend (above the diagram) ──────────────────────────────────── */
+.af-legend {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 0.5rem 0 0.25rem;
+}
+.af-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #c9d1d9);
+}
+.af-legend-dot {
+  font-size: 1rem;
+  line-height: 1;
+}
+.af-legend-dot--exploited { color: #da3633; }
+.af-legend-dot--detected  { color: #e3b341; }
+.af-legend-dot--blocked   { color: #3fb950; }
+.af-legend-hint {
+  font-size: 0.68rem;
+  color: var(--text-muted, #8b949e);
+}
+.af-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted, #8b949e);
+  margin-top: 0.2rem;
+  font-style: italic;
+}
+
+/* ── Section description layout ──────────────────────────────────── */
+.ac-flowviz-section .ac-section-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Light theme overrides ────────────────────────────────────────── */
+[data-theme="light"] .af-svg-wrap {
+  background: #f6f8fa;
+  border-color: #d0d7de;
+}
+[data-theme="light"] .af-stage-rect {
+  fill: #ffffff;
+  stroke: #d0d7de;
+}
+[data-theme="light"] .af-stage-label    { fill: #24292f; }
+[data-theme="light"] .af-tactic-id      { fill: #57606a; }
+[data-theme="light"] .af-action-text    { fill: #57606a; }
+[data-theme="light"] .af-systems-text   { fill: #57606a; }
+[data-theme="light"] .af-swimlane-rule  { stroke: #d0d7de; }
+[data-theme="light"] .af-swimlane-label { fill: #57606a; }
+[data-theme="light"] .af-lane-bg--2     { fill: rgba(240, 136, 62, 0.04); }
+[data-theme="light"] .af-tooltip {
+  background: #ffffff;
+  border-color: #d0d7de;
+  color: #24292f;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+[data-theme="light"] .af-tip-title    { color: #24292f; }
+[data-theme="light"] .af-tip-tactic   { color: #57606a; }
+[data-theme="light"] .af-tip-sigs li  { color: #24292f; }
+[data-theme="light"] .af-status-text--unknown { fill: #57606a; }
+
+/* ── Reduced-motion: disable SVG transitions ──────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .af-stage-rect,
+  .af-status-dot { transition: none; }
+}

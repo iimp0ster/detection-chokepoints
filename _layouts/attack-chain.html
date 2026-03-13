@@ -42,32 +42,30 @@ layout: default
 
   {% if page.stages %}
 
-  <!-- Attack Flow Visualization (Mermaid) -->
-  {% if page.chokepoints %}
-  <section class="ac-section ac-flowviz-section mb-8">
-    <h2 class="ac-section-title">Attack Flow Visualization</h2>
+  <!-- Attack Flow Visualization (SVG Swimlane) -->
+  <section class="ac-section ac-flowviz-section mb-8" aria-labelledby="af-section-title">
+    <h2 class="ac-section-title" id="af-section-title">Attack Flow</h2>
     <p class="ac-section-desc">
-      Orange nodes are the chokepoints — the invariant prerequisites every actor must satisfy to
-      advance. Tools and TTPs vary; these conditions do not.
+      Three swimlanes show the attacker's actions, mapped ATT&amp;CK techniques, and detection
+      posture at each stage.
+      <span class="af-legend">
+        <span class="af-legend-item">
+          <span class="af-legend-dot af-legend-dot--exploited" aria-hidden="true">●</span>
+          <span>Exploited <span class="af-legend-hint">(detection gap)</span></span>
+        </span>
+        <span class="af-legend-item">
+          <span class="af-legend-dot af-legend-dot--detected" aria-hidden="true">●</span>
+          <span>Detected <span class="af-legend-hint">(opportunity)</span></span>
+        </span>
+        <span class="af-legend-item">
+          <span class="af-legend-dot af-legend-dot--blocked" aria-hidden="true">●</span>
+          <span>Blocked <span class="af-legend-hint">(control active)</span></span>
+        </span>
+      </span>
+      <span class="af-hint">Hover or focus a stage for ATT&amp;CK detail.</span>
     </p>
-    <div class="ac-flowviz-wrap">
-<pre class="mermaid">
-flowchart LR
-{% for stage in page.stages %}  S{{ forloop.index }}["{{ stage.label }}"]
-{% endfor %}
-{% for stage in page.stages %}{% unless forloop.last %}{% assign nxt = forloop.index | plus: 1 %}  S{{ forloop.index }} --> S{{ nxt }}
-{% endunless %}{% endfor %}
-{% for stage in page.stages %}{% if page.chokepoints[stage.id] %}  S{{ forloop.index }} -.->|"⚡"| CP{{ forloop.index }}["{{ page.chokepoints[stage.id] }}"]
-{% endif %}{% endfor %}
-  classDef stage fill:#21262d,stroke:#444d56,color:#c9d1d9,rx:6
-  classDef cp fill:#f0883e,stroke:#d97706,color:#1a1a1a,rx:6
-{% for stage in page.stages %}  class S{{ forloop.index }} stage
-{% endfor %}{% for stage in page.stages %}{% if page.chokepoints[stage.id] %}  class CP{{ forloop.index }} cp
-{% endif %}{% endfor %}
-</pre>
-    </div>
+    {% include attack-flow.html %}
   </section>
-  {% endif %}
 
   <!-- Chokepoint Stage Cards -->
   {% if page.chokepoints %}
@@ -192,24 +190,9 @@ flowchart LR
 
 </div>
 
-{% if page.chokepoints %}
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'base',
-    themeVariables: {
-      background: 'transparent',
-      primaryColor: '#21262d',
-      primaryTextColor: '#c9d1d9',
-      primaryBorderColor: '#444d56',
-      lineColor: '#8b949e',
-      edgeLabelBackground: 'transparent'
-    },
-    flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: false }
-  });
-  mermaid.run({ querySelector: '.mermaid' });
-</script>
+{% if page.stages %}
+<script src="{{ '/assets/js/attack-flow.js' | relative_url }}" defer></script>
+{% endif %}
 
 <style>
 /* ── Stage Cards ──────────────────────────────────────────────────────── */

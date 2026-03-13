@@ -8,12 +8,32 @@ permalink: /attack-chains/infostealers/
 stages:
   - id: distribution
     label: Distribution
+    mitre_tactic: "TA0001"
+    mitre_techniques:
+      - id: "T1608.005"
+        name: "Link Target (SEO)"
+      - id: "T1566.002"
+        name: "Spearphishing Link"
+    detection_status: detected
+    attacker_action: "Malvertising / SEO poison"
+    systems: "Browser · DNS"
     detection_signals:
       - "Download from newly registered domain (<90 days old)"
       - "Browser navigating to typosquatted software download site"
       - "Installer with missing or untrusted digital signature"
   - id: execution
     label: Execution
+    mitre_tactic: "TA0002"
+    mitre_techniques:
+      - id: "T1204.002"
+        name: "Malicious File"
+      - id: "T1059.005"
+        name: "Visual Basic"
+      - id: "T1218.005"
+        name: "Mshta"
+    detection_status: detected
+    attacker_action: "LOLBin chain / fake installer"
+    systems: "Endpoint"
     detection_signals:
       - "Executable launched from %USERPROFILE%\\Downloads\\ or %TEMP%\\"
       - "Browser process spawning unexpected child process"
@@ -23,6 +43,15 @@ stages:
         slug: "clickfix-techniques"
   - id: collection
     label: Collection
+    mitre_tactic: "TA0009"
+    mitre_techniques:
+      - id: "T1555.003"
+        name: "Credentials from Browsers"
+      - id: "T1539"
+        name: "Steal Web Session Cookie"
+    detection_status: exploited
+    attacker_action: "Browser DB / DPAPI decrypt"
+    systems: "Endpoint · Browser"
     detection_signals:
       - "Non-browser process reading Chrome/Firefox SQLite credential stores"
       - "DPAPI CryptUnprotectData call from unexpected process"
@@ -32,12 +61,30 @@ stages:
         slug: "browser-credential-theft"
   - id: exfiltration
     label: Exfiltration
+    mitre_tactic: "TA0010"
+    mitre_techniques:
+      - id: "T1041"
+        name: "Exfiltration Over C2"
+      - id: "T1048"
+        name: "Exfil Over Alt Protocol"
+    detection_status: detected
+    attacker_action: "HTTPS POST to C2 / Telegram"
+    systems: "Network · Firewall"
     detection_signals:
       - "Non-browser process making HTTPS POST with payload >1 MB"
       - "Outbound connection to Telegram Bot API (api.telegram.org) from non-user process"
       - "Compressed archive (.zip/.7z) created then immediately sent over network"
   - id: monetization
     label: Monetization
+    mitre_tactic: "TA0040"
+    mitre_techniques:
+      - id: "T1657"
+        name: "Financial Theft"
+      - id: "T1078"
+        name: "Valid Accounts (downstream)"
+    detection_status: unknown
+    attacker_action: "IAB sale · Session replay"
+    systems: "Dark web · SaaS"
     detection_signals:
       - "VPN/SaaS login from new geo-location with valid credentials (downstream)"
       - "Session token reuse from unfamiliar IP/device fingerprint"
