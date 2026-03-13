@@ -41,21 +41,6 @@ layout: default
   </div>
 
   {% if page.stages %}
-  <!-- Stage flow diagram -->
-  <section class="ac-section mb-8">
-    <h2 class="ac-section-title">Attack Chain Stages</h2>
-    <div class="ac-stage-flow" role="list" aria-label="Attack chain stages">
-      {% for stage in page.stages %}
-      <div class="ac-stage-pill" role="listitem">
-        <span class="ac-stage-num">{{ forloop.index }}</span>
-        <span class="ac-stage-label">{{ stage.label }}</span>
-      </div>
-      {% unless forloop.last %}
-      <div class="ac-stage-arrow" aria-hidden="true">→</div>
-      {% endunless %}
-      {% endfor %}
-    </div>
-  </section>
 
   <!-- Attack Flow Visualization (Mermaid) -->
   {% if page.chokepoints %}
@@ -84,6 +69,63 @@ flowchart LR
   </section>
   {% endif %}
 
+  <!-- Chokepoint Stage Cards -->
+  {% if page.chokepoints %}
+  <section class="ac-section mb-10">
+    <h2 class="ac-section-title">Chokepoint Opportunities by Stage</h2>
+    <p class="ac-section-desc">
+      Each card shows the invariant prerequisite an attacker must satisfy at that stage,
+      the top detection signals, and links to the full chokepoint analysis.
+    </p>
+    <div class="ac-stage-cards">
+      {% for stage in page.stages %}{% if page.chokepoints[stage.id] %}
+      <div class="ac-stage-card">
+        <div class="ac-stage-card-header">
+          <span class="ac-stage-card-num">{{ forloop.index }}</span>
+          <span class="ac-stage-card-label">{{ stage.label }}</span>
+        </div>
+        <div class="ac-stage-card-body">
+          <div class="ac-chokepoint-block">
+            <span class="ac-chokepoint-eyebrow">
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                   stroke-linejoin="round" aria-hidden="true" style="display:inline;vertical-align:middle;margin-right:3px;">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>Chokepoint
+            </span>
+            <p class="ac-chokepoint-text">{{ page.chokepoints[stage.id] }}</p>
+          </div>
+          {% if stage.detection_signals %}
+          <div class="ac-detection-block">
+            <span class="ac-detection-eyebrow">Detection Signals</span>
+            <ul class="ac-detection-list">
+              {% for signal in stage.detection_signals %}
+              <li>{{ signal }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+          {% if stage.chokepoint_links %}
+          <div class="ac-cp-links">
+            {% for link in stage.chokepoint_links %}
+            <a href="{{ '/chokepoints/' | append: link.slug | append: '/' | relative_url }}" class="ac-cp-link">
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                   stroke-linejoin="round" aria-hidden="true" style="display:inline;vertical-align:middle;margin-right:4px;">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>{{ link.label }}
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
   <!-- Actor Convergence Matrix -->
   {% if page.actors %}
   <section class="ac-section mb-10">
@@ -108,7 +150,12 @@ flowchart LR
         <tbody>
           {% for actor in page.actors %}
           <tr>
-            <td class="ac-actor-name">{{ actor.name }}</td>
+            <td class="ac-actor-name">
+              {{ actor.name }}
+              {% if actor.status %}
+              <span class="ac-actor-status ac-actor-status--{{ actor.status | downcase }}">{{ actor.status }}</span>
+              {% endif %}
+            </td>
             {% for stage in page.stages %}
             <td>{{ actor[stage.id] }}</td>
             {% endfor %}
@@ -163,4 +210,182 @@ flowchart LR
   });
   mermaid.run({ querySelector: '.mermaid' });
 </script>
+
+<style>
+/* ── Stage Cards ──────────────────────────────────────────────────────── */
+.ac-stage-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.ac-stage-card {
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface, #161b22);
+}
+
+.ac-stage-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  background: var(--surface-raised, #21262d);
+  border-bottom: 1px solid var(--border, #30363d);
+}
+
+.ac-stage-card-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent, #f0883e);
+  color: #1a1a1a;
+  font-size: 0.7rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.ac-stage-card-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-primary, #e6edf3);
+}
+
+.ac-stage-card-body {
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Chokepoint block inside card */
+.ac-chokepoint-block {
+  background: rgba(240, 136, 62, 0.08);
+  border-left: 3px solid var(--accent, #f0883e);
+  border-radius: 0 4px 4px 0;
+  padding: 0.5rem 0.65rem;
+}
+
+.ac-chokepoint-eyebrow {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent, #f0883e);
+  margin-bottom: 0.25rem;
+}
+
+.ac-chokepoint-text {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-primary, #e6edf3);
+  margin: 0;
+}
+
+/* Detection signals */
+.ac-detection-block {
+  padding-top: 0.1rem;
+}
+
+.ac-detection-eyebrow {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #8b949e);
+  margin-bottom: 0.3rem;
+}
+
+.ac-detection-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ac-detection-list li {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-secondary, #c9d1d9);
+  padding-left: 1rem;
+  position: relative;
+}
+
+.ac-detection-list li::before {
+  content: "·";
+  position: absolute;
+  left: 0.3rem;
+  color: var(--text-muted, #8b949e);
+}
+
+/* Chokepoint pivot links */
+.ac-cp-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-top: 0.1rem;
+}
+
+.ac-cp-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent, #f0883e);
+  background: rgba(240, 136, 62, 0.1);
+  border: 1px solid rgba(240, 136, 62, 0.25);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ac-cp-link:hover {
+  background: rgba(240, 136, 62, 0.18);
+  border-color: rgba(240, 136, 62, 0.5);
+  text-decoration: none;
+}
+
+/* ── Actor Status Badges ───────────────────────────────────────────────── */
+.ac-actor-status {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.ac-actor-status--active {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+  border: 1px solid rgba(63, 185, 80, 0.3);
+}
+
+.ac-actor-status--disrupted {
+  background: rgba(210, 153, 34, 0.15);
+  color: #d29922;
+  border: 1px solid rgba(210, 153, 34, 0.3);
+}
+
+.ac-actor-status--defunct,
+.ac-actor-status--inactive {
+  background: rgba(248, 81, 73, 0.12);
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, 0.25);
+}
+</style>
 {% endif %}

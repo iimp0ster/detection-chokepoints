@@ -8,41 +8,72 @@ permalink: /attack-chains/infostealers/
 stages:
   - id: distribution
     label: Distribution
+    detection_signals:
+      - "Download from newly registered domain (<90 days old)"
+      - "Browser navigating to typosquatted software download site"
+      - "Installer with missing or untrusted digital signature"
   - id: execution
     label: Execution
+    detection_signals:
+      - "Executable launched from %USERPROFILE%\\Downloads\\ or %TEMP%\\"
+      - "Browser process spawning unexpected child process"
+      - "LOLBin chain: mshta → wscript → rundll32 (no legitimate parent)"
+    chokepoint_links:
+      - label: "ClickFix Techniques"
+        slug: "clickfix-techniques"
   - id: collection
     label: Collection
+    detection_signals:
+      - "Non-browser process reading Chrome/Firefox SQLite credential stores"
+      - "DPAPI CryptUnprotectData call from unexpected process"
+      - "Bulk file reads under %APPDATA%\\*\\Chromium\\ or %APPDATA%\\Mozilla\\"
+    chokepoint_links:
+      - label: "Browser Credential Theft"
+        slug: "browser-credential-theft"
   - id: exfiltration
     label: Exfiltration
+    detection_signals:
+      - "Non-browser process making HTTPS POST with payload >1 MB"
+      - "Outbound connection to Telegram Bot API (api.telegram.org) from non-user process"
+      - "Compressed archive (.zip/.7z) created then immediately sent over network"
   - id: monetization
     label: Monetization
+    detection_signals:
+      - "VPN/SaaS login from new geo-location with valid credentials (downstream)"
+      - "Session token reuse from unfamiliar IP/device fingerprint"
+      - "Account behavior anomaly after credential exposure window"
 
 actors:
   - name: RedLine
+    status: Disrupted
     distribution: "Malvertising / cracked software SEO"
     execution: "User double-clicks fake installer EXE"
     collection: "Chrome/Firefox SQLite + crypto wallets (DPAPI)"
     exfiltration: "HTTPS POST to C2 panel"
     monetization: "IAB dark web marketplace sale"
   - name: LummaC2
+    status: Active
     distribution: "Fake CAPTCHA / ClickFix lure pages"
     execution: "LOLBin chain (mshta → wscript → rundll32)"
     collection: "Browsers + 2FA extensions + crypto wallets (DPAPI)"
     exfiltration: "Encrypted HTTPS POST to rotating C2"
     monetization: "IAB sale + direct RaaS operator supply"
   - name: Vidar
+    status: Active
     distribution: "Malvertising / YouTube description links"
     execution: "MSI / NSIS installer execution"
     collection: "Browsers + 2FA tokens + crypto wallets (DPAPI + Telegram token)"
     exfiltration: "HTTP POST + Telegram Bot API C2"
     monetization: "IAB marketplace listing"
   - name: StealC
+    status: Active
     distribution: "SEO poisoning / malvertising"
     execution: "User-executed signed-looking binary"
     collection: "Browsers + Discord tokens + Telegram sessions"
     exfiltration: "HTTP POST to admin panel"
     monetization: "IAB sale / direct buyer negotiation"
   - name: Raccoon
+    status: Disrupted
     distribution: "Phishing / malvertising"
     execution: "User-executed EXE or MSI"
     collection: "Browsers + email clients + crypto wallets"
@@ -59,160 +90,13 @@ chokepoints:
 
 # Infostealer Attack Chain
 
-**Last Updated:** 2025-01-15
-
 ## Overview
 
 Infostealers have become the foundation of the RaaS ecosystem. Initial Access Brokers
 (IABs) use infostealers to harvest credentials and session tokens, which are then sold
 to ransomware operators with pre-mapped environments.
 
-**Market Value:** $10-$100K per enterprise access package (HudsonRock, RedCanary)
-
-## Attack Chain Chokepoints
-
-```
-Distribution → Execution → Collection → Exfiltration → Monetization
-     ↓            ↓            ↓            ↓              ↓
- [Delivery]  [User Action] [File/Memory] [Network C2]   [IAB Sale]
-```
-
-## Chokepoint Breakdown
-
-### 1. Distribution
-**Chokepoints Used:**
-- Malvertising (fake software updates)
-- SEO poisoning (cracked software)
-- Phishing campaigns
-- Software supply chain compromise
-- Malicious browser extensions
-
-**Key Prerequisites:**
-- Hosting infrastructure
-- User action required
-- Download mechanism (browser, installer)
-
-**Detection Opportunity:**
-- Browser download from suspicious domains
-- Installer with unusual digital signatures
-- Downloads from newly registered domains
-
----
-
-### 2. Execution
-**Chokepoints Used:**
-- User double-click execution
-- MSI/NSIS installer execution
-- DLL sideloading
-- Browser extension installation
-
-**Key Prerequisites:**
-- User interaction
-- Code execution permissions
-- No AV/EDR blocking
-
-**Detection Opportunity:**
-- Unsigned executables from Downloads folder
-- Browser processes spawning unusual children
-- DLL loads from non-standard paths
-
----
-
-### 3. Collection
-**Chokepoints Used:**
-- Browser credential stores (Chromium, Firefox)
-- Windows Credential Manager
-- Discord/Telegram tokens
-- Cryptocurrency wallets
-- Session cookies (auth bypass)
-- SSH keys, VPN configs
-- FTP client credentials
-
-**Key Prerequisites:**
-- File system access to browser profiles
-- DPAPI access for encrypted credentials
-- Memory access for running processes
-
-**Detection Opportunity:**
-- Access to browser SQLite databases
-- DPAPI calls for credential decryption
-- Unusual file reads in %APPDATA%
-- Memory access to browser processes
-
----
-
-### 4. Exfiltration
-**Chokepoints Used:**
-- HTTP/HTTPS POST to C2
-- Telegram Bot API
-- Discord webhooks
-- Encrypted archives before exfil
-- Cloud storage services (MEGA, Dropbox)
-
-**Key Prerequisites:**
-- Network connectivity
-- C2 infrastructure
-- Data staging location
-
-**Detection Opportunity:**
-- Outbound connections to unusual domains
-- Large POST requests from non-browser processes
-- Connections to Telegram/Discord APIs
-- Compressed archive creation before network activity
-
----
-
-### 5. Monetization (IAB Ecosystem)
-**Result:**
-- Credentials sold on dark web marketplaces
-- Session tokens enable direct access
-- Pre-mapped enterprise environments
-- Leads to ransomware deployment
-
-**Detection Opportunity (Downstream):**
-- Unusual login from new geo-location
-- Session token reuse detection
-- Account behavior anomalies
-
----
-
-## Common Infostealer Families
-
-### RedLine
-- **Distribution**: Malvertising, cracked software
-- **Collection**: Browsers, crypto wallets, VPN configs
-- **Exfiltration**: HTTP POST to C2
-- **Active Since**: 2020
-- **Prevalence**: Very High
-
-### Vidar
-- **Distribution**: Malvertising, YouTube descriptions
-- **Collection**: Browsers, 2FA tokens, crypto wallets
-- **Exfiltration**: HTTP POST, Telegram
-- **Active Since**: 2018
-- **Prevalence**: High
-
-### Raccoon Stealer
-- **Distribution**: Phishing, malvertising
-- **Collection**: Browsers, email clients, crypto wallets
-- **Exfiltration**: HTTP POST to C2
-- **Active Since**: 2019
-- **Prevalence**: High
-
-### LummaC2
-- **Distribution**: Fake CAPTCHA / ClickFix lure pages, malvertising, GitHub/GitLab comment spam
-- **Execution**: LOLBin chain — mshta → wscript → rundll32 (evades simple process-tree detections)
-- **Collection**: Browsers, 2FA extensions, crypto wallets, VPN configs
-- **Exfiltration**: Encrypted HTTP POST to rotating C2 domains
-- **Active Since**: 2022
-- **Prevalence**: Rising (dominant stealer-as-a-service in 2024–2025)
-
-### StealC
-- **Distribution**: Malvertising, SEO poisoning
-- **Collection**: Browsers, Discord, Telegram
-- **Exfiltration**: HTTP POST to C2
-- **Active Since**: 2023
-- **Prevalence**: Rising
+**Market Value:** $10–$100K per enterprise access package (HudsonRock, RedCanary)
 
 ---
 
@@ -259,10 +143,10 @@ Day 15:
 
 ---
 
-## Chokepoint Detection Strategy
+## Chokepoint Detection Details
 
 ### Collection Phase (Highest Value)
-**Why it matters:** Preventing collection prevents exfiltration
+**Why it matters:** Preventing collection prevents exfiltration.
 
 **Log Sources:**
 - Sysmon Event ID 10 (Process Access)
@@ -280,7 +164,7 @@ Action: Read access
 ```
 
 ### Exfiltration Phase (Last Chance)
-**Why it matters:** Prevents credential compromise
+**Why it matters:** Prevents credential compromise reaching IAB marketplace.
 
 **Log Sources:**
 - Network connection logs (Sysmon Event ID 3)
@@ -300,7 +184,7 @@ User Agent: Suspicious or missing
 ```
 
 ### Execution Phase (Early Prevention)
-**Why it matters:** Stops before collection begins
+**Why it matters:** Stops before collection begins.
 
 **Log Sources:**
 - Sysmon Event ID 1 (Process Creation)
@@ -338,9 +222,9 @@ Timeline: Days to hours
 
 **Result:**
 - Time-to-Ransom (TTR) decreased from weeks to <24 hours
-- Ransomware operators skip initial access phase
-- Defenders face pre-authenticated attackers
-- MFA bypass via session token theft
+- Ransomware operators skip initial access phase entirely
+- Defenders face pre-authenticated attackers with valid credentials
+- MFA bypassed via session token theft
 
 ### IAB Marketplace Listings (Typical)
 
@@ -375,30 +259,8 @@ Timeline: Days to hours
 
 **IAB Market Size:**
 - Active brokers: 500+
-- Average listing price: $5K-$100K
-- Time from infection to sale: 7-14 days
-
----
-
-## Defense Strategy
-
-### Prevention
-- User awareness (fake software sites)
-- Application allowlisting
-- Browser isolation for downloads
-- EDR with behavior detection
-
-### Detection
-- Monitor browser credential file access
-- Alert on unusual network exfiltration
-- Detect unsigned executables from Downloads
-- Behavioral analytics on browser processes
-
-### Response
-- Immediate password resets if detected
-- Revoke all session tokens
-- Assume full credential compromise
-- Hunt for follow-on activity (IAB → ransomware)
+- Average listing price: $5K–$100K
+- Time from infection to sale: 7–14 days
 
 ---
 
