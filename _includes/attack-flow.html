@@ -1,0 +1,190 @@
+{% comment %}
+  _includes/attack-flow.html
+  ──────────────────────────────────────────────────────────────────────
+  SVG swimlane attack-flow diagram, driven entirely from page.stages[].
+
+  Each stage may declare these optional fields (in addition to label/id):
+    mitre_tactic      – string, e.g. "TA0001"
+    mitre_techniques  – array of {id, name}
+    detection_status  – "blocked" | "detected" | "exploited" | "unknown"
+    attacker_action   – short string shown inside the stage box
+    systems           – short string shown in the detection row
+    detection_signals – array of strings (used in the hover tooltip)
+
+  Requires: assets/js/attack-flow.js, .af-* rules in style.css
+{% endcomment %}
+
+{% if page.stages %}
+
+{%- comment -%} ── Layout constants ──────────────────────────────── {%- endcomment -%}
+{% assign _n       = page.stages | size %}
+{% assign _box_w   = 160 %}
+{% assign _gap_px  = 50  %}
+{% assign _col_w   = 210 %}   {%- comment -%} = box_w + gap_px {%- endcomment -%}
+{% assign _half_bw = 80  %}   {%- comment -%} = box_w / 2 {%- endcomment -%}
+{% assign _box_h   = 68  %}
+{% assign _left_w  = 74  %}   {%- comment -%} swimlane label column width {%- endcomment -%}
+{% assign _right_p = 16  %}
+{% assign _svg_h   = 284 %}
+
+{%- comment -%} svg_w = left_w + n*box_w + (n-1)*gap + right_p {%- endcomment -%}
+{% assign _n_minus_1 = _n | minus: 1 %}
+{% assign _stages_w  = _n | times: _box_w %}
+{% assign _gaps_w    = _n_minus_1 | times: _gap_px %}
+{% assign _svg_w     = _stages_w | plus: _gaps_w | plus: _left_w | plus: _right_p %}
+
+{%- comment -%} ── Swimlane Y boundaries ─────────────────────────── {%- endcomment -%}
+{%- comment -%} Lane 1 (Attacker):  y=0   → 107  (box at y=14, h=68)  {%- endcomment -%}
+{%- comment -%} Lane 2 (ATT&CK):    y=107 → 188  {%- endcomment -%}
+{%- comment -%} Lane 3 (Detection): y=188 → 284  {%- endcomment -%}
+
+<div class="af-svg-wrap" role="region" aria-label="{{ page.title }} attack flow diagram">
+
+  <svg viewBox="0 0 {{ _svg_w }} {{ _svg_h }}"
+       width="{{ _svg_w }}" height="{{ _svg_h }}"
+       xmlns="http://www.w3.org/2000/svg"
+       aria-labelledby="af-title-{{ page.title | slugify }}"
+       focusable="false">
+
+    <title id="af-title-{{ page.title | slugify }}">{{ page.title }} — attack flow diagram</title>
+    <desc>
+      Attack chain with {{ _n }} stages:
+      {% for s in page.stages %}{{ s.label }}{% unless forloop.last %}, {% endunless %}{% endfor %}.
+      Stages are color-coded by detection posture: red = exploited (gap),
+      yellow = detected (opportunity), green = blocked (control active).
+    </desc>
+
+    {%- comment -%} ── Arrow-head marker defs (one per status color) ──────── {%- endcomment -%}
+    <defs>
+      <marker id="af-arr"     markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">
+        <polygon points="0 0,7 2.5,0 5" fill="#444d56"/>
+      </marker>
+      <marker id="af-arr-exp" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">
+        <polygon points="0 0,7 2.5,0 5" fill="#da3633"/>
+      </marker>
+      <marker id="af-arr-det" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">
+        <polygon points="0 0,7 2.5,0 5" fill="#e3b341"/>
+      </marker>
+      <marker id="af-arr-blk" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">
+        <polygon points="0 0,7 2.5,0 5" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    {%- comment -%} ── Swimlane background bands ──────────────────────────── {%- endcomment -%}
+    <rect x="{{ _left_w }}" y="0"   width="{{ _svg_w | minus: _left_w }}" height="107" class="af-lane-bg af-lane-bg--1"/>
+    <rect x="{{ _left_w }}" y="107" width="{{ _svg_w | minus: _left_w }}" height="81"  class="af-lane-bg af-lane-bg--2"/>
+    <rect x="{{ _left_w }}" y="188" width="{{ _svg_w | minus: _left_w }}" height="96"  class="af-lane-bg af-lane-bg--3"/>
+
+    {%- comment -%} ── Swimlane labels (rotated, centered in each band) ─────── {%- endcomment -%}
+    <text transform="translate(13,53) rotate(-90)"  text-anchor="middle" class="af-swimlane-label">ATTACKER</text>
+    <text transform="translate(13,147) rotate(-90)" text-anchor="middle" class="af-swimlane-label">ATT&amp;CK</text>
+    <text transform="translate(13,237) rotate(-90)" text-anchor="middle" class="af-swimlane-label">DETECTION</text>
+
+    {%- comment -%} ── Swimlane divider lines ────────────────────────────── {%- endcomment -%}
+    <line x1="{{ _left_w }}" y1="0"   x2="{{ _left_w }}" y2="{{ _svg_h }}" class="af-swimlane-rule"/>
+    <line x1="{{ _left_w }}" y1="107" x2="{{ _svg_w }}"  y2="107"          class="af-swimlane-rule"/>
+    <line x1="{{ _left_w }}" y1="188" x2="{{ _svg_w }}"  y2="188"          class="af-swimlane-rule"/>
+
+    {%- comment -%} ── Stage groups ─────────────────────────────────────── {%- endcomment -%}
+    {% for stage in page.stages %}
+
+      {%- comment -%} Position calculations {%- endcomment -%}
+      {% assign _ix = forloop.index0 %}
+      {% assign _bx = _ix | times: _col_w | plus: _left_w %}
+      {% assign _cx = _half_bw | plus: _bx %}
+      {% assign _status = stage.detection_status | default: 'unknown' %}
+
+      {%- comment -%} Build pipe-delimited technique string for data attribute {%- endcomment -%}
+      {% capture _tech_str %}{% for _t in stage.mitre_techniques %}{% unless forloop.first %}||{% endunless %}{{ _t.id }} — {{ _t.name }}{% endfor %}{% endcapture %}
+
+      {%- comment -%} Build pipe-delimited signals string {%- endcomment -%}
+      {% assign _sig_str = stage.detection_signals | join: "||" %}
+
+      {%- comment -%} Human-readable status label {%- endcomment -%}
+      {% if _status == 'exploited' %}{% assign _status_label = 'Exploited — Detection Gap' %}
+      {% elsif _status == 'detected' %}{% assign _status_label = 'Detected — Opportunity' %}
+      {% elsif _status == 'blocked'  %}{% assign _status_label = 'Blocked — Control Active' %}
+      {% else %}{% assign _status_label = 'Unknown' %}
+      {% endif %}
+
+      <g class="af-stage af-stage--{{ _status }}"
+         tabindex="0"
+         role="button"
+         aria-label="{{ stage.label }}{% if stage.mitre_tactic %} ({{ stage.mitre_tactic }}){% endif %}: {{ _status_label }}"
+         data-label="{{ stage.label | escape }}"
+         data-tactic="{{ stage.mitre_tactic | default: '' | escape }}"
+         data-techniques="{{ _tech_str | strip | escape }}"
+         data-status="{{ _status }}"
+         data-status-label="{{ _status_label | escape }}"
+         data-signals="{{ _sig_str | escape }}">
+
+        {%- comment -%} ── Lane 1: Stage box ──────────────────────────── {%- endcomment -%}
+        <rect x="{{ _bx }}" y="14" width="{{ _box_w }}" height="{{ _box_h }}"
+              rx="6" class="af-stage-rect"/>
+
+        {%- comment -%} Stage label {%- endcomment -%}
+        <text x="{{ _cx }}" y="40" text-anchor="middle" class="af-stage-label">{{ stage.label }}</text>
+
+        {%- comment -%} Tactic ID badge {%- endcomment -%}
+        {% if stage.mitre_tactic %}
+        <text x="{{ _cx }}" y="56" text-anchor="middle" class="af-tactic-id">{{ stage.mitre_tactic }}</text>
+        {% endif %}
+
+        {%- comment -%} Attacker action text {%- endcomment -%}
+        {% if stage.attacker_action %}
+        <text x="{{ _cx }}" y="72" text-anchor="middle" class="af-action-text">{{ stage.attacker_action | truncate: 26, "" }}</text>
+        {% endif %}
+
+        {%- comment -%} ── Lane 2: ATT&CK technique IDs ──────────────── {%- endcomment -%}
+        {% if stage.mitre_techniques %}
+        {% for _tech in stage.mitre_techniques limit:3 %}
+        {% assign _ty = forloop.index | times: 20 | plus: 114 %}
+        <text x="{{ _cx }}" y="{{ _ty }}" text-anchor="middle" class="af-technique-id">{{ _tech.id }}</text>
+        {% endfor %}
+        {% endif %}
+
+        {%- comment -%} ── Lane 3: Detection status indicator ─────────── {%- endcomment -%}
+        <circle cx="{{ _cx }}" cy="214" r="10" class="af-status-dot af-status--{{ _status }}"/>
+
+        {%- comment -%} Icon inside dot {%- endcomment -%}
+        {% if _status == 'blocked' %}
+        <text x="{{ _cx }}" y="218" text-anchor="middle" class="af-dot-icon af-dot-icon--dark">✓</text>
+        {% elsif _status == 'detected' %}
+        <text x="{{ _cx }}" y="218" text-anchor="middle" class="af-dot-icon af-dot-icon--dark">◎</text>
+        {% elsif _status == 'exploited' %}
+        <text x="{{ _cx }}" y="218" text-anchor="middle" class="af-dot-icon af-dot-icon--light">✕</text>
+        {% else %}
+        <text x="{{ _cx }}" y="218" text-anchor="middle" class="af-dot-icon af-dot-icon--muted">?</text>
+        {% endif %}
+
+        {%- comment -%} Status label text {%- endcomment -%}
+        <text x="{{ _cx }}" y="236" text-anchor="middle" class="af-status-text af-status-text--{{ _status }}">
+          {% if _status == 'exploited' %}EXPLOITED{% elsif _status == 'detected' %}DETECTED{% elsif _status == 'blocked' %}BLOCKED{% else %}UNKNOWN{% endif %}
+        </text>
+
+        {%- comment -%} Systems context (small, below status label) {%- endcomment -%}
+        {% if stage.systems %}
+        <text x="{{ _cx }}" y="252" text-anchor="middle" class="af-systems-text">{{ stage.systems | truncate: 22, "" }}</text>
+        {% endif %}
+
+        {%- comment -%} ── Arrow to next stage (drawn within this stage's group) {%- endcomment -%}
+        {% unless forloop.last %}
+        {% assign _ax1 = _bx | plus: _box_w %}
+        {% assign _ax2 = forloop.index | times: _col_w | plus: _left_w %}
+        {% assign _arrow_y = 48 %}
+        <line x1="{{ _ax1 }}" y1="{{ _arrow_y }}" x2="{{ _ax2 }}" y2="{{ _arrow_y }}"
+              class="af-edge af-edge--{{ _status }}"
+              marker-end="url(#af-arr{% if _status == 'exploited' %}-exp{% elsif _status == 'detected' %}-det{% elsif _status == 'blocked' %}-blk{% endif %})"/>
+        {% endunless %}
+
+      </g>
+
+    {% endfor %}
+
+  </svg>
+</div>
+
+{%- comment -%} Tooltip element (positioned + populated by attack-flow.js) {%- endcomment -%}
+<div id="af-tooltip" class="af-tooltip" role="tooltip" aria-hidden="true"></div>
+
+{% endif %}

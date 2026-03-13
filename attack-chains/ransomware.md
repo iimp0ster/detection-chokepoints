@@ -8,6 +8,17 @@ permalink: /attack-chains/ransomware/
 stages:
   - id: initial_access
     label: Initial Access
+    mitre_tactic: "TA0001"
+    mitre_techniques:
+      - id: "T1566.001"
+        name: "Spearphishing Attachment"
+      - id: "T1133"
+        name: "External Remote Services"
+      - id: "T1190"
+        name: "Exploit Public-Facing App"
+    detection_status: detected
+    attacker_action: "Phishing / exposed VPN"
+    systems: "Endpoint · Email GW"
     detection_signals:
       - "Browser download of renamed/masqueraded binary (missing or mismatched signature)"
       - "RDP/VPN login from new geo-location or ASN"
@@ -19,12 +30,34 @@ stages:
         slug: "clickfix-techniques"
   - id: credential_access
     label: Credential Access
+    mitre_tactic: "TA0006"
+    mitre_techniques:
+      - id: "T1003.001"
+        name: "LSASS Memory"
+      - id: "T1558.003"
+        name: "Kerberoasting"
+      - id: "T1003.002"
+        name: "SAM Hive"
+    detection_status: detected
+    attacker_action: "LSASS dump / Kerberoast"
+    systems: "DC · Endpoint"
     detection_signals:
       - "LSASS process access by non-system process (Sysmon EID 10)"
       - "SAM/SECURITY registry hive read outside of system tools"
       - "Kerberos TGS-REQ spike for service accounts"
   - id: lateral_movement
     label: Lateral Movement
+    mitre_tactic: "TA0008"
+    mitre_techniques:
+      - id: "T1021.002"
+        name: "SMB/Admin Shares"
+      - id: "T1021.001"
+        name: "Remote Desktop Protocol"
+      - id: "T1047"
+        name: "WMI"
+    detection_status: exploited
+    attacker_action: "PsExec / RDP / WMI"
+    systems: "Domain · Servers"
     detection_signals:
       - "Network logon Type 3 + service creation across multiple hosts in short window"
       - "IPC$ share access followed by ADMIN$ write"
@@ -34,6 +67,15 @@ stages:
         slug: "remote-execution-tools"
   - id: defense_evasion
     label: Defense Evasion
+    mitre_tactic: "TA0005"
+    mitre_techniques:
+      - id: "T1562.001"
+        name: "Disable Security Tools"
+      - id: "T1490"
+        name: "Inhibit System Recovery"
+    detection_status: detected
+    attacker_action: "Kill AV/EDR · Stop backups"
+    systems: "All hosts"
     detection_signals:
       - "Multiple security/backup services stopped in rapid succession (sc.exe / net stop)"
       - "Security service deletion after stop"
@@ -43,6 +85,15 @@ stages:
         slug: "ransomware-service-manipulation"
   - id: impact
     label: Impact
+    mitre_tactic: "TA0040"
+    mitre_techniques:
+      - id: "T1486"
+        name: "Data Encrypted for Impact"
+      - id: "T1490"
+        name: "Inhibit System Recovery"
+    detection_status: exploited
+    attacker_action: "VSS delete · File encrypt"
+    systems: "All file servers"
     detection_signals:
       - "vssadmin delete shadows / wmic shadowcopy delete"
       - "Mass file modifications with high-entropy output (bulk file rename)"
