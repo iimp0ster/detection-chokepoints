@@ -8,41 +8,77 @@ permalink: /attack-chains/ransomware/
 stages:
   - id: initial_access
     label: Initial Access
+    detection_signals:
+      - "Browser download of renamed/masqueraded binary (missing or mismatched signature)"
+      - "RDP/VPN login from new geo-location or ASN"
+      - "Email attachment execution from user Downloads folder"
+    chokepoint_links:
+      - label: "Renamed RMM Tools"
+        slug: "renamed-rmm-tools"
+      - label: "ClickFix Techniques"
+        slug: "clickfix-techniques"
   - id: credential_access
     label: Credential Access
+    detection_signals:
+      - "LSASS process access by non-system process (Sysmon EID 10)"
+      - "SAM/SECURITY registry hive read outside of system tools"
+      - "Kerberos TGS-REQ spike for service accounts"
   - id: lateral_movement
     label: Lateral Movement
+    detection_signals:
+      - "Network logon Type 3 + service creation across multiple hosts in short window"
+      - "IPC$ share access followed by ADMIN$ write"
+      - "Unusual admin account authenticating to 5+ hosts within 30 minutes"
+    chokepoint_links:
+      - label: "Remote Execution Tools"
+        slug: "remote-execution-tools"
   - id: defense_evasion
     label: Defense Evasion
+    detection_signals:
+      - "Multiple security/backup services stopped in rapid succession (sc.exe / net stop)"
+      - "Security service deletion after stop"
+      - "Veeam, VSS, or SQL service termination"
+    chokepoint_links:
+      - label: "Ransomware Service Manipulation"
+        slug: "ransomware-service-manipulation"
   - id: impact
     label: Impact
+    detection_signals:
+      - "vssadmin delete shadows / wmic shadowcopy delete"
+      - "Mass file modifications with high-entropy output (bulk file rename)"
+      - "Ransom note .txt/.html creation across multiple directories"
 
 actors:
   - name: BlackBasta
+    status: Inactive
     initial_access: "QakBot / phishing email lure"
     credential_access: "LSASS dump + Kerberoasting"
     lateral_movement: "PsExec + Cobalt Strike beacon"
     defense_evasion: "Sophos / Defender stop via sc.exe"
     impact: "VSS delete + ChaCha20 file encrypt"
   - name: LockBit 3.0
+    status: Disrupted
     initial_access: "Stolen RDP creds / exposed RMM"
     credential_access: "LSASS dump + SAM hive export"
     lateral_movement: "PsExec + GPO mass-deploy"
-    defense_evasion: "Comprehensive service kill list"
+    defense_evasion: "Comprehensive service kill list (50+ services)"
     impact: "VSS delete + fastest-in-class encrypt"
   - name: Akira
+    status: Active
     initial_access: "VPN compromise (no MFA / cred stuffing)"
     credential_access: "LSASS dump + credential file harvest"
     lateral_movement: "RDP hop + AnyDesk"
     defense_evasion: "Defender disable via PowerShell"
     impact: "VSS delete + dual-extension encrypt"
   - name: Alphv/BlackCat
+    status: Defunct
     initial_access: "Stolen creds / exposed web services"
     credential_access: "LSASS dump + AD enumeration (BloodHound)"
     lateral_movement: "PsExec + RDP + WMI"
     defense_evasion: "Multi-vendor EDR termination (Impacket)"
     impact: "VSS delete + cross-platform Rust encrypt"
   - name: Play
+    status: Active
     initial_access: "N-day exploits (FortiOS, Exchange ProxyNotShell)"
     credential_access: "LSASS dump + Kerberoasting"
     lateral_movement: "PsExec + WMI lateral movement"
@@ -59,123 +95,13 @@ chokepoints:
 
 # Ransomware Attack Chain
 
-**Last Updated:** 2025-01-15
-
 ## Overview
 
 Modern ransomware operations follow a predictable pattern of chokepoints from initial
 access through impact. Understanding these chokepoints enables defense-in-depth detection
-strategies.
+strategies that catch any actor regardless of tooling.
 
 **Average Time to Ransom (TTR):** <24 hours (Mandiant M-Trends 2025)
-
-## Attack Chain Chokepoints
-
-```
-Initial Access → Credential Access → Lateral Movement → Defense Evasion → Impact
-     ↓                  ↓                    ↓                  ↓            ↓
- [User Action]     [Memory/Reg]        [Remote Services]   [Stop Services]  [Encrypt]
-```
-
-## Chokepoint Breakdown
-
-### 1. Initial Access
-**Chokepoints Used:**
-- [Renamed RMM Tools](../chokepoints/initial-access/renamed-rmm-tools.yml)
-- [ClickFix Techniques](../chokepoints/initial-access/clickfix-techniques.yml)
-- Phishing with malicious attachments
-- Exposed RDP/VPN services
-
-**Key Prerequisites:**
-- User interaction OR exposed service
-- Network access to target
-- Code execution capability
-
-**Detection Opportunity:**
-- Browser download + suspicious file names
-- RDP from unusual geo-location
-- Email gateway flagged attachments
-
----
-
-### 2. Credential Access
-**Chokepoints Used:**
-- LSASS memory dumping
-- SAM/SECURITY registry hive access
-- Kerberoasting
-- Password spraying
-
-**Key Prerequisites:**
-- Admin/SYSTEM for LSASS access
-- Domain user for Kerberoasting
-- Network access to DC for spraying
-
-**Detection Opportunity:**
-- LSASS process access (Sysmon Event ID 10)
-- Registry hive export
-- Unusual Kerberos TGS requests
-- Failed authentication spikes
-
----
-
-### 3. Lateral Movement
-**Chokepoints Used:**
-- [Remote Execution Tools](../chokepoints/lateral-movement/remote-execution-tools.yml)
-- RDP lateral movement
-- WMI/DCOM execution
-- PsExec-style service creation
-
-**Key Prerequisites:**
-- Valid admin credentials
-- Network access (445, 135, 3389)
-- Remote execution capability
-- Target services running
-
-**Detection Opportunity:**
-- Network logon Type 3 with service creation
-- IPC$ share access patterns
-- Multiple hosts accessed in short window
-- Unusual admin account usage
-
----
-
-### 4. Defense Evasion
-**Chokepoints Used:**
-- [Ransomware Service Manipulation](../chokepoints/defense-evasion/ransomware-service-manipulation.yml)
-- EDR/AV disabling
-- Backup service termination
-- Database service shutdown
-
-**Key Prerequisites:**
-- Admin/SYSTEM privileges
-- Ability to enumerate services
-- Service stop/delete permissions
-
-**Detection Opportunity:**
-- Multiple security services stopped
-- Backup service termination
-- Service deletion after stop
-- sc.exe / net.exe usage patterns
-
----
-
-### 5. Impact
-**Chokepoints Used:**
-- Volume Shadow Copy deletion
-- File encryption
-- Data exfiltration
-- Ransom note deployment
-
-**Key Prerequisites:**
-- File system access
-- Encryption library/capability
-- Network for C2/exfil (optional)
-
-**Detection Opportunity:**
-- vssadmin delete shadows
-- Mass file modifications
-- High entropy file creation
-- Ransom note .txt creation
 
 ---
 
@@ -212,84 +138,16 @@ T+7:30  - Ransom note deployed, TTR = 7.5 hours
 
 ---
 
-## Common Ransomware Families
-
-### BlackBasta
-- **Initial Access**: Phishing, QakBot
-- **Lateral Movement**: PsExec, Cobalt Strike
-- **Evasion**: Sophos, Defender termination
-- **Avg TTR**: 6-12 hours
-
-### Alphv/BlackCat
-- **Initial Access**: Compromised credentials, exposed services
-- **Lateral Movement**: PsExec, RDP
-- **Evasion**: Multi-vendor EDR killing
-- **Avg TTR**: 4-8 hours
-
-### Akira
-- **Initial Access**: VPN compromise, RDP
-- **Lateral Movement**: RDP lateral movement
-- **Evasion**: Defender disabling
-- **Avg TTR**: 8-16 hours
-
-### LockBit 3.0
-- **Initial Access**: RMM tools, RDP
-- **Lateral Movement**: PsExec, Group Policy
-- **Evasion**: Comprehensive service killing
-- **Avg TTR**: 3-6 hours
-
-### Play
-- **Initial Access**: N-day exploits (FortiOS CVE-2022-42475, Exchange ProxyNotShell)
-- **Lateral Movement**: PsExec, WMI
-- **Evasion**: AV/EDR service termination
-- **Avg TTR**: 12-24 hours
-
----
-
-## Detection Strategy
-
-### Layer 1: Initial Access (Prevent Entry)
-- Email gateway filtering
-- Browser isolation
-- User awareness training
-- RMM tool allowlisting
-
-### Layer 2: Credential Theft (Limit Blast Radius)
-- LSASS protection (PPL, Credential Guard)
-- Restricted admin mode
-- LAPS for local admin passwords
-- MFA enforcement
-
-### Layer 3: Lateral Movement (Contain Spread)
-- Network segmentation
-- SMB signing enforcement
-- Admin account monitoring
-- Privilege access management
-
-### Layer 4: Defense Evasion (Maintain Visibility)
-- Tamper protection on EDR
-- Protected backup infrastructure
-- Service stop monitoring
-- Immutable logging
-
-### Layer 5: Impact (Last Resort)
-- Offline/immutable backups
-- File integrity monitoring
-- Volume shadow copy protection
-- Network-based encryption detection
-
----
-
 ## Key Metrics
 
 **Detection Windows:**
-- Initial Access → Lateral Movement: 2-6 hours
-- Lateral Movement → Defense Evasion: 30 minutes - 2 hours
-- Defense Evasion → Impact: 15-45 minutes
+- Initial Access → Lateral Movement: 2–6 hours
+- Lateral Movement → Defense Evasion: 30 minutes – 2 hours
+- Defense Evasion → Impact: 15–45 minutes
 
 **Critical Detection Points:**
-1. Credential dumping (highest value)
-2. Lateral movement patterns (prevent spread)
+1. Credential dumping (highest value — stops spread before it starts)
+2. Lateral movement patterns (contains blast radius)
 3. Service manipulation (last warning before encryption)
 
 ---
