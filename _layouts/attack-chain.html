@@ -42,6 +42,14 @@ layout: default
 
   {% if page.stages %}
 
+  {% if page.show_ttp_overlap %}
+  <!-- TTP Overlap Flow Diagram -->
+  <section class="ac-section ac-ttp-overlap-section mb-10" aria-labelledby="ttp-overlap-title">
+    <h2 class="ac-section-title" id="ttp-overlap-title">TTP Overlap Across Groups</h2>
+    {% include ttp-overlap-diagram.html %}
+  </section>
+  {% endif %}
+
   <!-- Attack Flow Visualization (SVG Swimlane) -->
   <section class="ac-section ac-flowviz-section mb-8" aria-labelledby="af-section-title">
     <h2 class="ac-section-title" id="af-section-title">Attack Flow</h2>
@@ -192,6 +200,9 @@ layout: default
 
 {% if page.stages %}
 <script src="{{ '/assets/js/attack-flow.js' | relative_url }}" defer></script>
+{% if page.show_ttp_overlap %}
+<script src="{{ '/assets/js/ttp-overlap.js' | relative_url }}" defer></script>
+{% endif %}
 {% endif %}
 
 <style>
@@ -337,6 +348,102 @@ layout: default
   background: rgba(240, 136, 62, 0.18);
   border-color: rgba(240, 136, 62, 0.5);
   text-decoration: none;
+}
+
+/* ── TTP Overlap Diagram ──────────────────────────────────────────────── */
+.ttp-diagram-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+
+.ttp-phase-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  fill: var(--text-muted, #8b949e);
+  font-family: inherit;
+}
+
+.ttp-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.ttp-node:focus rect,
+.ttp-node:hover rect {
+  opacity: 0.88;
+}
+
+.ttp-node-name {
+  font-size: 10px;
+  fill: var(--text-primary, #e6edf3);
+  font-family: inherit;
+}
+
+.ttp-node-id {
+  font-size: 9px;
+  fill: var(--text-muted, #8b949e);
+  font-family: inherit;
+}
+
+/* Legend */
+.ttp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+  margin-bottom: 1rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--surface-raised, #21262d);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 6px;
+}
+
+.ttp-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  font-size: 0.77rem;
+  color: var(--text-secondary, #c9d1d9);
+}
+
+.ttp-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Tooltip */
+.ttp-tooltip {
+  position: fixed;
+  background: var(--surface-raised, #21262d);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.8rem;
+  color: var(--text-primary, #e6edf3);
+  line-height: 1.55;
+  max-width: 280px;
+  pointer-events: none;
+  z-index: 200;
+  display: none;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+}
+
+.ttp-tooltip--visible {
+  display: block;
+}
+
+.ttp-tt-id {
+  color: var(--text-muted, #8b949e);
+  font-size: 0.74rem;
+}
+
+.ttp-tt-groups {
+  font-size: 0.77rem;
+  color: var(--text-secondary, #c9d1d9);
 }
 
 /* ── Actor Status Badges ───────────────────────────────────────────────── */

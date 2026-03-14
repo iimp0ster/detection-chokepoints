@@ -4,6 +4,8 @@ title: Ransomware Attack Chain
 subtitle: "How ransomware operators all follow the same five-stage chokepoint sequence — regardless of group, brand, or tooling."
 last_updated: 2025-01-15
 permalink: /attack-chains/ransomware/
+show_ttp_overlap: true
+ttp_data_key: ransomware_ttp_overlap
 
 stages:
   - id: initial_access
