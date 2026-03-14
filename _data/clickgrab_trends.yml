@@ -2,7 +2,7 @@
 # Source: MHaggis ClickGrab main nightly_reports
 
 meta:
-  source: MHaggis ClickGrab main nightly_reports
+  source: https://mhaggis.github.io/ClickGrab/
   date_range: "2025-04-17 to 2026-03-02"
   total_reports: 493
   total_sites_crawled: 21507
