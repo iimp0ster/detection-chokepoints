@@ -1,0 +1,48 @@
+{% comment %}
+  _includes/ttp-overlap-diagram.html
+  ──────────────────────────────────────────────────────────────────────
+  Renders a Kaspersky-style TTP overlap flow diagram showing which
+  ransomware groups / infostealer families share each MITRE technique.
+
+  Requires page.ttp_data_key to be set (e.g. "ransomware_ttp_overlap").
+  Data is read from site.data[page.ttp_data_key].
+
+  The SVG is rendered client-side by assets/js/ttp-overlap.js using
+  window.TTP_OVERLAP_DATA injected below.
+{% endcomment %}
+
+{% assign ttp_data = site.data[page.ttp_data_key] %}
+{% if ttp_data %}
+
+<p class="ac-section-desc">
+  Each box represents a MITRE ATT&amp;CK technique. Colored dots indicate which
+  groups or families use that technique — techniques where all dots are filled are
+  universal chokepoints and the highest-value targets for detection engineering.
+  <span class="af-hint">Hover or focus a technique for detail.</span>
+</p>
+
+<div class="ttp-legend" role="list" aria-label="Group color legend">
+  {% for group in ttp_data.groups %}
+  <span class="ttp-legend-item" role="listitem">
+    <span class="ttp-legend-dot" style="background:{{ group.color }};" aria-hidden="true"></span>
+    {{ group.name }}
+  </span>
+  {% endfor %}
+</div>
+
+<div class="ttp-diagram-scroll" role="region" aria-label="{{ page.title }} TTP overlap diagram — scroll horizontally if needed">
+  <svg id="ttp-overlap-svg"
+       xmlns="http://www.w3.org/2000/svg"
+       aria-label="{{ page.title }} TTP overlap flow diagram"
+       focusable="false">
+    <title>{{ page.title }} — TTP overlap diagram</title>
+  </svg>
+</div>
+
+<div id="ttp-overlap-tooltip" class="ttp-tooltip" role="tooltip" aria-hidden="true"></div>
+
+<script>
+  window.TTP_OVERLAP_DATA = {{ ttp_data | jsonify }};
+</script>
+
+{% endif %}

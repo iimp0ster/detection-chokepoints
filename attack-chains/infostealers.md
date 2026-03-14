@@ -4,6 +4,8 @@ title: Infostealer Attack Chain
 subtitle: "How infostealer operators all follow the same five-stage chokepoint sequence — regardless of family, brand, or C2 infrastructure."
 last_updated: 2025-01-15
 permalink: /attack-chains/infostealers/
+show_ttp_overlap: true
+ttp_data_key: infostealer_ttp_overlap
 
 stages:
   - id: distribution

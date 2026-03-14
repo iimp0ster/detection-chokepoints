@@ -1,0 +1,90 @@
+# Infostealer TTP Overlap Data
+# Groups match the 5 families in the infostealer attack chain actor convergence matrix.
+# TTP coverage sourced from public threat intelligence reports.
+
+groups:
+  - id: redline
+    name: "RedLine"
+    color: "#f85149"
+  - id: lummac2
+    name: "LummaC2"
+    color: "#f0883e"
+  - id: vidar
+    name: "Vidar"
+    color: "#e3b341"
+  - id: stealc
+    name: "StealC"
+    color: "#3fb950"
+  - id: raccoon
+    name: "Raccoon"
+    color: "#58a6ff"
+
+phases:
+  - label: "Distribution"
+    techniques:
+      - id: "T1566.002"
+        name: "Spearphishing Link"
+        groups: [redline, lummac2, vidar, stealc, raccoon]
+      - id: "T1608.005"
+        name: "SEO Poisoning / Link Target"
+        groups: [redline, lummac2, vidar, stealc]
+      - id: "T1189"
+        name: "Drive-by Compromise"
+        groups: [redline, vidar, raccoon]
+
+  - label: "Execution"
+    techniques:
+      - id: "T1204.002"
+        name: "User Execution: Malicious File"
+        groups: [redline, lummac2, vidar, stealc, raccoon]
+      - id: "T1059.001"
+        name: "PowerShell"
+        groups: [redline, lummac2, vidar, stealc]
+      - id: "T1218"
+        name: "Signed Binary Proxy Execution"
+        groups: [lummac2, vidar, stealc]
+
+  - label: "Defense Evasion"
+    techniques:
+      - id: "T1027"
+        name: "Obfuscated Files or Information"
+        groups: [redline, lummac2, vidar, stealc, raccoon]
+      - id: "T1497.001"
+        name: "Virtualization/Sandbox Evasion"
+        groups: [redline, lummac2, vidar, raccoon]
+      - id: "T1562.001"
+        name: "Disable/Modify Security Tools"
+        groups: [redline, lummac2, vidar]
+
+  - label: "Collection"
+    techniques:
+      - id: "T1555.003"
+        name: "Credentials from Web Browsers"
+        groups: [redline, lummac2, vidar, stealc, raccoon]
+      - id: "T1539"
+        name: "Steal Web Session Cookie"
+        groups: [redline, lummac2, vidar, stealc, raccoon]
+      - id: "T1115"
+        name: "Clipboard Data"
+        groups: [redline, lummac2, vidar, raccoon]
+      - id: "T1005"
+        name: "Data from Local System"
+        groups: [redline, lummac2, vidar, stealc, raccoon]
+
+  - label: "Exfiltration"
+    techniques:
+      - id: "T1041"
+        name: "Exfiltration Over C2 Channel"
+        groups: [redline, lummac2, vidar, stealc, raccoon]
+      - id: "T1048"
+        name: "Exfil Over Alternative Protocol"
+        groups: [lummac2, vidar, stealc]
+      - id: "T1132"
+        name: "Data Encoding"
+        groups: [redline, lummac2, vidar]
+
+  - label: "Monetization"
+    techniques:
+      - id: "T1078"
+        name: "Valid Accounts (Credential Resale)"
+        groups: [redline, lummac2, vidar, stealc, raccoon]
