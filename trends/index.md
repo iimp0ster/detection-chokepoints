@@ -249,51 +249,24 @@ permalink: /trends/
       </div>
     </a>
 
-    <a class="tr-card" href="{{ '/trends/chokepoint-shifts/' | relative_url }}">
+    <a class="tr-card" href="{{ '/trends/masq-infra/' | relative_url }}">
       <div class="tr-card-header">
-        <div class="tr-card-title">Chokepoint Shifts</div>
+        <div class="tr-card-title">Software Impersonation Infrastructure</div>
         <span class="tr-card-badge analysis">Analysis</span>
       </div>
       <p class="tr-card-desc">
-        When defensive improvements force adversaries to abandon one chokepoint for another — covering
-        macro deprecation, LSASS protection responses, RDP brute-force decline, and predicted shifts
-        through 2026. Distinguishes true chokepoint shifts from simple tool rotation.
+        How adversaries build convincing fake software sites — typosquatting, combosquatting, stolen
+        favicons, and valid TLS — and why every user-facing trust signal is forgeable. Covers favicon
+        hash pivoting as an infrastructure clustering technique and the Tier 1 chokepoints that survive
+        even perfect visual impersonation.
       </p>
       <div class="tr-card-stats">
-        <span class="tr-stat-chip"><strong>3</strong> active shifts</span>
-        <span class="tr-stat-chip"><strong>3</strong> historical shifts</span>
-        <span class="tr-stat-chip"><strong>2</strong> predicted shifts</span>
+        <span class="tr-stat-chip"><strong>T1036.005</strong> primary chokepoint</span>
+        <span class="tr-stat-chip"><strong>Favicon pivoting</strong></span>
+        <span class="tr-stat-chip"><strong>Cert transparency</strong></span>
       </div>
       <div class="tr-card-footer">
-        <span>Updated 2025-01-15</span>
-        <span class="tr-card-cta">
-          View analysis
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
-               fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-               stroke-linejoin="round" aria-hidden="true">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </span>
-      </div>
-    </a>
-
-    <a class="tr-card" href="{{ '/trends/2025-q1/' | relative_url }}">
-      <div class="tr-card-header">
-        <div class="tr-card-title">2025 Threat Trends — Q1</div>
-        <span class="tr-card-badge reference">Reference</span>
-      </div>
-      <p class="tr-card-desc">
-        Q1 2025 snapshot covering hot chokepoints (renamed RMM tools, ClickFix variants, infostealer
-        credential harvesting), declining techniques, and predictions through Q4 2025.
-        Sourced from Mandiant M-Trends, HudsonRock, RedCanary, and Cyberint.
-      </p>
-      <div class="tr-card-stats">
-        <span class="tr-stat-chip"><strong>4</strong> hot chokepoints</span>
-        <span class="tr-stat-chip"><strong>2</strong> declining</span>
-        <span class="tr-stat-chip"><strong>Jan–Mar 2025</strong></span>
-      </div>
-      <div class="tr-card-footer">
-        <span>Updated 2025-01-15</span>
+        <span>Updated 2025-03-15</span>
         <span class="tr-card-cta">
           View analysis
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
