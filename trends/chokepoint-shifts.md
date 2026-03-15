@@ -1,3 +1,10 @@
+---
+layout: default
+title: Chokepoint Shifts — Trend Analysis
+description: "When defensive improvements force adversaries to abandon one chokepoint for another — covering macro deprecation, LSASS protection, and RDP brute-force decline."
+permalink: /trends/chokepoint-shifts/
+---
+
 # Chokepoint Shifts
 
 **Purpose:** Track when threat actors abandon one chokepoint for another due to defensive improvements.
