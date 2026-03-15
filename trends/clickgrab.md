@@ -8,72 +8,72 @@ permalink: /trends/clickgrab/
 <style>
 /* ── Page layout ────────────────────────────────────────────────────────── */
 .cg-page { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
-.cg-page h1 { font-size: 1.6rem; font-weight: 700; color: var(--color-fg-default, #c9d1d9); margin-bottom: .25rem; }
-.cg-page h2 { font-size: 1.15rem; font-weight: 600; color: var(--color-fg-default, #c9d1d9); margin: 2.5rem 0 .75rem; border-bottom: 1px solid #30363d; padding-bottom: .4rem; }
-.cg-page h3 { font-size: 1rem; font-weight: 600; color: #c9d1d9; margin: 1.5rem 0 .5rem; }
-.cg-page p, .cg-page li { color: #8b949e; font-size: .9rem; line-height: 1.7; }
-.cg-page a { color: #58a6ff; }
-.cg-meta { color: #8b949e; font-size: .8rem; margin-bottom: 1.75rem; }
+.cg-page h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: .25rem; }
+.cg-page h2 { font-size: 1.15rem; font-weight: 600; color: var(--text); margin: 2.5rem 0 .75rem; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+.cg-page h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.5rem 0 .5rem; }
+.cg-page p, .cg-page li { color: var(--text-muted); font-size: .9rem; line-height: 1.7; }
+.cg-page a { color: var(--link); }
+.cg-meta { color: var(--text-muted); font-size: .8rem; margin-bottom: 1.75rem; }
 
 /* ── Stats row ──────────────────────────────────────────────────────────── */
 .cg-stats { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.25rem 0 2rem; }
-.cg-stat  { flex: 1 1 140px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: .85rem 1rem; }
-.cg-stat-val { font-size: 1.5rem; font-weight: 700; color: #c9d1d9; font-family: ui-monospace, monospace; line-height: 1.2; }
-.cg-stat-lbl { font-size: .72rem; color: #8b949e; margin-top: .2rem; text-transform: uppercase; letter-spacing: .04em; }
+.cg-stat  { flex: 1 1 140px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: .85rem 1rem; }
+.cg-stat-val { font-size: 1.5rem; font-weight: 700; color: var(--text); font-family: ui-monospace, monospace; line-height: 1.2; }
+.cg-stat-lbl { font-size: .72rem; color: var(--text-muted); margin-top: .2rem; text-transform: uppercase; letter-spacing: .04em; }
 
 /* ── Framework chain map ────────────────────────────────────────────────── */
 .cg-chain { display: flex; align-items: flex-start; gap: 0; flex-wrap: wrap; margin: 1.5rem 0 2rem; }
 .cg-chain-stage {
   flex: 1 1 90px; min-width: 80px;
-  border: 1px solid #30363d; border-radius: 6px;
-  padding: .6rem .5rem; text-align: center; background: #161b22;
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: .6rem .5rem; text-align: center; background: var(--bg-card);
   position: relative;
 }
 .cg-chain-stage + .cg-chain-stage { margin-left: -1px; border-radius: 0; }
 .cg-chain-stage:first-child { border-radius: 6px 0 0 6px; }
 .cg-chain-stage:last-child  { border-radius: 0 6px 6px 0; }
-.cg-chain-stage--blind  { border-top: 3px solid #30363d; }
-.cg-chain-stage--t1     { border-top: 3px solid #e3b341; }
-.cg-chain-stage--t2     { border-top: 3px solid #f0883e; }
-.cg-chain-stage--t3     { border-top: 3px solid #da3633; }
-.cg-chain-label { font-size: .72rem; font-weight: 600; color: #c9d1d9; line-height: 1.3; display: block; }
-.cg-chain-sub   { font-size: .62rem; color: #8b949e; margin-top: .25rem; display: block; }
+.cg-chain-stage--blind  { border-top: 3px solid var(--border); }
+.cg-chain-stage--t1     { border-top: 3px solid var(--high); }
+.cg-chain-stage--t2     { border-top: 3px solid var(--accent); }
+.cg-chain-stage--t3     { border-top: 3px solid var(--critical); }
+.cg-chain-label { font-size: .72rem; font-weight: 600; color: var(--text); line-height: 1.3; display: block; }
+.cg-chain-sub   { font-size: .62rem; color: var(--text-muted); margin-top: .25rem; display: block; }
 .cg-tier-badge  { display: inline-block; font-size: .6rem; font-weight: 700; padding: .1rem .35rem; border-radius: 3px; margin-top: .35rem; letter-spacing: .03em; }
-.cg-tier-blind  { background: #21262d; color: #8b949e; }
-.cg-tier-t1     { background: rgba(227,179,65,.15);  color: #e3b341; }
-.cg-tier-t2     { background: rgba(240,136,62,.15);  color: #f0883e; }
-.cg-tier-t3     { background: rgba(218, 54, 51,.15); color: #da3633; }
+.cg-tier-blind  { background: var(--bg-input); color: var(--text-muted); }
+.cg-tier-t1     { background: rgba(227,179,65,.15);  color: var(--high); }
+.cg-tier-t2     { background: rgba(240,136,62,.15);  color: var(--accent); }
+.cg-tier-t3     { background: rgba(218,54,51,.15);   color: var(--critical); }
 .cg-chain-arrow {
   align-self: center; flex: 0 0 auto;
-  color: #30363d; font-size: 1.2rem; padding: 0 .1rem; margin-top: -2px;
+  color: var(--border); font-size: 1.2rem; padding: 0 .1rem; margin-top: -2px;
 }
 
 /* ── Chart containers ───────────────────────────────────────────────────── */
-.cg-chart-wrap { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1rem 1rem .5rem; margin: 1rem 0 1.75rem; overflow-x: auto; }
-.cg-chart-title { font-size: .75rem; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .5rem; }
+.cg-chart-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1rem .5rem; margin: 1rem 0 1.75rem; overflow-x: auto; }
+.cg-chart-title { font-size: .75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .5rem; }
 
 /* ── Callout boxes ──────────────────────────────────────────────────────── */
 .cg-callout { border-radius: 6px; padding: .85rem 1rem; margin: .75rem 0; font-size: .875rem; border-left: 3px solid; }
-.cg-callout--warn  { background: rgba(227,179,65,.08);  border-color: #e3b341; color: #c9d1d9; }
-.cg-callout--alert { background: rgba(218,54,51,.08);   border-color: #da3633; color: #c9d1d9; }
-.cg-callout--info  { background: rgba(56,139,253,.08);  border-color: #388bfd; color: #c9d1d9; }
-.cg-callout--tip   { background: rgba(63,185,80,.08);   border-color: #3fb950; color: #c9d1d9; }
-.cg-callout strong { color: #c9d1d9; }
+.cg-callout--warn  { background: rgba(227,179,65,.08);  border-color: var(--high);     color: var(--text); }
+.cg-callout--alert { background: rgba(218,54,51,.08);   border-color: var(--critical); color: var(--text); }
+.cg-callout--info  { background: rgba(56,139,253,.08);  border-color: var(--low);      color: var(--text); }
+.cg-callout--tip   { background: rgba(63,185,80,.08);   border-color: var(--medium);   color: var(--text); }
+.cg-callout strong { color: var(--text); }
 
 /* ── Staging domain table ───────────────────────────────────────────────── */
 .cg-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin: .75rem 0 1.5rem; }
-.cg-table th { text-align: left; color: #8b949e; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #30363d; padding: .4rem .6rem; font-weight: 600; }
-.cg-table td { padding: .45rem .6rem; border-bottom: 1px solid #21262d; color: #c9d1d9; font-family: ui-monospace, monospace; font-size: .82rem; }
+.cg-table th { text-align: left; color: var(--text-muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); padding: .4rem .6rem; font-weight: 600; }
+.cg-table td { padding: .45rem .6rem; border-bottom: 1px solid var(--border); color: var(--text); font-family: ui-monospace, monospace; font-size: .82rem; }
 .cg-table tr:last-child td { border-bottom: none; }
-.cg-badge-cdn  { display: inline-block; background: rgba(227,179,65,.15); color: #e3b341; font-size: .65rem; font-weight: 700; padding: .1rem .3rem; border-radius: 3px; letter-spacing: .03em; }
-.cg-badge-ip   { display: inline-block; background: rgba(240,136,62,.15); color: #f0883e; font-size: .65rem; font-weight: 700; padding: .1rem .3rem; border-radius: 3px; letter-spacing: .03em; }
+.cg-badge-cdn  { display: inline-block; background: rgba(227,179,65,.15); color: var(--high);   font-size: .65rem; font-weight: 700; padding: .1rem .3rem; border-radius: 3px; letter-spacing: .03em; }
+.cg-badge-ip   { display: inline-block; background: rgba(240,136,62,.15); color: var(--accent); font-size: .65rem; font-weight: 700; padding: .1rem .3rem; border-radius: 3px; letter-spacing: .03em; }
 
 /* ── Recommendation list ────────────────────────────────────────────────── */
-.cg-rec { display: flex; gap: .75rem; align-items: flex-start; padding: .6rem 0; border-bottom: 1px solid #21262d; }
+.cg-rec { display: flex; gap: .75rem; align-items: flex-start; padding: .6rem 0; border-bottom: 1px solid var(--border); }
 .cg-rec:last-child { border-bottom: none; }
 .cg-rec-tier { flex: 0 0 62px; }
-.cg-rec-body { flex: 1; font-size: .875rem; color: #8b949e; }
-.cg-rec-body strong { color: #c9d1d9; display: block; margin-bottom: .2rem; }
+.cg-rec-body { flex: 1; font-size: .875rem; color: var(--text-muted); }
+.cg-rec-body strong { color: var(--text); display: block; margin-bottom: .2rem; }
 </style>
 
 <div class="cg-page">
@@ -226,7 +226,7 @@ permalink: /trends/clickgrab/
       <td>
         {% if d.cdn %}<span class="cg-badge-cdn">CDN</span>{% else %}—{% endif %}
       </td>
-      <td style="color:#8b949e;font-family:inherit;">
+      <td style="color:var(--text-muted);font-family:inherit;">
         {% if d.cdn %}Domain reputation blocklists ineffective (legitimate CDN provider)
         {% elsif d.domain contains "wpengine.com" %}Managed WP hosting — likely compromised; blocklist removes legitimate sites
         {% elsif d.domain contains "blogspot.com" or d.domain contains "blogger.com" %}Google-hosted; domain blocking would block all of Blogger
@@ -278,7 +278,7 @@ permalink: /trends/clickgrab/
 </div>
 
 <div class="cg-rec">
-  <div class="cg-rec-tier"><span class="cg-tier-badge cg-tier-blind" style="display:block;text-align:center;padding:.25rem .5rem;background:#21262d;color:#8b949e;">INFRA</span></div>
+  <div class="cg-rec-tier"><span class="cg-tier-badge cg-tier-blind" style="display:block;text-align:center;padding:.25rem .5rem;">INFRA</span></div>
   <div class="cg-rec-body">
     <strong>CDN staging: pivot from domain blocking to path-pattern detection</strong>
     <code>irp.cdn-website.com</code> is a legitimate CDN. Block it and you break legitimate sites. Instead, alert on PowerShell fetching from <code>*.cdn-website.com</code> paths matching <code>/files/uploaded/*.ps1</code>. Or use JA4/TLS fingerprinting on the outbound connection rather than the destination hostname.

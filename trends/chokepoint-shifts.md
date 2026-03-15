@@ -5,6 +5,22 @@ description: "When defensive improvements force adversaries to abandon one choke
 permalink: /trends/chokepoint-shifts/
 ---
 
+<style>
+.cg-page { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.cg-page h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: .25rem; }
+.cg-page h2 { font-size: 1.15rem; font-weight: 600; color: var(--text); margin: 2.5rem 0 .75rem; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+.cg-page h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.5rem 0 .5rem; }
+.cg-page p, .cg-page li { color: var(--text-muted); font-size: .9rem; line-height: 1.7; }
+.cg-page a { color: var(--link); }
+.cg-page strong { color: var(--text); }
+.cg-page code { font-family: ui-monospace, monospace; font-size: .85rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 3px; padding: .1rem .3rem; color: var(--text); }
+.cg-page pre { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; overflow-x: auto; margin: .75rem 0 1.25rem; }
+.cg-page pre code { background: none; border: none; padding: 0; font-size: .82rem; }
+.cg-page hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+</style>
+
+<div class="cg-page" markdown="1">
+
 # Chokepoint Shifts
 
 **Purpose:** Track when threat actors abandon one chokepoint for another due to defensive improvements.
@@ -291,3 +307,5 @@ Prerequisites:
 ---
 
 **Next Review:** 2025-07-15 (Mid-year assessment)
+
+</div>
