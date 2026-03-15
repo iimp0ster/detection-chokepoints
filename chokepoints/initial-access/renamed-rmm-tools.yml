@@ -6,7 +6,7 @@ MitreIds:
 Tactics:
   - Command and Control
 Techniques:
-  - "Remote Access Software"
+  - "Remote Desktop Software"
 DetectionPriority: HIGH
 ThreatPrevalence: HIGH
 DetectionDifficulty: MEDIUM
@@ -41,27 +41,149 @@ Variations:
     Status: Active
     Notes: "Common masquerade names: security_scan.exe, verify.exe"
   - Name: RustDesk
-    FirstSeen: "2024"
-    Status: Emerging
-    Notes: Open-source; self-hosted infrastructure makes domain blocking ineffective
+    FirstSeen: "2023"
+    Status: Active
+    Notes: "Open-source; self-hosted infrastructure makes domain blocking ineffective; first documented in Akira ransomware and Scattered Spider operations mid-2023; broader adoption through 2024"
   - Name: SimpleHelp
     FirstSeen: "2025-Q1"
     Status: Active
     Notes: "CVE-2024-57727 (path traversal), CVE-2024-57726 (privilege escalation), CVE-2024-57728 (arbitrary file upload) disclosed January 2025; exploited in the wild since January 22, 2025 as ransomware initial access vector; DragonForce deployed via it; CISA advisory AA25-163A issued June 2025; CISA KEV listed February 2025"
   - Name: NetSupport Manager
-    FirstSeen: "2023"
+    FirstSeen: "2019"
     Status: Active
-    Notes: "Heavily abused by TA571 throughout 2024–2025; frequently delivered as the payload of ClickFix clipboard campaigns; one of the most common RMM payloads in commodity phishing operations"
+    Notes: "Long-abused RMM (the 'NetSupport RAT' name derives from this tool); TA571 and the ClearFake cluster began ClickFix clipboard delivery specifically in March 2024; remains one of the most common RMM payloads in commodity phishing operations through 2025"
   - Name: Atera
-    FirstSeen: "2023"
+    FirstSeen: "2022"
     Status: Active
-    Notes: "Used by MuddyWater (Iran/TA450) in nation-state campaigns; also deployed post-compromise as secondary RMM after ScreenConnect CVE-2024-1709 exploitation in European targets"
+    Notes: "Used by MuddyWater (Iran/TA450) in nation-state campaigns since mid-2022; intense campaign wave October 2023–April 2024 targeting Israeli manufacturing, tech, and infosec sectors; also deployed post-compromise as secondary RMM after ScreenConnect CVE-2024-1709 exploitation in European targets"
   - Name: RMM-to-RMM Deployment
     FirstSeen: "2024"
     Status: Active
     Notes: >
       One RMM (e.g., ScreenConnect) deploys a second RMM (e.g., AnyDesk) for
       redundancy — if one is removed, the other maintains access
+
+MasqueradeThemes:
+  - Theme: Tax / IRS / W-2
+    EvidenceQuality: Strong
+    Timeframe: "Seasonal (Jan–Apr); documented campaigns 2024–2025"
+    ThreatActors: ["Financially motivated actors", "Unknown actors impersonating IRS Taxpayer Correspondence Unit"]
+    RMMsDelivered: ["SimpleHelp", "ScreenConnect", "PDQ Connect"]
+    DocumentedFilenames: ["Access-EfinViews64-offline (SimpleHelp installer)", "tax-document-2024.exe (inferred pattern)"]
+    LureDetails: >
+      IRS impersonation emails ("Refund Eligibility Notification", "EFIN Verification Required") direct
+      victims to attacker-controlled sites. Domains follow patterns like doc-irs[.]us. Microsoft documented
+      a February 2025 wave delivering SimpleHelp via IRS EFIN lure. Highly seasonal — spikes January–April
+      around US tax filing deadlines. Extend detection with W-2, refund, enrollment pretexts during
+      relevant periods.
+    Sources: ["Microsoft Security Blog (April 2025)", "Red Canary — four phishing lures", "NJCCIC advisories"]
+
+  - Theme: SSN / SSA / Social Security Verification
+    EvidenceQuality: Strong
+    Timeframe: "Active 2024–2025; escalating as SSA disruption anxiety increases"
+    ThreatActors: ["Financially motivated actors", "Unknown actors tracked by Cloudflare Force One"]
+    RMMsDelivered: ["ScreenConnect (trojanized installer)", "SimpleHelp", "Datto/CentraStage", "GoTo Technologies"]
+    DocumentedFilenames: ["Trojanized ScreenConnect installer (Cloudflare research)"]
+    LureDetails: >
+      Emails with subjects like "Your SSN is going to be suspended (Case ID - SSA-526487442)" direct victims
+      to fake SSA portals. Cloudflare Force One documented a specific campaign delivering a trojanized
+      ScreenConnect installer via this pretext. Threat is escalating as public awareness of SSA disruptions
+      increases in 2025 — lure credibility is currently high. ScreenConnect delivery via this theme was
+      confirmed by Cloudflare; other RMM tools inferred from campaign infrastructure overlap.
+    Sources: ["Cloudflare Force One — New SSA-themed phishing campaign installs trojanized ScreenConnect", "SC Media", "NJCCIC"]
+
+  - Theme: Invoice / Financial Documents
+    EvidenceQuality: Very Strong
+    Timeframe: "Dominant pattern 2022–present; backbone of TOAD campaigns"
+    ThreatActors: ["Generic cybercrime TOAD operators (10M+ attacks/month per Proofpoint 2023)", "Multiple commodity actors"]
+    RMMsDelivered: ["AnyDesk", "TeamViewer", "Zoho Assist", "UltraViewer", "NetSupport Manager", "ScreenConnect"]
+    DocumentedFilenames: ["PDF invoice lures (victim calls attacker phone number then downloads named installer)"]
+    LureDetails: >
+      The dominant TOAD (Telephone-Oriented Attack Delivery) pretext. Victim receives a fake invoice or
+      subscription renewal PDF containing a phone number. When they call, the actor directs them to download
+      a named RMM installer. The EXE name is typically generic (support.exe, remote.exe) rather than
+      invoice-themed. WithSecure (November 2024) documented PDF-delivered RMM specifically targeting
+      France and Luxembourg via invoice/contract lures. Proofpoint estimates 67% of global businesses
+      were hit by a TOAD attack in 2023.
+    Sources: ["Proofpoint — RMM Tooling Increasingly an Attacker's First Choice", "Intel 471 TOAD analysis", "WithSecure — Email-Delivered RMM (November 2024)", "Mimecast threat intelligence hub"]
+
+  - Theme: IT Helpdesk / Technical Support
+    EvidenceQuality: Very Strong
+    Timeframe: "Active 2024–present; primary high-value target vector"
+    ThreatActors: ["Black Basta / Storm-1811", "Scattered Spider", "Generic TOAD actors"]
+    RMMsDelivered: ["Microsoft Quick Assist (native)", "AnyDesk", "ScreenConnect"]
+    DocumentedFilenames: ["Quick Assist (legitimate name)", "AnyDesk installer (legitimate name — not renamed in this vector)"]
+    LureDetails: >
+      Actor impersonates internal IT helpdesk via Microsoft Teams messages or email flood + phone call.
+      Black Basta (Storm-1811) documented by Rapid7 (May 2024) and ReliaQuest: actor sends thousands
+      of spam emails to overwhelm victim inbox, then calls or Teams-messages offering "help," directing
+      the victim to install Quick Assist or AnyDesk. A Teams + QR code variant escalated in December 2024
+      (Arctic Wolf). Note: this vector typically uses legitimately-named installers rather than renamed
+      binaries — the social engineering replaces the masquerade. Detection must cover both renamed-binary
+      and IT-directed-installation patterns.
+    Sources: ["Rapid7 (May 2024)", "ReliaQuest — New Black Basta Social Engineering Scheme", "Microsoft — Quick Assist misuse (May 2024)", "Arctic Wolf (December 2024)"]
+
+  - Theme: Calendar Invite / Meeting Link (Teams, Zoom, Google Meet)
+    EvidenceQuality: Strong
+    Timeframe: "Active 2023–present; significant escalation documented March 2026"
+    ThreatActors: ["Unknown financially motivated actor (Microsoft Defender Experts, Feb 2026)", "Netskope-tracked campaign", "DarkGate operators"]
+    RMMsDelivered: ["ScreenConnect", "Tactical RMM", "MeshAgent", "Datto RMM", "LogMeIn Unattended", "Atera"]
+    DocumentedFilenames: ["MicrosoftTeams.msi (confirmed)", "Files named after Teams/Zoom/Adobe/Google Meet", "Party Card Viewer MSI", "E-Invite MSI"]
+    LureDetails: >
+      Fake meeting invites or calendar links direct victims to attacker-controlled download pages serving
+      RMM installers with legitimate-looking names. Microsoft Defender Experts (March 2026) documented
+      signed malware (EV certificate: "TrustConnect Software PTY LTD") impersonating Teams, Zoom, Adobe,
+      and Google Meet — delivering ScreenConnect, Tactical RMM, and MeshAgent. Red Canary documented
+      "Party Card Viewer" and "E-Invite" MSI files delivering Atera. Check Point (December 2024) documented
+      Google Calendar-delivered phishing targeting 300+ organizations (4,000+ emails). The EV code signing
+      certificate is a critical evasion element — signed MSI files pass many endpoint controls.
+    Sources: ["Microsoft Security Blog — Signed malware impersonating workplace apps (March 2026)", "Red Canary — four phishing lures", "Netskope — Attackers Weaponize Signed RMM Tools", "Check Point (December 2024)"]
+
+  - Theme: Software / App Update Masquerade (Chrome, Windows, Adobe)
+    EvidenceQuality: Strong
+    Timeframe: "Active 2023–present; SocGholish/FakeUpdates cluster ongoing"
+    ThreatActors: ["SocGholish / FakeUpdates cluster", "Microsoft Defender Experts-tracked actors (2026)"]
+    RMMsDelivered: ["NetSupport Manager (FakeUpdates primary payload)", "ITarian", "PDQ", "SimpleHelp", "Atera", "ScreenConnect", "Tactical RMM", "MeshAgent"]
+    DocumentedFilenames: ["chrome_update.exe (inferred pattern)", "Signed MSIs named after Teams/Zoom/Acrobat/Google Meet (Microsoft March 2026 research)"]
+    LureDetails: >
+      Compromised legitimate websites (sports, healthcare) inject fake browser update banners redirecting
+      to attacker-controlled download pages. FakeUpdates/SocGholish has delivered NetSupport Manager via
+      this vector since at least 2023. The March 2026 Microsoft research documents an evolution: EV-signed
+      MSIs impersonating workplace apps (Teams, Zoom, Adobe Acrobat, Google Meet) served from domains like
+      chromus[.]icu and mypanelsuper[.]online. The EV code signing certificate ("TrustConnect Software PTY LTD")
+      allows the payload to bypass many endpoint controls. Red Canary identifies fake software updates as one
+      of the four primary RMM delivery lure categories.
+    Sources: ["Microsoft Security Blog — Signed malware impersonating workplace apps (March 2026)", "Red Canary — four phishing lures", "Hackread", "Blackpoint Cyber APG research"]
+
+  - Theme: HR / Onboarding / Payroll
+    EvidenceQuality: Moderate
+    Timeframe: "Documented; less common than IT support or invoice lures for RMM delivery"
+    ThreatActors: ["Unknown actors (Mimecast research)"]
+    RMMsDelivered: ["Unspecified RMMs (Mimecast documents shift from credential harvesting to RMM delivery)"]
+    DocumentedFilenames: ["DocuSign/e-signature spoofs (more commonly credential harvesters, not RMM)"]
+    LureDetails: >
+      HR impersonation emails (salary review, benefits enrollment, onboarding portal) deliver RMM tools.
+      Mimecast specifically documented a campaign shift from credential harvesting to RMM tool deployment
+      via HR-themed lures. This pretext is less common than IT support or invoice lures for RMM delivery —
+      HR themes more frequently deliver credential harvesters or document-based malware. When RMM delivery
+      does occur, it typically involves DocuSign spoofs or "sign your employment documents" pretexts directing
+      victims to a download.
+    Sources: ["Mimecast — HR-Themed Cyberattack Campaign Shifts from Credential Harvesting to RMM Tool Deployment", "Proofpoint salary/bonus lure research"]
+
+  - Theme: Security Alert / Verification
+    EvidenceQuality: Moderate
+    Timeframe: "Active; strongest evidence in SSA 'suspicious activity' variant"
+    ThreatActors: ["Cloudflare-tracked actors (SSA variant)", "Tech support scam operators"]
+    RMMsDelivered: ["ScreenConnect (SSA 'suspicious activity' variant)", "AnyDesk", "UltraViewer"]
+    DocumentedFilenames: ["security_scan.exe (inferred from UltraViewer campaign context)", "verify.exe (inferred)"]
+    LureDetails: >
+      "Suspicious activity detected on your account" emails direct victims to verify identity by downloading
+      a "security tool." The SSA variant (Cloudflare research) is the best-documented instance of this
+      pretext delivering an RMM. Generic "antivirus update" or "security scan" framing is more common in
+      tech-support-scam contexts (where the victim calls a number) than in phishing-email RMM delivery.
+      UltraViewer's low name recognition makes it particularly credible as a disguised "security tool."
+      The fake Chrome update sites (SocGholish) also sometimes use security-themed UI.
+    Sources: ["Cloudflare Force One — SSA-themed ScreenConnect campaign", "Red Canary — fake update pages with security framing"]
 
 Prerequisites:
   - Site to host payload (attacker-controlled or compromised legitimate site)
@@ -75,12 +197,12 @@ EvolutionTimeline:
     Change: Legitimate RMM binaries adopted as an initial access alternative to malware
     DetectionImpact: New pattern — signed binaries evading hash-based detection
     TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
-  - Date: "2022-Q1"
+  - Date: "2022-Q3"
     Event: ScreenConnect becomes primary campaign tool
-    Change: Shift to ConnectWise ScreenConnect for a more "professional" appearance
+    Change: Shift to ConnectWise ScreenConnect for a more "professional" appearance; CISA AA23-025A documents first large-scale malicious ScreenConnect campaigns beginning mid-June 2022
     DetectionImpact: No change to core detection pattern
     TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
-  - Date: "2023-Q2"
+  - Date: "2023"
     Event: UltraViewer campaigns emerge
     Change: Shift to less-known tools to evade AnyDesk-specific detections
     DetectionImpact: Tool-agnostic detection becomes critical; vendor name can no longer be relied on
@@ -90,9 +212,9 @@ EvolutionTimeline:
     Change: AnyDesk production servers breached (code signing cert stolen and revoked); simultaneously CVE-2024-1709 auth bypass enables direct server exploitation of 18,000+ exposed ScreenConnect instances by ransomware groups
     DetectionImpact: Browser-download detection insufficient for direct server exploitation; must also monitor RMM server processes for unexpected outbound sessions and lateral movement
     TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
-  - Date: "2024-Q3"
+  - Date: "2023"
     Event: RustDesk adoption as self-hosted alternative
-    Change: Open-source RMM with self-hosted C2; blocklisting known RMM domains no longer works
+    Change: Open-source RMM with self-hosted C2; blocklisting known RMM domains no longer works; first documented in Akira ransomware operations (mid-2023) and Scattered Spider campaigns; broad adoption accelerated through 2024
     DetectionImpact: Domain/IP-based blocking bypassed; behavior detection essential
     TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
   - Date: "2025-Q1"
@@ -100,9 +222,9 @@ EvolutionTimeline:
     Change: Three critical SimpleHelp vulnerabilities (CVE-2024-57727/57726/57728) exploited by ransomware actors beginning January 2025; marks shift from exploiting client-delivered RMM to exploiting the RMM server infrastructure itself
     DetectionImpact: RMM server vulnerability exploitation requires monitoring of RMM server logs and network egress, not just endpoint process/file telemetry
     TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
-  - Date: "2024-Q4"
+  - Date: "2024-H2"
     Event: RMM-to-RMM deployment pattern emerges
-    Change: First RMM is used to deploy a second RMM as a backup persistence mechanism
+    Change: First RMM is used to deploy a second RMM as a backup persistence mechanism; Hunters International documented using AnyDesk + ScreenConnect simultaneously (Q3 2024, UK manufacturer); Medusa used ScreenConnect then PDQ Deploy (Q4 2024, US construction)
     DetectionImpact: Process creation chain detection required; single-RMM detection insufficient
     TheConstant: "Browser download → renamed binary → user execution → outbound RMM connection"
 
@@ -170,7 +292,7 @@ Intel:
   - Name: Huntress — A Series of Unfortunate (RMM) Events
     URL: https://www.huntress.com/blog/series-of-unfortunate-rmm-events
     Description: Covers RMM-to-RMM chaining, detection evasion patterns, and the broader RMM abuse landscape from an MSP incident response perspective
-  - Name: "Microsoft — Keys to the Kingdom: RMM Exploits in Human-Operated Intrusions 2024–25"
+  - Name: "Microsoft — Keys to the kingdom: RMM exploits enabling human-operated intrusions in 2024–25"
     URL: https://techcommunity.microsoft.com/blog/microsoftsecurityexperts/keys-to-the-kingdom-rmm-exploits-enabling-human-operated-intrusions-in-2024%E2%80%9325/4410903
     Description: Microsoft Security Experts analysis of RMM exploitation patterns across incident response engagements; covers both social engineering delivery and direct CVE exploitation vectors
   - Name: BleepingComputer — AnyDesk Production Servers Breached
