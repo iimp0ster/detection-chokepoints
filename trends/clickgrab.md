@@ -2,6 +2,7 @@
 layout: default
 title: ClickFix Delivery Chain — Trend Analysis
 description: "10 months of MHaggis ClickGrab data analyzed through the Detection Chokepoint Framework. Tracks cradle family evolution, evasion technique shifts, and staging infrastructure from April 2025 to March 2026."
+permalink: /trends/clickgrab/
 ---
 
 <style>
