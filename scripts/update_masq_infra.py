@@ -789,6 +789,125 @@ def _build_delivery_chains(records: list[dict]) -> list[dict]:
     return chains
 
 
+# ── Chokepoint generator ────────────────────────────────────────────────────────
+
+# Canonical names for URLHaus tag variants so the chokepoint block uses
+# consistent family names even when payload_families is empty.
+_FAMILY_CANON = {
+    "lumma":           "Lumma",
+    "lummastealer":    "Lumma",
+    "lummac":          "Lumma",
+    "redline":         "RedLine",
+    "redlinestealer":  "RedLine",
+    "stealc":          "StealC",
+    "asyncrat":        "AsyncRAT",
+    "asyncrat":        "AsyncRAT",
+    "remcos":          "Remcos",
+    "remcosrat":       "Remcos",
+    "agenttesla":      "AgentTesla",
+    "vidar":           "Vidar",
+    "risepro":         "RisePro",
+    "raccoon":         "Raccoon",
+    "amos":            "AMOS",
+    "metastealer":     "MetaStealer",
+}
+
+
+def generate_chokepoints(
+    records:         list[dict],
+    shodan_clusters: list[dict],
+    domain_patterns: list[dict],
+    urlhaus_tags:    list[dict],
+) -> dict:
+    """
+    Derive data-driven detection content from the current run's real observations.
+    All fields fall back gracefully so the page always has sensible content.
+    """
+    from collections import Counter
+
+    # ── Top brands observed across domain names ─────────────────────────────
+    brand_counter: Counter = Counter()
+    for rec in records:
+        d = re.sub(r"[^a-z0-9]", "", (rec.get("domain") or "").lower())
+        for brand in BRANDS:
+            b = re.sub(r"[^a-z0-9]", "", brand.lower())
+            if b in d:
+                brand_counter[brand] += 1
+    top_brands = [b for b, _ in brand_counter.most_common(8)]
+
+    # ── Top payload family — merge record-level + URLHaus tags ──────────────
+    family_counter: Counter = Counter(
+        r["malware_family"] for r in records if r.get("malware_family")
+    )
+    for tag_item in urlhaus_tags:
+        tag = (tag_item.get("tag") or "").strip()
+        canonical = _FAMILY_CANON.get(tag.lower())
+        if canonical:
+            family_counter[canonical] += tag_item.get("count", 1)
+    top_family = family_counter.most_common(1)[0][0] if family_counter else None
+
+    # ── A real matched example: first record with family + domain ────────────
+    matched_example: dict | None = None
+    for rec in sorted(records, key=lambda r: r.get("first_seen") or "", reverse=True):
+        if not (rec.get("malware_family") and rec.get("domain")):
+            continue
+        dl_url = rec.get("download_url") or ""
+        fname  = dl_url.rstrip("/").split("/")[-1] if dl_url else ""
+        if not fname:
+            for brand in BRANDS:
+                b = re.sub(r"[^a-z0-9]", "", brand.lower())
+                d = re.sub(r"[^a-z0-9]", "", (rec.get("domain") or "").lower())
+                if b in d:
+                    fname = brand.replace("-", "").title() + "Setup.exe"
+                    break
+        matched_example = {
+            "domain":   rec["domain"],
+            "filename": fname or "Setup.exe",
+            "family":   rec["malware_family"],
+        }
+        break
+
+    # ── Favicon hashes for Shodan hunting ────────────────────────────────────
+    favicon_hashes = [
+        {"hash": c["hash"], "brand": c["brand"], "count": c["count"]}
+        for c in shodan_clusters[:6]
+    ]
+
+    # ── URLScan hunt queries derived from actual domain patterns ─────────────
+    hunt_queries: list[str] = []
+    for pat in domain_patterns[:4]:
+        example = pat.get("example", "")
+        name_part = example.split(".")[0].lower() if example else ""
+        for brand in BRANDS:
+            b = re.sub(r"[^a-z0-9]", "", brand.lower())
+            if b not in re.sub(r"[^a-z0-9]", "", name_part):
+                continue
+            remainder = re.sub(r"[^a-z]", "", re.sub(re.escape(b), "", re.sub(r"[^a-z0-9]", "", name_part)))
+            if remainder:
+                hunt_queries.append(
+                    f"page.domain:*{brand.lower()}*{remainder[:12]}* AND date:>now-{LOOKBACK_DAYS}d"
+                )
+            break
+
+    # ── CertStream regex from top observed brands ────────────────────────────
+    def _brand_to_regex(brand: str) -> str:
+        return brand.lower().replace("-", "-?").replace("+", r"\+")
+
+    certstream_regex = "|".join(
+        _brand_to_regex(b)
+        for b in (top_brands[:8] or ["7-zip", "vlc", "discord", "telegram"])
+    )
+
+    return {
+        "top_family":           top_family,
+        "matched_example":      matched_example,
+        "top_brands":           top_brands,
+        "favicon_hashes":       favicon_hashes,
+        "urlscan_hunt_queries": hunt_queries,
+        "certstream_regex":     certstream_regex,
+    }
+
+
 # ── Stats aggregator ───────────────────────────────────────────────────────────
 
 def _top_n(items: list[tuple[str, int]], n: int = 10) -> list[dict]:
@@ -915,6 +1034,10 @@ def aggregate(
         for c in shodan_clusters[:10]
     ]
 
+    domain_patterns   = extract_domain_patterns([r["domain"] for r in records])
+    campaign_clusters = fingerprint_campaigns(records)
+    chokepoints       = generate_chokepoints(records, shodan_clusters, domain_patterns, urlhaus_tags)
+
     return {
         "meta": {
             "last_updated":  datetime.now(timezone.utc).strftime("%Y-%m-%d"),
@@ -927,18 +1050,19 @@ def aggregate(
             "favicon_reuse_pct":                 favicon_reuse_pct,
             "favicon_clusters_found":            len(shodan_clusters),
         },
-        "hosting_providers": hosting_providers,
-        "lure_types":        lure_types,
-        "traffic_sources":   traffic_sources,
-        "payload_families":  payload_families,
+        "hosting_providers":  hosting_providers,
+        "lure_types":         lure_types,
+        "traffic_sources":    traffic_sources,
+        "payload_families":   payload_families,
         "payload_file_types": payload_file_types,
-        "payload_hosting":   payload_hosting,
-        "urlhaus_tags":      urlhaus_tags,
-        "favicon_clusters":  favicon_clusters,
-        "campaign_clusters": fingerprint_campaigns(records),
-        "domain_patterns":   extract_domain_patterns([r["domain"] for r in records]),
-        "delivery_chains":   _build_delivery_chains(records),
-        "recent_samples":    recent_samples,
+        "payload_hosting":    payload_hosting,
+        "urlhaus_tags":       urlhaus_tags,
+        "favicon_clusters":   favicon_clusters,
+        "campaign_clusters":  campaign_clusters,
+        "domain_patterns":    domain_patterns,
+        "delivery_chains":    _build_delivery_chains(records),
+        "recent_samples":     recent_samples,
+        "chokepoints":        chokepoints,
     }
 
 

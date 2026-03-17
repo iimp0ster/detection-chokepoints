@@ -298,9 +298,11 @@ permalink: /trends/masq-infra/
   </tbody>
 </table>
 
-<p><strong>URLScan hunting query:</strong></p>
-<pre><code>page.domain:*7-zip*download* AND date:&gt;now-30d
-page.domain:*vlc*install* AND date:&gt;now-30d</code></pre>
+<p><strong>URLScan hunting queries{% if site.data.masq_infra.chokepoints.urlscan_hunt_queries.size > 0 %} (derived from observed patterns){% endif %}:</strong></p>
+<pre><code>{% if site.data.masq_infra.chokepoints.urlscan_hunt_queries.size > 0 %}{% for q in site.data.masq_infra.chokepoints.urlscan_hunt_queries -%}
+{{ q }}
+{% endfor %}{% else %}page.domain:*7-zip*download* AND date:&gt;now-30d
+page.domain:*vlc*install* AND date:&gt;now-30d{% endif %}</code></pre>
 {% endif %}
 
 <!-- 3b. TLS / Certificate signals -->
@@ -634,8 +636,9 @@ detection:
       - 'Zoom'
 condition: selection and not filter_legit
 
-# Matched example: 7zip-download.com served 7-Zip.exe
-#   OriginalFileName: LummaC.exe  → ALERT</code></pre>
+{% if site.data.masq_infra.chokepoints.matched_example %}# Matched: {{ site.data.masq_infra.chokepoints.matched_example.domain }} → {{ site.data.masq_infra.chokepoints.matched_example.filename }}
+#   OriginalFileName: {{ site.data.masq_infra.chokepoints.matched_example.family }}.exe  → ALERT{% else %}# Matched example: 7zip-download.com → 7-Zip.exe
+#   OriginalFileName: LummaC.exe  → ALERT{% endif %}</code></pre>
   </div>
 </div>
 
@@ -670,7 +673,7 @@ condition: selection</code></pre>
 # Alert on: domain matches brand pattern AND Let's Encrypt AND issued &lt;48h
 
 WATCH_BRANDS = re.compile(
-    r'(7-?zip|winrar|vlc|notepad|discord|telegram|chatgpt|zoom|nordvpn)',
+    r'({% if site.data.masq_infra.chokepoints.certstream_regex != "" %}{{ site.data.masq_infra.chokepoints.certstream_regex }}{% else %}7-?zip|winrar|vlc|notepad|discord|telegram|chatgpt|zoom|nordvpn{% endif %})',
     re.IGNORECASE
 )
 def on_cert(message, context):
@@ -687,10 +690,13 @@ def on_cert(message, context):
     <strong>Favicon hash pivoting for infrastructure clustering</strong>
     <p>From one confirmed fake domain: fetch favicon → compute Murmur3 hash → query Shodan. Campaigns reusing the same stolen favicon across dozens of domains will surface immediately. Blocklist the entire cluster, not just the single known URL.</p>
 <pre><code># Known impersonator favicon hashes (Shodan)
-http.favicon.hash:-469815234   # Telegram favicon on non-Telegram infrastructure
+{% if site.data.masq_infra.chokepoints.favicon_hashes.size > 0 %}{% for fh in site.data.masq_infra.chokepoints.favicon_hashes -%}
+http.favicon.hash:{{ fh.hash }}   # {{ fh.brand }} favicon ({{ fh.count }} impersonators)
+{% endfor %}{% else %}http.favicon.hash:-469815234   # Telegram favicon on non-Telegram infrastructure
 http.favicon.hash:991727625    # 7-Zip favicon
 http.favicon.hash:9732861      # VLC favicon
-http.favicon.hash:-1899664115  # Notepad++ favicon</code></pre>
+http.favicon.hash:-1899664115  # Notepad++ favicon
+{% endif %}</code></pre>
   </div>
 </div>
 
