@@ -1,11 +1,11 @@
 {
   "meta": {
-    "last_updated": "2026-03-22",
+    "last_updated": "2026-03-23",
     "lookback_days": 30,
-    "sample_size": 1569
+    "sample_size": 1571
   },
   "stats": {
-    "tls_lets_encrypt_pct": 91.2,
+    "tls_lets_encrypt_pct": 91.5,
     "domain_to_resolution_hours_median": 0,
     "favicon_reuse_pct": 6.8,
     "favicon_clusters_found": 4
@@ -13,127 +13,122 @@
   "hosting_providers": [
     {
       "name": "CLOUDFLARENET - Cloudflare, Inc., US",
-      "count": 523,
-      "pct": 33.3
+      "count": 548,
+      "pct": 34.9
     },
     {
       "name": "Unknown",
-      "count": 154,
-      "pct": 9.8
+      "count": 134,
+      "pct": 8.5
     },
     {
       "name": "AMAZON-02 - Amazon.com, Inc., US",
-      "count": 113,
-      "pct": 7.2
-    },
-    {
-      "name": "IS-AS-1 - Interserver, Inc, US",
-      "count": 79,
-      "pct": 5.0
+      "count": 102,
+      "pct": 6.5
     },
     {
       "name": "CONFLUENCE-NETWORK-INC - Confluence Networks Inc, VG",
+      "count": 85,
+      "pct": 5.4
+    },
+    {
+      "name": "IS-AS-1 - Interserver, Inc, US",
       "count": 78,
       "pct": 5.0
     },
     {
-      "name": "SEDO-AS SEDO GmbH, DE",
-      "count": 33,
-      "pct": 2.1
+      "name": "GOOGLE-CLOUD-PLATFORM - Google LLC, US",
+      "count": 38,
+      "pct": 2.4
     },
     {
-      "name": "GOOGLE-CLOUD-PLATFORM - Google LLC, US",
+      "name": "ACE-AS-AP ACE, SG",
       "count": 30,
       "pct": 1.9
     },
     {
-      "name": "ACE-AS-AP ACE, SG",
-      "count": 29,
-      "pct": 1.8
-    },
-    {
       "name": "TEAMINTERNET-CA-AS Team Internet AG, DE",
-      "count": 26,
+      "count": 27,
       "pct": 1.7
     },
     {
       "name": "HETZNER-AS Hetzner Online GmbH, DE",
-      "count": 25,
-      "pct": 1.6
+      "count": 23,
+      "pct": 1.5
+    },
+    {
+      "name": "AMAZON-AES - Amazon.com, Inc., US",
+      "count": 22,
+      "pct": 1.4
     }
   ],
   "lure_types": [
     {
       "tag": "unknown",
-      "count": 814,
-      "pct": 51.9
+      "count": 820,
+      "pct": 52.2
     },
     {
       "tag": "crypto_wallet",
-      "count": 319,
-      "pct": 20.3
+      "count": 339,
+      "pct": 21.6
     },
     {
       "tag": "remote_work",
-      "count": 161,
-      "pct": 10.3
+      "count": 164,
+      "pct": 10.4
     },
     {
       "tag": "fake_ai_tool",
-      "count": 89,
-      "pct": 5.7
-    },
-    {
-      "tag": "fake_software",
-      "count": 73,
-      "pct": 4.7
+      "count": 81,
+      "pct": 5.2
     },
     {
       "tag": "vpn_tool",
-      "count": 73,
+      "count": 74,
       "pct": 4.7
     },
     {
+      "tag": "fake_software",
+      "count": 57,
+      "pct": 3.6
+    },
+    {
       "tag": "fake_update",
-      "count": 16,
-      "pct": 1.0
+      "count": 17,
+      "pct": 1.1
     },
     {
       "tag": "game_crack",
-      "count": 15,
-      "pct": 1.0
+      "count": 12,
+      "pct": 0.8
     },
     {
       "tag": "fake_tool",
-      "count": 8,
-      "pct": 0.5
-    },
-    {
-      "tag": "media_piracy",
-      "count": 1,
-      "pct": 0.1
+      "count": 7,
+      "pct": 0.4
     }
   ],
   "traffic_sources": [
     {
       "source": "seo_bait",
-      "count": 894,
-      "pct": 57.0
+      "count": 917,
+      "pct": 58.4
     },
     {
       "source": "typosquat",
-      "count": 447,
-      "pct": 28.5
+      "count": 427,
+      "pct": 27.2
     },
     {
       "source": "redirected",
-      "count": 175,
-      "pct": 11.2
+      "count": 181,
+      "pct": 11.5
     },
     {
       "source": "combosquat",
-      "count": 53,
-      "pct": 3.4
+      "count": 46,
+      "pct": 2.9
     }
   ],
   "payload_families": [],
@@ -150,7 +145,7 @@
     },
     {
       "tag": "exe",
-      "count": 15
+      "count": 17
     },
     {
       "tag": "AgentTesla",
@@ -167,6 +162,14 @@
     {
       "tag": "Redline",
       "count": 10
+    },
+    {
+      "tag": "ClearFake",
+      "count": 9
+    },
+    {
+      "tag": "NetSupport",
+      "count": 9
     },
     {
       "tag": "lumma",
@@ -205,24 +208,16 @@
       "count": 6
     },
     {
+      "tag": "zip",
+      "count": 5
+    },
+    {
       "tag": "dropped-by-PrivateLoader",
       "count": 5
     },
     {
       "tag": "github",
       "count": 5
-    },
-    {
-      "tag": "js",
-      "count": 5
-    },
-    {
-      "tag": "ClearFake",
-      "count": 4
-    },
-    {
-      "tag": "NetSupport",
-      "count": 4
     }
   ],
   "favicon_clusters": [
@@ -231,11 +226,11 @@
       "brand": "telegram",
       "count": 100,
       "sample_hosts": [
-        "www.00xs.la",
-        "m.00xs.la",
-        "00xs.la",
-        "149.154.167.99",
-        "www.00xs.la"
+        "biquge26.com",
+        "www.biquge26.com",
+        "104.250.142.186.static.gorillaservers.com",
+        "m.biquge26.com",
+        "188.94.157.207"
       ]
     },
     {
@@ -243,11 +238,11 @@
       "brand": "7-zip",
       "count": 5,
       "sample_hosts": [
+        "jp.comebuy2.com",
         "www.7-zip.net",
         "7-zip.net",
         "lzma.net",
-        "www.lzma.net",
-        "static.237.202.12.49.clients.your-server.de"
+        "www.lzma.net"
       ]
     },
     {
@@ -280,11 +275,6 @@
       "example": "roblox-studio-plugin-audacity.pages.dev"
     },
     {
-      "pattern": "{brand}.org",
-      "count": 4,
-      "example": "inkscape.org"
-    },
-    {
       "pattern": "{brand}.net",
       "count": 3,
       "example": "filezilla.net"
@@ -295,6 +285,11 @@
       "example": "oqamtdibqb9m6-stripe.bringimpact2022.com"
     },
     {
+      "pattern": "{brand}.org",
+      "count": 3,
+      "example": "inkscape.org"
+    },
+    {
       "pattern": "routerpool{N}.rlb.teamviewer.com",
       "count": 3,
       "example": "routerpool1.rlb.teamviewer.com"
@@ -303,6 +298,11 @@
       "pattern": "app-{brand}.com",
       "count": 3,
       "example": "app-electrum.com"
+    },
+    {
+      "pattern": "{brand}.dev",
+      "count": 2,
+      "example": "7-zip.dev"
     },
     {
       "pattern": "{brand}.fr",
@@ -320,14 +320,9 @@
       "example": "ww5.www7-zip.org"
     },
     {
-      "pattern": "{brand}.dev",
+      "pattern": "{brand}{N}.com",
       "count": 2,
-      "example": "7-zip.dev"
-    },
-    {
-      "pattern": "{brand}.de",
-      "count": 2,
-      "example": "7-zip.de"
+      "example": "winrar720.com"
     },
     {
       "pattern": "{brand}support.pages.dev",
@@ -348,46 +343,7 @@
   "delivery_chains": [],
   "recent_samples": [
     {
-      "domain": "salesteamrealtors.com",
-      "asn": "UNIFIEDLAYER-AS-1 - Unified Layer, US",
-      "lure_type": "unknown",
-      "traffic_source": "redirected",
-      "payload_sha256": null,
-      "malware_family": null,
-      "file_type": null,
-      "payload_host": null,
-      "payload_offhost": false,
-      "first_seen": "2026-03-22T05:48:59.181Z",
-      "urlhaus_tags": []
-    },
-    {
-      "domain": "www.thesalesteam.ca",
-      "asn": "LIQUIDWEB - Liquid Web, L.L.C, US",
-      "lure_type": "unknown",
-      "traffic_source": "typosquat",
-      "payload_sha256": null,
-      "malware_family": null,
-      "file_type": null,
-      "payload_host": null,
-      "payload_offhost": false,
-      "first_seen": "2026-03-22T05:48:41.370Z",
-      "urlhaus_tags": []
-    },
-    {
-      "domain": "steamunlock.site",
-      "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
-      "lure_type": "fake_software",
-      "traffic_source": "seo_bait",
-      "payload_sha256": null,
-      "malware_family": null,
-      "file_type": null,
-      "payload_host": null,
-      "payload_offhost": false,
-      "first_seen": "2026-03-22T05:48:21.191Z",
-      "urlhaus_tags": []
-    },
-    {
-      "domain": "uszoomwebhost.live",
+      "domain": "bzoomer.online",
       "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
       "lure_type": "remote_work",
       "traffic_source": "seo_bait",
@@ -396,24 +352,24 @@
       "file_type": null,
       "payload_host": null,
       "payload_offhost": false,
-      "first_seen": "2026-03-22T05:47:58.581Z",
+      "first_seen": "2026-03-23T07:16:05.292Z",
       "urlhaus_tags": []
     },
     {
-      "domain": "wildcard.steam-machine.com",
-      "asn": "SEDO-AS SEDO GmbH, DE",
-      "lure_type": "unknown",
+      "domain": "drglyupdate.www.wuxsyfri.discord.tattoo",
+      "asn": "IS-AS-1 - Interserver, Inc, US",
+      "lure_type": "fake_update",
       "traffic_source": "seo_bait",
       "payload_sha256": null,
       "malware_family": null,
       "file_type": null,
       "payload_host": null,
       "payload_offhost": false,
-      "first_seen": "2026-03-22T05:45:13.994Z",
+      "first_seen": "2026-03-23T07:15:28.810Z",
       "urlhaus_tags": []
     },
     {
-      "domain": "tryclearsteam.com",
+      "domain": "winsteam.sg",
       "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
       "lure_type": "unknown",
       "traffic_source": "typosquat",
@@ -422,38 +378,64 @@
       "file_type": null,
       "payload_host": null,
       "payload_offhost": false,
-      "first_seen": "2026-03-22T05:42:53.356Z",
+      "first_seen": "2026-03-23T07:15:04.691Z",
       "urlhaus_tags": []
     },
     {
-      "domain": "wpdevsteam.com",
+      "domain": "ledgercomstart-eaq.pages.dev",
       "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
-      "lure_type": "unknown",
-      "traffic_source": "typosquat",
+      "lure_type": "crypto_wallet",
+      "traffic_source": "seo_bait",
       "payload_sha256": null,
       "malware_family": null,
       "file_type": null,
       "payload_host": null,
       "payload_offhost": false,
-      "first_seen": "2026-03-22T05:41:45.373Z",
+      "first_seen": "2026-03-23T07:12:16.133Z",
       "urlhaus_tags": []
     },
     {
-      "domain": "www1.blockchainchatgpt.com",
-      "asn": "TEAMINTERNET-CA-AS Team Internet AG, DE",
+      "domain": "ww2.chatgpt.mein-konto-hilfe.com",
+      "asn": "DIGITALOCEAN-ASN - DigitalOcean, LLC, US",
       "lure_type": "fake_ai_tool",
-      "traffic_source": "typosquat",
+      "traffic_source": "redirected",
       "payload_sha256": null,
       "malware_family": null,
       "file_type": null,
       "payload_host": null,
       "payload_offhost": false,
-      "first_seen": "2026-03-22T05:41:30.291Z",
+      "first_seen": "2026-03-23T07:10:53.465Z",
       "urlhaus_tags": []
     },
     {
-      "domain": "dlads.discordl.org",
-      "asn": "OVH OVH SAS, FR",
+      "domain": "strt-ledger-wallt.pages.dev",
+      "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
+      "lure_type": "crypto_wallet",
+      "traffic_source": "seo_bait",
+      "payload_sha256": null,
+      "malware_family": null,
+      "file_type": null,
+      "payload_host": null,
+      "payload_offhost": false,
+      "first_seen": "2026-03-23T07:10:36.959Z",
+      "urlhaus_tags": []
+    },
+    {
+      "domain": "bqsuaupdate.update.vuajkzfx.discord.tattoo",
+      "asn": "IS-AS-1 - Interserver, Inc, US",
+      "lure_type": "fake_update",
+      "traffic_source": "seo_bait",
+      "payload_sha256": null,
+      "malware_family": null,
+      "file_type": null,
+      "payload_host": null,
+      "payload_offhost": false,
+      "first_seen": "2026-03-23T07:10:18.618Z",
+      "urlhaus_tags": []
+    },
+    {
+      "domain": "back.discord.tattoo",
+      "asn": "Unknown",
       "lure_type": "unknown",
       "traffic_source": "seo_bait",
       "payload_sha256": null,
@@ -461,25 +443,129 @@
       "file_type": null,
       "payload_host": null,
       "payload_offhost": false,
-      "first_seen": "2026-03-22T05:40:35.990Z",
+      "first_seen": "2026-03-23T07:09:52.300Z",
       "urlhaus_tags": []
     },
     {
-      "domain": "support.zoom.us.id.xstore1.cloud",
+      "domain": "zoomcares.zoom.us.udp.gtns.app",
       "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
       "lure_type": "remote_work",
+      "traffic_source": "seo_bait",
+      "payload_sha256": null,
+      "malware_family": null,
+      "file_type": null,
+      "payload_host": null,
+      "payload_offhost": false,
+      "first_seen": "2026-03-23T07:08:49.720Z",
+      "urlhaus_tags": []
+    },
+    {
+      "domain": "zoomgov.com.udp.gtns.app",
+      "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
+      "lure_type": "remote_work",
+      "traffic_source": "seo_bait",
+      "payload_sha256": null,
+      "malware_family": null,
+      "file_type": null,
+      "payload_host": null,
+      "payload_offhost": false,
+      "first_seen": "2026-03-23T07:08:49.470Z",
+      "urlhaus_tags": []
+    },
+    {
+      "domain": "cdn.bonesignal.com.udp.gtns.app",
+      "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
+      "lure_type": "unknown",
+      "traffic_source": "seo_bait",
+      "payload_sha256": null,
+      "malware_family": null,
+      "file_type": null,
+      "payload_host": null,
+      "payload_offhost": false,
+      "first_seen": "2026-03-23T07:08:48.065Z",
+      "urlhaus_tags": []
+    },
+    {
+      "domain": "bvc-telegram.com.cn",
+      "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
+      "lure_type": "unknown",
+      "traffic_source": "seo_bait",
+      "payload_sha256": null,
+      "malware_family": null,
+      "file_type": null,
+      "payload_host": null,
+      "payload_offhost": false,
+      "first_seen": "2026-03-23T07:08:42.002Z",
+      "urlhaus_tags": []
+    },
+    {
+      "domain": "www.lawyersteam-office.com",
+      "asn": "AS-HOSTINGER Hostinger International Limited, CY",
+      "lure_type": "unknown",
+      "traffic_source": "seo_bait",
+      "payload_sha256": null,
+      "malware_family": null,
+      "file_type": null,
+      "payload_host": null,
+      "payload_offhost": false,
+      "first_seen": "2026-03-23T07:08:28.952Z",
+      "urlhaus_tags": []
+    },
+    {
+      "domain": "ww1.steammatic.com",
+      "asn": "CONFLUENCE-NETWORK-INC - Confluence Networks Inc, VG",
+      "lure_type": "unknown",
+      "traffic_source": "redirected",
+      "payload_sha256": null,
+      "malware_family": null,
+      "file_type": null,
+      "payload_host": null,
+      "payload_offhost": false,
+      "first_seen": "2026-03-23T07:07:17.312Z",
+      "urlhaus_tags": []
+    },
+    {
+      "domain": "steamcleaneverything.com",
+      "asn": "NETWORK-SOLUTIONS-HOSTING - Network Solutions, LLC, US",
+      "lure_type": "fake_tool",
+      "traffic_source": "seo_bait",
+      "payload_sha256": null,
+      "malware_family": null,
+      "file_type": null,
+      "payload_host": null,
+      "payload_offhost": false,
+      "first_seen": "2026-03-23T07:06:08.756Z",
+      "urlhaus_tags": []
+    },
+    {
+      "domain": "live-ledgerk.pages.dev",
+      "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
+      "lure_type": "crypto_wallet",
+      "traffic_source": "seo_bait",
+      "payload_sha256": null,
+      "malware_family": null,
+      "file_type": null,
+      "payload_host": null,
+      "payload_offhost": false,
+      "first_seen": "2026-03-23T07:06:06.386Z",
+      "urlhaus_tags": []
+    },
+    {
+      "domain": "www.lunatelegram.com",
+      "asn": "AMAZON-02 - Amazon.com, Inc., US",
+      "lure_type": "unknown",
       "traffic_source": "typosquat",
       "payload_sha256": null,
       "malware_family": null,
       "file_type": null,
       "payload_host": null,
       "payload_offhost": false,
-      "first_seen": "2026-03-22T05:40:05.189Z",
+      "first_seen": "2026-03-23T07:06:00.401Z",
       "urlhaus_tags": []
     },
     {
-      "domain": "dev.eu.as.eu.discord.tattoo",
-      "asn": "IS-AS-1 - Interserver, Inc, US",
+      "domain": "www.steamcoins.ru",
+      "asn": "Unknown",
       "lure_type": "unknown",
       "traffic_source": "seo_bait",
       "payload_sha256": null,
@@ -487,131 +573,40 @@
       "file_type": null,
       "payload_host": null,
       "payload_offhost": false,
-      "first_seen": "2026-03-22T05:39:13.713Z",
+      "first_seen": "2026-03-23T07:05:46.109Z",
       "urlhaus_tags": []
     },
     {
-      "domain": "alcalc.discordian.ca",
-      "asn": "FASTLY - Fastly, Inc., US",
-      "lure_type": "unknown",
+      "domain": "metamasktechnical-helpcenter.com",
+      "asn": "GOOGLE-CLOUD-PLATFORM - Google LLC, US",
+      "lure_type": "crypto_wallet",
       "traffic_source": "seo_bait",
       "payload_sha256": null,
       "malware_family": null,
       "file_type": null,
       "payload_host": null,
       "payload_offhost": false,
-      "first_seen": "2026-03-22T05:36:59.956Z",
+      "first_seen": "2026-03-23T07:03:48.444Z",
       "urlhaus_tags": []
     },
     {
-      "domain": "www.app.steamlevelu.com",
-      "asn": "DDOS-GUARD DDOS-GUARD LTD, RU",
-      "lure_type": "unknown",
-      "traffic_source": "seo_bait",
-      "payload_sha256": null,
-      "malware_family": null,
-      "file_type": null,
-      "payload_host": null,
-      "payload_offhost": false,
-      "first_seen": "2026-03-22T05:32:44.405Z",
-      "urlhaus_tags": []
-    },
-    {
-      "domain": "steamboatweddingday.com",
+      "domain": "ledger--com-stat.pages.dev",
       "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
-      "lure_type": "unknown",
+      "lure_type": "crypto_wallet",
       "traffic_source": "seo_bait",
       "payload_sha256": null,
       "malware_family": null,
       "file_type": null,
       "payload_host": null,
       "payload_offhost": false,
-      "first_seen": "2026-03-22T05:27:21.847Z",
-      "urlhaus_tags": []
-    },
-    {
-      "domain": "staging.wwwapp.admin.discord.tattoo",
-      "asn": "IS-AS-1 - Interserver, Inc, US",
-      "lure_type": "unknown",
-      "traffic_source": "seo_bait",
-      "payload_sha256": null,
-      "malware_family": null,
-      "file_type": null,
-      "payload_host": null,
-      "payload_offhost": false,
-      "first_seen": "2026-03-22T05:27:20.498Z",
-      "urlhaus_tags": []
-    },
-    {
-      "domain": "steamboatacademyinc.com",
-      "asn": "AMAZON-02 - Amazon.com, Inc., US",
-      "lure_type": "unknown",
-      "traffic_source": "redirected",
-      "payload_sha256": null,
-      "malware_family": null,
-      "file_type": null,
-      "payload_host": null,
-      "payload_offhost": false,
-      "first_seen": "2026-03-22T05:27:06.219Z",
-      "urlhaus_tags": []
-    },
-    {
-      "domain": "steampunkoutfit.com",
-      "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
-      "lure_type": "unknown",
-      "traffic_source": "seo_bait",
-      "payload_sha256": null,
-      "malware_family": null,
-      "file_type": null,
-      "payload_host": null,
-      "payload_offhost": false,
-      "first_seen": "2026-03-22T05:24:53.172Z",
-      "urlhaus_tags": []
-    },
-    {
-      "domain": "signal8security.info",
-      "asn": "AMAZON-02 - Amazon.com, Inc., US",
-      "lure_type": "unknown",
-      "traffic_source": "redirected",
-      "payload_sha256": null,
-      "malware_family": null,
-      "file_type": null,
-      "payload_host": null,
-      "payload_offhost": false,
-      "first_seen": "2026-03-22T05:23:18.851Z",
-      "urlhaus_tags": []
-    },
-    {
-      "domain": "steamrrip.it.com",
-      "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
-      "lure_type": "fake_software",
-      "traffic_source": "seo_bait",
-      "payload_sha256": null,
-      "malware_family": null,
-      "file_type": null,
-      "payload_host": null,
-      "payload_offhost": false,
-      "first_seen": "2026-03-22T05:22:34.380Z",
-      "urlhaus_tags": []
-    },
-    {
-      "domain": "mkgimports.com",
-      "asn": "CLOUDFLARENET - Cloudflare, Inc., US",
-      "lure_type": "unknown",
-      "traffic_source": "seo_bait",
-      "payload_sha256": null,
-      "malware_family": null,
-      "file_type": null,
-      "payload_host": null,
-      "payload_offhost": false,
-      "first_seen": "2026-03-22T05:18:05.256Z",
+      "first_seen": "2026-03-23T07:03:34.864Z",
       "urlhaus_tags": []
     }
   ],
-  "generated_at": "2026-03-22T06:12:06Z",
+  "generated_at": "2026-03-23T07:38:10Z",
   "date_range": {
-    "start": "2026-03-15",
-    "end": "2026-03-22"
+    "start": "2026-03-16",
+    "end": "2026-03-23"
   },
   "summary": {
     "total_domains": 0,
@@ -650,23 +645,23 @@
       "cluster_type": "asn_cohort",
       "signal": "CLOUDFLARENET - Cloudflare, Inc., US / 2026-03",
       "brand": "ledger",
-      "domain_count": 496,
+      "domain_count": 523,
       "domains": [
         "7-zip.info",
+        "7-zip.dev",
         "7-zip.cc",
-        "7-zip.link",
         "7-zip.pages.dev",
+        "7-zip.link",
         "www.7-zip.org.cach3.com",
         "7-zip.natsumi520.workers.dev",
         "7-zip.org.ua",
         "www.7-zip.ovh",
-        "7-zip.ovh",
-        "7-zip-website-project-overhaul.pages.dev"
+        "7-zip.ovh"
       ],
       "payload_families": [],
       "date_range": {
         "first": "2026-03-01T05:41:41.509Z",
-        "last": "2026-03-22T05:48:21.191Z"
+        "last": "2026-03-23T07:16:05.292Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -682,23 +677,23 @@
       "cluster_type": "asn_cohort",
       "signal": "Unknown / 2026-03",
       "brand": "slack",
-      "domain_count": 143,
+      "domain_count": 122,
       "domains": [
+        "internal.7-zip.com.mx",
+        "7-zip-cy.keenetic.link",
         "winrar-pro.ru",
         "winrar.monstervp.com",
+        "xn--36-vlceifhhbcvlmb.xn--p1ai",
         "mail.vlc.cdv.mybluehost.me",
         "efpvlc.mysingingchallenge.com",
         "sslproxy.gateway3advisorgroup-uat.app.ariba-privatebank-qaalsstatic.selectgvlco.hicloudcam.com",
         "sslproxy.gateway3advisorgroup-uat.app.ariba-privatebank-qaalscdev2gvlco-a.cdn.hicloudcam.com",
-        "omghvlc49.shop",
-        "filezilla.app",
-        "blenderstudio.cn",
-        "sslproxy.gateway3advisorgroup-uat.app.ariba-privatetheblender.sqa-shared-qaalsengineeringv.hicloudcam.com"
+        "filezilla.app"
       ],
       "payload_families": [],
       "date_range": {
         "first": "2026-03-04T15:27:01.554Z",
-        "last": "2026-03-22T05:07:57.646Z"
+        "last": "2026-03-23T07:09:52.300Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -713,56 +708,24 @@
     {
       "cluster_type": "asn_cohort",
       "signal": "AMAZON-02 - Amazon.com, Inc., US / 2026-03",
-      "brand": "signal",
-      "domain_count": 106,
+      "brand": "slack",
+      "domain_count": 97,
       "domains": [
         "www.vecchiaromavlc.es",
         "nexxlvlcontracting.com",
         "www.audacityautollc.com",
         "rufusanalytics.com",
         "blenderbottleaffiliate.superfiliate.com",
-        "gimp.das-model.com",
-        "emea1.learningimpact.docebo.com",
         "kritagyatimsina.com.np",
         "anydesk.my.salesforce-scrt.com",
-        "cdn.engage.teamviewer.com"
+        "cdn.engage.teamviewer.com",
+        "status.teamviewer.com",
+        "www.lunatelegram.com"
       ],
       "payload_families": [],
       "date_range": {
         "first": "2026-03-03T20:32:44.601Z",
-        "last": "2026-03-22T05:27:06.219Z"
-      },
-      "confidence": 50,
-      "confidence_label": "medium",
-      "signal_breakdown": {
-        "cat1_payload_families": 0,
-        "cat1_file_type": 0,
-        "cat2_asn_cohort": 40,
-        "cat3_date_range_width": 10,
-        "methodology": "heuristic_v1"
-      }
-    },
-    {
-      "cluster_type": "asn_cohort",
-      "signal": "IS-AS-1 - Interserver, Inc, US / 2026-03",
-      "brand": "discord",
-      "domain_count": 79,
-      "domains": [
-        "dev.eu.as.eu.discord.tattoo",
-        "staging.wwwapp.admin.discord.tattoo",
-        "dev.dev.eu.ea.discord.tattoo",
-        "www.test.www.ea.eu.discord.tattoo",
-        "www.staging.www.wwwtest.discord.tattoo",
-        "www.api.as.au.discord.tattoo",
-        "en.www.m.discord.tattoo",
-        "api.en.dashboard.discord.tattoo",
-        "dev.dev.dev.dev.discord.tattoo",
-        "staging.www.wwwdev.au.api.discord.tattoo"
-      ],
-      "payload_families": [],
-      "date_range": {
-        "first": "2026-03-12T01:22:17.723Z",
-        "last": "2026-03-22T05:39:13.713Z"
+        "last": "2026-03-23T07:06:00.401Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -778,23 +741,23 @@
       "cluster_type": "asn_cohort",
       "signal": "CONFLUENCE-NETWORK-INC - Confluence Networks Inc, VG / 2026-03",
       "brand": "gimp",
-      "domain_count": 78,
+      "domain_count": 85,
       "domains": [
         "www7-zip.org",
         "ww17.7-zip.online",
         "ns1.puttyserver.com.directideleteddomain.info",
         "ww1.techpowerup-gpu-z.com",
-        "webdiskadminstripemta-sts.bringimpact2022.com",
-        "webmailfaq-stripe.bringimpact2022.com",
-        "stripe-oidc-pbs-cadencebank.bringimpact2022.com",
-        "stripe-payment-ap.bringimpact2022.com",
-        "webdiskbeta-webmail2024-stripe.bringimpact2022.com",
-        "mibhideveloperstripe-code.bringimpact2022.com"
+        "pay-ap-stripe.bringimpact2022.com",
+        "mibhi8-stripe.bringimpact2022.com",
+        "stripe-oauth2.akamai-inputs-cdi.bringimpact2022.com",
+        "webmail6-stripe.bringimpact2022.com",
+        "stripe-webmail-backend.bringimpact2022.com",
+        "ripple-meetbackup-developersstripe-meet2020.bringimpact2022.com"
       ],
       "payload_families": [],
       "date_range": {
         "first": "2026-03-05T09:05:02.281Z",
-        "last": "2026-03-22T03:21:20.193Z"
+        "last": "2026-03-23T07:07:17.312Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -808,25 +771,25 @@
     },
     {
       "cluster_type": "asn_cohort",
-      "signal": "SEDO-AS SEDO GmbH, DE / 2026-03",
-      "brand": "zoom",
-      "domain_count": 33,
+      "signal": "IS-AS-1 - Interserver, Inc, US / 2026-03",
+      "brand": "discord",
+      "domain_count": 78,
       "domains": [
-        "mail.gimped.com",
-        "mail.winningforexsignals.com",
-        "wildcard.steam-machine.com",
-        "ww1.steamfamilysharing.com",
-        "hostmaster.mail.vielseitigkeitsteam.de",
-        "mail.minecraft.pm",
-        "metamaskn.paperwallet.xyz",
-        "www.metamaskn.paperwallet.xyz",
-        "metamaskc.paperwallet.xyz",
-        "mail.meatledger.com"
+        "drglyupdate.www.wuxsyfri.discord.tattoo",
+        "bqsuaupdate.update.vuajkzfx.discord.tattoo",
+        "update.www.ea.we.dev.mail.discord.tattoo",
+        "xdbfpapi.www.cazijwmf.discord.tattoo",
+        "staging.www.wwwen.wwwdashboard.discord.tattoo",
+        "admin.travellpac.comcgzvapi.discord.tattoo",
+        "zcpxttest.knrvhzfw.discord.tattoo",
+        "jagufstaging.www.ea.ea.discord.tattoo",
+        "staging.www.eu.jtkbszar.discord.tattoo",
+        "qmwblfod.discord.tattoo"
       ],
       "payload_families": [],
       "date_range": {
-        "first": "2026-03-05T16:12:00.342Z",
-        "last": "2026-03-22T05:45:13.994Z"
+        "first": "2026-03-12T01:22:17.723Z",
+        "last": "2026-03-23T07:15:28.810Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -842,23 +805,23 @@
       "cluster_type": "asn_cohort",
       "signal": "GOOGLE-CLOUD-PLATFORM - Google LLC, US / 2026-03",
       "brand": "exodus",
-      "domain_count": 29,
+      "domain_count": 37,
       "domains": [
         "n47-zipkin.staging.north-47.net",
+        "www.svlcleaningservice.com",
+        "www.xn--entrmpelung-service-bm-vlc.de",
         "en.vlcreditrepair.com",
         "email.mail.hvlcoverage.com",
         "email.mail.thewhiskeyblendery.com",
         "www.accountingimpact.com",
-        "ping3.teamviewer.com",
-        "routerpool2.rlb.teamviewer.com",
-        "offgridsignal.com",
-        "pivot.claude.ai",
-        "assets.claude.ai"
+        "babyboyofalankrita.amropalireminiscence.com",
+        "bumpstoryofalankrita.amropalireminiscence.com",
+        "ping3.teamviewer.com"
       ],
       "payload_families": [],
       "date_range": {
         "first": "2026-03-11T08:32:11.624Z",
-        "last": "2026-03-22T03:17:57.550Z"
+        "last": "2026-03-23T07:03:48.444Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -874,23 +837,23 @@
       "cluster_type": "asn_cohort",
       "signal": "ACE-AS-AP ACE, SG / 2026-03",
       "brand": "vlc",
-      "domain_count": 29,
+      "domain_count": 30,
       "domains": [
+        "qualified-crimson-uzr6bxndyr-g8vlccoxxo.edgeone.app",
+        "still-silver-0yyvlc2dnc-rdjr2qwxwb.edgeone.app",
+        "fiscal-ivory-luoppenect-d07ugvlcem.edgeone.app",
+        "cute-salmon-vijswgdbco-3vlc9elqfw.edgeone.app",
         "toxic-copper-xnlvlcim8x-qq6imqs1d7.edgeone.app",
         "coastal-jade-kjpuqw59cv-6vnqvlc0qi.edgeone.app",
         "yabbering-lime-6vlctl3cjp-o72b619aws.edgeone.app",
         "prime-tan-o7buq8vlcn-hucpib0j5a.edgeone.app",
         "structural-peach-vhhh8rntus-a5d1onvlc8.edgeone.app",
-        "atomic-sapphire-3vwwbqg2ku-s7n1fvlcow.edgeone.app",
-        "sad-turquoise-q7igwrfqwx-pk8vlc6jcr.edgeone.app",
-        "shivering-red-1gch7vlcvp-zn4laxiyzw.edgeone.app",
-        "crowded-gold-9gr1sxuiax-cp6ao14vlc.edgeone.app",
-        "surviving-turquoise-vlcyfj6nwg-v0b3xg5vr3.edgeone.app"
+        "atomic-sapphire-3vwwbqg2ku-s7n1fvlcow.edgeone.app"
       ],
       "payload_families": [],
       "date_range": {
-        "first": "2026-03-17T17:18:15.805Z",
-        "last": "2026-03-21T22:11:09.284Z"
+        "first": "2026-03-19T10:02:02.421Z",
+        "last": "2026-03-22T19:10:40.933Z"
       },
       "confidence": 60,
       "confidence_label": "medium",
@@ -904,9 +867,41 @@
     },
     {
       "cluster_type": "asn_cohort",
+      "signal": "TEAMINTERNET-CA-AS Team Internet AG, DE / 2026-03",
+      "brand": "7-zip",
+      "domain_count": 27,
+      "domains": [
+        "unziker-immagini-grandi.7-zip.pl",
+        "correo.7-zip.com.mx",
+        "proxy.7-zip.com.mx",
+        "7-zip.pl",
+        "webmail.7-zip.com.mx",
+        "admin.7-zip.pl",
+        "mx.7-zip.com.mx",
+        "40f3b889-054a-427d-923c-b5653ff4b137.7-zip.com.mx",
+        "po.7-zip.com.mx",
+        "sftp.7-zip.com.mx"
+      ],
+      "payload_families": [],
+      "date_range": {
+        "first": "2026-03-03T02:19:25.598Z",
+        "last": "2026-03-23T03:45:30.259Z"
+      },
+      "confidence": 50,
+      "confidence_label": "medium",
+      "signal_breakdown": {
+        "cat1_payload_families": 0,
+        "cat1_file_type": 0,
+        "cat2_asn_cohort": 40,
+        "cat3_date_range_width": 10,
+        "methodology": "heuristic_v1"
+      }
+    },
+    {
+      "cluster_type": "asn_cohort",
       "signal": "CLOUDFLARENET - Cloudflare, Inc., US / 2026-02",
       "brand": "roblox",
-      "domain_count": 27,
+      "domain_count": 25,
       "domains": [
         "roblox-studio-plugin-notepad-plus-plus.pages.dev",
         "audacitybrand.co",
@@ -921,40 +916,40 @@
       ],
       "payload_families": [],
       "date_range": {
-        "first": "2026-02-20T06:43:32.568Z",
+        "first": "2026-02-21T18:25:24.397Z",
         "last": "2026-02-28T09:32:02.687Z"
       },
-      "confidence": 50,
+      "confidence": 60,
       "confidence_label": "medium",
       "signal_breakdown": {
         "cat1_payload_families": 0,
         "cat1_file_type": 0,
         "cat2_asn_cohort": 40,
-        "cat3_date_range_width": 10,
+        "cat3_date_range_width": 20,
         "methodology": "heuristic_v1"
       }
     },
     {
       "cluster_type": "asn_cohort",
-      "signal": "TEAMINTERNET-CA-AS Team Internet AG, DE / 2026-03",
-      "brand": "7-zip",
-      "domain_count": 26,
+      "signal": "AMAZON-AES - Amazon.com, Inc., US / 2026-03",
+      "brand": "epicgames",
+      "domain_count": 21,
       "domains": [
-        "admin.7-zip.pl",
-        "mx.7-zip.com.mx",
-        "7-zip.pl",
-        "40f3b889-054a-427d-923c-b5653ff4b137.7-zip.com.mx",
-        "po.7-zip.com.mx",
-        "sftp.7-zip.com.mx",
-        "a9b26e93-ba09-4cbd-9156-5f9c2bb54e94.7-zip.com.mx",
-        "antispam.7-zip.com.mx",
-        "910954ca-91cd-44a6-aa0c-0e2cbaa58779.7-zip.com.mx",
-        "7-zip.com.mx"
+        "pr-4847-zip-uploa-ip-3-90-36-32.preview.conductorai.co",
+        "www.7-zip.ru.keilabacellar.com",
+        "midjourneycodes.com",
+        "twinwaterfallsteam.com",
+        "tracking.epicgames.com",
+        "external-traces-collector.edec.dev.use1a.on.epicgames.com",
+        "datarouter.ol.epicgames.com",
+        "account-public-service-prod03.ol.epicgames.com",
+        "connect.ol.epicgames.com",
+        "datarouter-prod.ak.epicgames.com"
       ],
       "payload_families": [],
       "date_range": {
-        "first": "2026-03-03T02:19:25.598Z",
-        "last": "2026-03-22T05:41:30.291Z"
+        "first": "2026-03-07T11:39:35.364Z",
+        "last": "2026-03-23T04:56:10.222Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -969,8 +964,8 @@
     {
       "cluster_type": "asn_cohort",
       "signal": "HETZNER-AS Hetzner Online GmbH, DE / 2026-03",
-      "brand": "signal",
-      "domain_count": 23,
+      "brand": "handbrake",
+      "domain_count": 21,
       "domains": [
         "www.7-zip.com",
         "mvlco.com",
@@ -981,12 +976,12 @@
         "krita.org",
         "www.libreoffice.org",
         "get.anydesk.com",
-        "groups.telegram.com.az"
+        "telegram.im"
       ],
       "payload_families": [],
       "date_range": {
         "first": "2026-03-09T14:10:56.110Z",
-        "last": "2026-03-22T04:02:17.774Z"
+        "last": "2026-03-23T02:54:06.555Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -1000,25 +995,25 @@
     },
     {
       "cluster_type": "asn_cohort",
-      "signal": "AMAZON-AES - Amazon.com, Inc., US / 2026-03",
-      "brand": "epicgames",
-      "domain_count": 19,
+      "signal": "SEDO-AS SEDO GmbH, DE / 2026-03",
+      "brand": "slack",
+      "domain_count": 20,
       "domains": [
-        "pr-4847-zip-uploa-ip-3-90-36-32.preview.conductorai.co",
-        "www.7-zip.ru.keilabacellar.com",
-        "www.securesignal.app",
-        "midjourneycodes.com",
-        "tracking.epicgames.com",
-        "external-traces-collector.edec.dev.use1a.on.epicgames.com",
-        "datarouter.ol.epicgames.com",
-        "account-public-service-prod03.ol.epicgames.com",
-        "connect.ol.epicgames.com",
-        "datarouter-prod.ak.epicgames.com"
+        "sitemap.socialpymesvlc.es",
+        "www.joinaiblenderrevolution.com",
+        "mail.gimped.com",
+        "ww1.telegramforum.org",
+        "store.minecraftt.com",
+        "mail.minecraft.pm",
+        "metamaskn.paperwallet.xyz",
+        "www.metamaskn.paperwallet.xyz",
+        "metamaskc.paperwallet.xyz",
+        "exodus-vip.com"
       ],
       "payload_families": [],
       "date_range": {
-        "first": "2026-03-07T11:39:35.364Z",
-        "last": "2026-03-21T13:44:59.349Z"
+        "first": "2026-03-05T16:12:00.342Z",
+        "last": "2026-03-22T23:01:31.755Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -1032,25 +1027,25 @@
     },
     {
       "cluster_type": "asn_cohort",
-      "signal": "ORACLE-BMC-31898 - Oracle Corporation, US / 2026-03",
-      "brand": "steam",
-      "domain_count": 17,
+      "signal": "AS-HOSTINGER Hostinger International Limited, CY / 2026-03",
+      "brand": "telegram",
+      "domain_count": 18,
       "domains": [
-        "mail.vlc.lpc.mybluehost.me",
-        "lastingimpressionsbynicole.com",
-        "sustainingimpactksa.com",
-        "telegramb2bit.duckdns.org",
-        "www.telegram-desktop.hl.cn",
-        "mail.signalnonoise.com",
-        "claudetterich.co.uk",
-        "somosteamwork.com.aeteamwork.com",
-        "mail.somosteamwork.com",
-        "www.somosteamwork.com.aeteamwork.com"
+        "vlcabogados.com",
+        "deliveryvlc.com",
+        "rufusbioshi.com",
+        "www.telegramlinks.com.br",
+        "telegram-finisseur.fr",
+        "telegram-92i.fr",
+        "telegram-fisha.fr",
+        "telegram-tana.fr",
+        "cryptosignalacademy.com",
+        "mail.redsignal.net"
       ],
       "payload_families": [],
       "date_range": {
-        "first": "2026-03-13T15:38:54.872Z",
-        "last": "2026-03-22T02:38:23.277Z"
+        "first": "2026-03-05T02:14:15.097Z",
+        "last": "2026-03-23T07:08:28.952Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -1066,23 +1061,23 @@
       "cluster_type": "asn_cohort",
       "signal": "SQUARESPACE - Squarespace, Inc., US / 2026-03",
       "brand": "claude",
-      "domain_count": 15,
+      "domain_count": 18,
       "domains": [
+        "avlcorporate.com",
         "www.theaudacitytobeheard.com",
         "dynamicaudacity.com",
         "audacity.consulting",
         "www.rufusairlines.com",
-        "www.berlinweedtelegram.net",
-        "berlinweedtelegram.net",
-        "signalpointcorp.com",
-        "signalpointcorp.net",
+        "telegramagency.com",
+        "discorddigest.com",
+        "www.signalmountainpaper.com",
         "claude-code-download.squarespace.com",
         "claudecode-developers.squarespace.com"
       ],
       "payload_families": [],
       "date_range": {
         "first": "2026-03-04T08:08:40.642Z",
-        "last": "2026-03-22T03:11:44.728Z"
+        "last": "2026-03-23T05:31:13.233Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -1096,57 +1091,57 @@
     },
     {
       "cluster_type": "asn_cohort",
-      "signal": "OVH OVH SAS, FR / 2026-03",
-      "brand": "steam",
-      "domain_count": 13,
+      "signal": "Unknown / 2026-02",
+      "brand": "electrum",
+      "domain_count": 12,
       "domains": [
-        "7-zip.fr",
-        "ivlc.com",
-        "www.audacity-conseil.fr",
-        "handbrake.es",
-        "dlads.discordl.org",
-        "mail.signalbotx.com",
-        "dustsignal.com.jcella.com",
-        "www.dustsignal.com.jcella.com",
-        "accueil.flsteam.com",
-        "www.accueil.flsteam.com"
+        "audacity.net.cn",
+        "audacity88.xyz",
+        "www.audacity-forum.de",
+        "filezilla-newbuilt.b-cdn.net",
+        "puttyclient.org",
+        "putty.nl",
+        "kritavo.com",
+        "libreoffice-wc4gwkc8sk0o4gkow4gow8ks.cgriff.dev",
+        "electrumcrypto.org",
+        "electrumwallet.net"
       ],
       "payload_families": [],
       "date_range": {
-        "first": "2026-03-02T16:10:54.166Z",
-        "last": "2026-03-22T05:40:35.990Z"
+        "first": "2026-02-21T08:54:38.201Z",
+        "last": "2026-02-28T23:09:06.757Z"
       },
-      "confidence": 50,
+      "confidence": 60,
       "confidence_label": "medium",
       "signal_breakdown": {
         "cat1_payload_families": 0,
         "cat1_file_type": 0,
         "cat2_asn_cohort": 40,
-        "cat3_date_range_width": 10,
+        "cat3_date_range_width": 20,
         "methodology": "heuristic_v1"
       }
     },
     {
       "cluster_type": "asn_cohort",
-      "signal": "DIGITALOCEAN-ASN - DigitalOcean, LLC, US / 2026-03",
-      "brand": "zoom",
-      "domain_count": 13,
+      "signal": "FASTLY - Fastly, Inc., US / 2026-03",
+      "brand": "7-zip",
+      "domain_count": 11,
       "domains": [
-        "blender.community",
-        "www.securitytelegram21.duckdns.org",
-        "bonesignal.com.indo.vpnpremium.id",
-        "ww2.chatgpt.mein-konto-hilfe.com",
-        "claudehasler.ch",
-        "phantomapi.dev",
-        "zoomcares.zoom.us.sg1.cloudrystore.xyz",
-        "support.zoom.us.indo.vpnpremium.id",
-        "zoomgov.com.indo.vpnpremium.id",
-        "gomarketplacecontent-cf.zoom.us.do22.ftpwc.web.id"
+        "7-zip.opensource.jp",
+        "cpu-z-portable.softonic.com",
+        "teamviewer-portable.en.uptodown.com",
+        "claudenotifier.com",
+        "www.steamingcoffee.com",
+        "micminecraft1.github.io",
+        "metamaskio.ghost.io",
+        "getledgeriq.com",
+        "enusexodus.ghost.io",
+        "phantomridgegazette.com"
       ],
       "payload_families": [],
       "date_range": {
-        "first": "2026-03-12T08:44:39.255Z",
-        "last": "2026-03-22T04:50:39.397Z"
+        "first": "2026-03-03T03:43:32.099Z",
+        "last": "2026-03-23T06:10:50.201Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -1162,23 +1157,23 @@
       "cluster_type": "asn_cohort",
       "signal": "NETWORK-SOLUTIONS-HOSTING - Network Solutions, LLC, US / 2026-03",
       "brand": "vlc",
-      "domain_count": 12,
+      "domain_count": 11,
       "domains": [
+        "mail.qtj.vlc.temporary.site",
         "mail.mdv.vlc.temporary.site",
         "mail.sxh.vlc.temporary.site",
         "mail.ptj.vlc.temporary.site",
         "mail.buv.vlc.temporary.site",
         "www.onthespotcleaning.net.uzg.vlc.temporary.site",
-        "mail.uxu.vlc.temporary.site",
-        "mail.rbl.vlc.temporary.site",
-        "mail.pnq.vlc.temporary.site",
-        "mail.til.vlc.temporary.site",
-        "mail.blenderwallet.app"
+        "mail.blenderwallet.app",
+        "gimpcontrole.com.br",
+        "steamcleaneverything.com",
+        "www.workerzoommeeting.com.tnwbrazil.com.br"
       ],
       "payload_families": [],
       "date_range": {
         "first": "2026-03-17T10:24:22.592Z",
-        "last": "2026-03-21T03:16:37.405Z"
+        "last": "2026-03-23T07:06:08.756Z"
       },
       "confidence": 60,
       "confidence_label": "medium",
@@ -1192,25 +1187,57 @@
     },
     {
       "cluster_type": "asn_cohort",
+      "signal": "UNIFIEDLAYER-AS-1 - Unified Layer, US / 2026-03",
+      "brand": "exodus",
+      "domain_count": 11,
+      "domains": [
+        "mail.svlclan.com",
+        "audacitytohomeschool.com",
+        "billybale.com.juicersandblenders.org",
+        "www.clublender.com",
+        "mail.emileclaudejunior.com",
+        "mail.exodustrans.com",
+        "webmail.exodustrans.com",
+        "app-dev.exoduserp.com.br",
+        "phantomwalle.info",
+        "mail.zoom-stevemadden.com"
+      ],
+      "payload_families": [],
+      "date_range": {
+        "first": "2026-03-13T14:27:52.627Z",
+        "last": "2026-03-23T06:33:36.655Z"
+      },
+      "confidence": 50,
+      "confidence_label": "medium",
+      "signal_breakdown": {
+        "cat1_payload_families": 0,
+        "cat1_file_type": 0,
+        "cat2_asn_cohort": 40,
+        "cat3_date_range_width": 10,
+        "methodology": "heuristic_v1"
+      }
+    },
+    {
+      "cluster_type": "asn_cohort",
       "signal": "GOOGLE - Google LLC, US / 2026-03",
       "brand": "metamask",
-      "domain_count": 12,
+      "domain_count": 10,
       "domains": [
-        "reduce90devlce.blogspot.com",
         "adputty.com.au",
         "blogimpresionanterd.blogspot.com",
+        "discord-archive-system.stellaverse-inc.com",
+        "signaldev604-bdjb.blogspot.com",
+        "www.steaminsteves.com",
         "minecraftindonesiatutorials.blogspot.com",
         "metamaskloginu.blogspot.com",
         "metamaskwalletcustomerservice.blogspot.com",
-        "metamaskwallett.blogspot.com",
-        "https-ledgerlive-com.blogspot.com",
-        "accountingzoom.com",
-        "zoom-wallpaper.blogspot.com"
+        "slack-auth.anymindgroup.com",
+        "mail.theslacksite.com"
       ],
       "payload_families": [],
       "date_range": {
         "first": "2026-03-11T21:48:34.115Z",
-        "last": "2026-03-21T22:25:23.641Z"
+        "last": "2026-03-23T05:52:38.131Z"
       },
       "confidence": 50,
       "confidence_label": "medium",
@@ -1224,57 +1251,24 @@
     },
     {
       "cluster_type": "asn_cohort",
-      "signal": "PODAON Podaon SIA, LV / 2026-03",
-      "brand": "telegram",
-      "domain_count": 12,
+      "signal": "OVH OVH SAS, FR / 2026-03",
+      "brand": "zoom",
+      "domain_count": 9,
       "domains": [
-        "www.telegram-vpn.space",
-        "www.telegramvpn.fun",
-        "www.telegram-vpn.top",
-        "www.telegram-vpn.fun",
-        "www.telegramvpn.click",
-        "www.protonvpn-official.homes",
-        "www.protonvpn-official.quest",
-        "www.protonvpn-official.cyou",
-        "www.protonvpn-official.space",
-        "www.protonvpn-official.fun"
+        "7-zip.fr",
+        "ivlc.com",
+        "www.audacity-conseil.fr",
+        "handbrake.es",
+        "assteam.be",
+        "steammarketapi.com",
+        "www.boardgamezoom.com.ripplexrpzone.com",
+        "boardgamezoom.com.ripplexrpzone.com",
+        "www.ezoomed.in"
       ],
       "payload_families": [],
       "date_range": {
-        "first": "2026-03-07T15:50:01.783Z",
-        "last": "2026-03-21T23:32:39.061Z"
-      },
-      "confidence": 50,
-      "confidence_label": "medium",
-      "signal_breakdown": {
-        "cat1_payload_families": 0,
-        "cat1_file_type": 0,
-        "cat2_asn_cohort": 40,
-        "cat3_date_range_width": 10,
-        "methodology": "heuristic_v1"
-      }
-    },
-    {
-      "cluster_type": "asn_cohort",
-      "signal": "FASTLY - Fastly, Inc., US / 2026-03",
-      "brand": "metamask",
-      "domain_count": 11,
-      "domains": [
-        "7-zip.opensource.jp",
-        "cpu-z-portable.softonic.com",
-        "teamviewer-portable.en.uptodown.com",
-        "alcalc.discordian.ca",
-        "claudenotifier.com",
-        "brosteam.com",
-        "micminecraft1.github.io",
-        "metamaskio.ghost.io",
-        "dev-supportmetamask.pantheonsite.io",
-        "protonvpn.en.uptodown.com"
-      ],
-      "payload_families": [],
-      "date_range": {
-        "first": "2026-03-03T03:43:32.099Z",
-        "last": "2026-03-22T05:36:59.956Z"
+        "first": "2026-03-02T16:10:54.166Z",
+        "last": "2026-03-23T06:54:24.280Z"
       },
       "confidence": 50,
       "confidence_label": "medium",

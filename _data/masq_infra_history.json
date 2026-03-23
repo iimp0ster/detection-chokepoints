@@ -202,5 +202,31 @@
     },
     "top_asns": [],
     "payload_families": []
+  },
+  "2026-13": {
+    "week": "2026-13",
+    "generated_at": "2026-03-23T07:38:10Z",
+    "total_domains": 0,
+    "campaigns_identified": 0,
+    "lets_encrypt_pct": 91.5,
+    "lure_types": {
+      "unknown": 820,
+      "crypto_wallet": 339,
+      "remote_work": 164,
+      "fake_ai_tool": 81,
+      "vpn_tool": 74,
+      "fake_software": 57,
+      "fake_update": 17,
+      "game_crack": 12,
+      "fake_tool": 7
+    },
+    "traffic_sources": {
+      "seo_bait": 917,
+      "typosquat": 427,
+      "redirected": 181,
+      "combosquat": 46
+    },
+    "top_asns": [],
+    "payload_families": []
   }
 }
