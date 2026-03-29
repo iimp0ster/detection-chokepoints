@@ -12,88 +12,112 @@ Techniques:
 DetectionPriority: CRITICAL
 ThreatPrevalence: HIGH
 DetectionDifficulty: LOW
-Description: 'Before encrypting files, ransomware operators stop and delete security tools, backup services, and database
-  engines to maximize impact and prevent recovery. This service manipulation phase is the last detectable warning before encryption
-  begins. The chokepoint is immutable: admin/SYSTEM privileges, service enumeration, and service stop/delete capability are
-  always required regardless of which ransomware family is executing. This pattern has remained consistent across all major
-  ransomware families from 2021 to present, with kill lists expanding but the core behavior unchanged.
+Description: 'Before encrypting files, ransomware operators stop and delete security
+  tools, backup services, and database engines to maximize impact and prevent recovery.
+  This service manipulation phase is the last detectable warning before encryption
+  begins. The chokepoint is immutable: admin/SYSTEM privileges, service enumeration,
+  and service stop/delete capability are always required regardless of which ransomware
+  family is executing. This pattern has remained consistent across all major ransomware
+  families from 2021 to present, with kill lists expanding but the core behavior unchanged.
 
   '
-LastUpdated: '2026-03-07'
+LastUpdated: '2026-03-29'
 Author: '@iimp0ster'
 Variations:
 - Name: BlackBasta
   FirstSeen: '2022'
   Status: Inactive
   SourceURL: https://reliaquest.com/blog/decline-and-legacy-of-black-basta-whats-next-ransomware-phishing/
-  NotesShort: Last victim posted January 2025; internal chat logs leaked February 2025; inactive by March 2025. Members migrated
-    to CACTUS and SafePay
-  Notes: Targets AV, EDR, Veeam backup, SQL databases; avg TTR 6-12 hours; last victim posted January 2025; internal Matrix
-    chat logs leaked February 2025; considered inactive by March 2025 after (196k messages) leaked by disgruntled member;
-    former members migrated to CACTUS and SafePay
+  NotesShort: Last victim posted January 2025; internal chat logs leaked February
+    2025; inactive by March 2025. Members migrated to CACTUS and SafePay
+  Notes: Targets AV, EDR, Veeam backup, SQL databases; avg TTR 6-12 hours; last victim
+    posted January 2025; internal Matrix chat logs leaked February 2025; considered
+    inactive by March 2025 after (196k messages) leaked by disgruntled member; former
+    members migrated to CACTUS and SafePay
   VariantId: blackbasta
 - Name: Alphv/BlackCat
   FirstSeen: '2021'
   Status: Defunct
   SourceURL: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-353a
-  NotesShort: FBI-disrupted December 2023; resumed operations, attacked Change Healthcare February 2024; exit-scammed affiliates
-    March 2024 after $22M ransom
-  Notes: Targets Sophos, Defender, VSS, SQL; cross-platform (Windows and Linux/ESXi); FBI disruption December 2023; exited
-    via scam March 2024 after $22M Change Healthcare ransom — leadership withheld affiliate commissions and shut down infrastructure
+  NotesShort: FBI-disrupted December 2023; resumed operations, attacked Change Healthcare
+    February 2024; exit-scammed affiliates March 2024 after $22M ransom
+  Notes: Targets Sophos, Defender, VSS, SQL; cross-platform (Windows and Linux/ESXi);
+    FBI disruption December 2023; exited via scam March 2024 after $22M Change Healthcare
+    ransom — leadership withheld affiliate commissions and shut down infrastructure
   VariantId: alphv-blackcat
 - Name: Akira
   FirstSeen: '2023'
   Status: Active
-  NotesShort: Prioritizes Defender and backup agents; targets VPN appliances for initial access
-  Notes: Prioritizes Defender and backup agents; targets VPN appliances for initial access
+  NotesShort: Prioritizes Defender and backup agents; targets VPN appliances for initial
+    access
+  Notes: Prioritizes Defender and backup agents; targets VPN appliances for initial
+    access
   VariantId: akira
 - Name: Qilin
   FirstSeen: '2022'
   Status: Active
   NotesShort: Rebranded from Agenda; surged with NHS/Synnovis attack June 2024
-  Notes: Originally tracked as Agenda (Golang); rebranded to Qilin and rewrote in Rust in 2022; fully operational RaaS by
-    February 2023; targets EDR, Veeam, databases; VMware ESXi variant active; surged to prominence with NHS/Synnovis attack
-    June 2024
+  Notes: Originally tracked as Agenda (Golang); rebranded to Qilin and rewrote in
+    Rust in 2022; fully operational RaaS by February 2023; targets EDR, Veeam, databases;
+    VMware ESXi variant active; surged to prominence with NHS/Synnovis attack June
+    2024
   VariantId: qilin
 - Name: LockBit 3.0
   FirstSeen: '2022'
   Status: Severely Disrupted
   SourceURL: https://www.trendmicro.com/en_us/research/24/d/operation-cronos-aftermath.html
-  NotesShort: Operation Cronos seized 28 servers and 1,000+ decryption keys; significantly disrupted
-  Notes: Comprehensive kill list (50+ services); Group Policy abuse for domain-wide deployment; Operation Cronos (February
-    2024) seized 28 servers, source code, and 1000+ decryption keys — significantly reduced operational capacity
+  NotesShort: Operation Cronos seized 28 servers and 1,000+ decryption keys; significantly
+    disrupted
+  Notes: Comprehensive kill list (50+ services); Group Policy abuse for domain-wide
+    deployment; Operation Cronos (February 2024) seized 28 servers, source code, and
+    1000+ decryption keys — significantly reduced operational capacity
   VariantId: lockbit-3-0
+- Name: GPO-Based Ransomware Distribution
+  FirstSeen: 2026-Q1
+  Status: Active
+  Notes: Attacker weaponized Group Policy Objects to first disable Defender protections
+    (behavioral monitoring, real-time protection) via a tampering GPO, then distributed
+    ransomware payload via GPO-pushed scheduled tasks across domain-joined devices.
+    Parallel SMB-based remote encryption was also attempted. Targeted a large educational
+    institution with 2000+ devices and 11 domain controllers.
 Prerequisites:
 - Admin or SYSTEM privileges already established on target system
-- Target security, backup, and database services are running (cannot stop what is not running)
+- Target security, backup, and database services are running (cannot stop what is
+  not running)
 Chokepoints:
 - Stage: Service Enumeration
-  Invariant: Actor enumerates running services to build the kill list via sc query, Get-Service, wmic, or equivalent
-  WhyCantBypass: Ransomware cannot stop what it cannot find — service enumeration precedes every observed kill sequence across
-    all documented families; sc.exe stop and delete require Admin or SYSTEM privileges, so no privilege escalation means immediate
-    failure before enumeration can complete
+  Invariant: Actor enumerates running services to build the kill list via sc query,
+    Get-Service, wmic, or equivalent
+  WhyCantBypass: Ransomware cannot stop what it cannot find — service enumeration
+    precedes every observed kill sequence across all documented families; sc.exe stop
+    and delete require Admin or SYSTEM privileges, so no privilege escalation means
+    immediate failure before enumeration can complete
   LogSources:
   - Sysmon Event ID 1 (sc.exe query / wmic service get / Get-Service)
   - Windows Security Event ID 4688 (Process Creation)
   DetectionTier: Research
   SigmaRef: sigma-rules/ransomware-service/research.yml
 - Stage: Service Stop and Disable
-  Invariant: Security, backup, and database services are stopped in rapid succession via sc.exe, net stop, taskkill, or WMI
-    StopService — multiple services within a short window
-  WhyCantBypass: Files locked by running services cannot be encrypted — stop must precede encryption in every observed ransomware
-    family without exception
+  Invariant: Security, backup, and database services are stopped in rapid succession
+    via sc.exe, net stop, taskkill, or WMI StopService — multiple services within
+    a short window
+  WhyCantBypass: Files locked by running services cannot be encrypted — stop must
+    precede encryption in every observed ransomware family without exception
   LogSources:
   - Windows System Event ID 7036 (Service State Change — stopped)
   - Windows System Event ID 7040 (Service Start Type Changed — disabled)
   - Sysmon Event ID 1 (sc.exe / net.exe / taskkill.exe process creation)
   DetectionTier: Hunt
   SigmaRef: sigma-rules/ransomware-service/hunt.yml
-  BypassNote: Purpose-built EDR killers (BYOVD drivers, EDRKillShifter) bypass service-stop detection by killing the EDR process
-    at kernel level — monitor Sysmon EID 6 for suspicious driver loads immediately before bulk service termination
+  BypassNote: Purpose-built EDR killers (BYOVD drivers, EDRKillShifter) bypass service-stop
+    detection by killing the EDR process at kernel level — monitor Sysmon EID 6 for
+    suspicious driver loads immediately before bulk service termination
 - Stage: Service Deletion
-  Invariant: Stopped services are deleted or permanently disabled to prevent automatic restart during the encryption phase
-  WhyCantBypass: Without deletion, Windows service recovery policies restart stopped services and interfere with encryption
-    — deletion is confirmed across all major documented families
+  Invariant: Stopped services are deleted or permanently disabled to prevent automatic
+    restart during the encryption phase
+  WhyCantBypass: Without deletion, Windows service recovery policies restart stopped
+    services and interfere with encryption — deletion is confirmed across all major
+    documented families
   LogSources:
   - Sysmon Event ID 1 (sc.exe delete / sc.exe config start= disabled)
   - Windows System Event ID 7036 (service removed)
@@ -102,90 +126,124 @@ Chokepoints:
 EvolutionTimeline:
 - Date: 2021-Q2
   Event: Database services added to kill lists
-  Change: SQL Server, MySQL, and PostgreSQL services added to kill lists to release file locks before encryption.
+  Change: SQL Server, MySQL, and PostgreSQL services added to kill lists to release
+    file locks before encryption.
   DetectionImpact: Database service monitoring becomes a required detection component
   Variants: []
   EventType: event
 - Date: 2022-Q3
   Event: Multi-vendor EDR evasion; kill lists expand to 50+ security products
-  Change: Kill lists expand to 50+ security products covering all major AV/EDR; threshold-based detection required.
-  DetectionImpact: Cannot rely on specific product name matches; threshold-based detection required
+  Change: Kill lists expand to 50+ security products covering all major AV/EDR; threshold-based
+    detection required.
+  DetectionImpact: Cannot rely on specific product name matches; threshold-based detection
+    required
   Variants: []
   EventType: event
 - Date: 2023-Q4
   Event: Backup services prioritized ahead of AV/EDR in kill sequence
-  Change: Veeam, Acronis, and Windows Backup targeted before AV/EDR; backup service monitoring becomes highest-priority signal.
+  Change: Veeam, Acronis, and Windows Backup targeted before AV/EDR; backup service
+    monitoring becomes highest-priority signal.
   DetectionImpact: Backup service monitoring becomes highest priority signal
   Variants: []
   EventType: event
 - Date: 2024-Q2
   Event: ESXi hypervisor service targeting increases
-  Change: VM-based service disruption targets vmware-hostd, vpxa, vsanmgmtd; ESXi-specific logging required.
-  DetectionImpact: ESXi-specific logging (vSphere/vCenter) required; endpoint detection insufficient
+  Change: VM-based service disruption targets vmware-hostd, vpxa, vsanmgmtd; ESXi-specific
+    logging required.
+  DetectionImpact: ESXi-specific logging (vSphere/vCenter) required; endpoint detection
+    insufficient
   Variants: []
   EventType: event
 - Date: 2024-Q3
   Event: Purpose-built EDR killer tooling becomes standard
-  Change: RansomHub ships EDRKillShifter; DeadLock embeds a weaponized Baidu driver; ~25% of 2024 ransomware attacks incorporated
-    purpose-built EDR disablement.
-  DetectionImpact: Cannot rely on known-bad driver hashes alone; monitor for driver load events (Sysmon EID 6) of unsigned
-    or recently signed drivers immediately before service manipulation
+  Change: RansomHub ships EDRKillShifter; DeadLock embeds a weaponized Baidu driver;
+    ~25% of 2024 ransomware attacks incorporated purpose-built EDR disablement.
+  DetectionImpact: Cannot rely on known-bad driver hashes alone; monitor for driver
+    load events (Sysmon EID 6) of unsigned or recently signed drivers immediately
+    before service manipulation
   Variants: []
   EventType: event
+- Date: 2026-Q1
+  Event: GPO-based ransomware distribution via scheduled tasks
+  Change: Instead of directly stopping/deleting services on each endpoint, the attacker
+    used GPO to push a domain-wide tampering policy that disabled Defender protections,
+    then used a second GPO to distribute ransomware via scheduled tasks — achieving
+    mass deployment without touching each machine individually. This is a shift from
+    per-host service manipulation to centralized AD-based distribution.
+  DetectionImpact: Existing per-host service stop/delete detections may miss this
+    since the tampering comes via legitimate Group Policy client (svchost.exe/gpupdate)
+    rather than direct sc.exe/net stop commands. Detection must monitor for malicious
+    GPO creation on domain controllers and GPO-pushed scheduled task creation.
+  TheConstant: Admin/SYSTEM privileges are still required (Domain Admin in this case);
+    security services must still be disabled before encryption; the endpoint still
+    processes service configuration changes that are observable at the kernel level.
 Detections:
 - Level: Research
   Description: Identify security or backup service state changes (stopped)
   LogSources:
   - Windows System Event ID 7036 (Service State Change)
   - Windows System Event ID 7040 (Service Start Type Change)
-  Logic: 'Event ID: 7036 Service Name: Contains "sophos" OR "defender" OR "veeam" OR "backup" OR "antivirus" State: Stopped
+  Logic: 'Event ID: 7036 Service Name: Contains "sophos" OR "defender" OR "veeam"
+    OR "backup" OR "antivirus" State: Stopped
 
     '
   ExpectedFPRate: High
-  UseCase: Baseline service stop frequency and patterns; identify maintenance windows vs. anomalies
+  UseCase: Baseline service stop frequency and patterns; identify maintenance windows
+    vs. anomalies
   SigmaRule: sigma-rules/ransomware-service/research.yml
 - Level: Hunt
-  Description: Service stop + delete combination for security or backup services in rapid succession
+  Description: Service stop + delete combination for security or backup services in
+    rapid succession
   LogSources:
   - Windows System Event ID 7036 (Service State Change)
   - Windows System Event ID 7040 (Service Start Type Change)
   - Sysmon Event ID 1 (Process Creation for sc.exe, net.exe)
-  Logic: 'Process: sc.exe OR net.exe OR powershell.exe OR taskkill.exe CommandLine: "stop" AND (service keyword in: sophos,
-    defender, veeam, backup, acronis, mssql, mysql) Within 60 seconds: Same or related service: "delete" OR "disabled" via
-    sc.exe OR: 3+ security/backup services stopped within 5-minute window from same process/session
+  Logic: 'Process: sc.exe OR net.exe OR powershell.exe OR taskkill.exe CommandLine:
+    "stop" AND (service keyword in: sophos, defender, veeam, backup, acronis, mssql,
+    mysql) Within 60 seconds: Same or related service: "delete" OR "disabled" via
+    sc.exe OR: 3+ security/backup services stopped within 5-minute window from same
+    process/session
 
     '
   ExpectedFPRate: Medium
-  UseCase: Hunt for ransomware preparation activity; identifies pre-encryption service manipulation
+  UseCase: Hunt for ransomware preparation activity; identifies pre-encryption service
+    manipulation
   SigmaRule: sigma-rules/ransomware-service/hunt.yml
 - Level: Analyst
-  Description: Network logon + bulk service termination targeting specific security/backup services within a tight window
+  Description: Network logon + bulk service termination targeting specific security/backup
+    services within a tight window
   LogSources:
   - Sysmon Event ID 1 (Process Creation)
   - Windows Security Event ID 4624 (Logon)
   - Windows System Event ID 7036 (Service State)
   - Windows System Event ID 7040/7045 (Service Config)
-  Logic: "Source: Network Logon (4624, LogonType 3) OR local admin session Process: sc.exe OR net.exe OR taskkill.exe Services\
-    \ stopped (5 or more within 10-minute window), targeting:\n  Security: SophosFileScanner OR SAVService OR WinDefend OR\
-    \ Sense OR MsMpEng\n  Backup: Veeam* OR VeeamDeploymentService OR VSS OR wbengine OR *acronis*\n  Database: MSSQL* OR\
-    \ SQLWriter OR MySQL* OR postgresql*\nService delete: Attempted within 2 minutes of service stop Context: After-hours\
-    \ activity (outside 08:00-18:00 local) OR unusual source IP\n"
+  Logic: "Source: Network Logon (4624, LogonType 3) OR local admin session Process:\
+    \ sc.exe OR net.exe OR taskkill.exe Services stopped (5 or more within 10-minute\
+    \ window), targeting:\n  Security: SophosFileScanner OR SAVService OR WinDefend\
+    \ OR Sense OR MsMpEng\n  Backup: Veeam* OR VeeamDeploymentService OR VSS OR wbengine\
+    \ OR *acronis*\n  Database: MSSQL* OR SQLWriter OR MySQL* OR postgresql*\nService\
+    \ delete: Attempted within 2 minutes of service stop Context: After-hours activity\
+    \ (outside 08:00-18:00 local) OR unusual source IP\n"
   ExpectedFPRate: Low
-  UseCase: SOC alerting; ransomware pre-encryption detection with minimal time to respond
+  UseCase: SOC alerting; ransomware pre-encryption detection with minimal time to
+    respond
   SigmaRule: sigma-rules/ransomware-service/analyst.yml
 Intel:
 - Name: Kaspersky Common TTPs of Modern Ransomware
   Tier: primary
   URL: https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf
-  Description: Comprehensive analysis of service kill lists across major ransomware families
+  Description: Comprehensive analysis of service kill lists across major ransomware
+    families
 - Name: 'MITRE ATT&CK — T1562.001 Impair Defenses: Disable or Modify Tools'
   Tier: primary
   URL: https://attack.mitre.org/techniques/T1562/001/
-  Description: Technique definition, procedure examples, and detection guidance for disabling or modifying security tools
+  Description: Technique definition, procedure examples, and detection guidance for
+    disabling or modifying security tools
 - Name: MITRE ATT&CK — T1489 Service Stop
   Tier: primary
   URL: https://attack.mitre.org/techniques/T1489/
-  Description: Technique definition, procedure examples, and detection guidance for stopping services to impair system recovery
+  Description: Technique definition, procedure examples, and detection guidance for
+    stopping services to impair system recovery
 RelatedChokepoints:
 - remote-execution-tools
 - clickfix-techniques
@@ -193,37 +251,46 @@ OsintSources:
 - Platform: VirusTotal Intelligence
   Query: behavior_processes:"sc.exe" tag:ransomware
   URL: https://www.virustotal.com/gui/search/behavior_processes%3A%22sc.exe%22%20tag%3Aransomware
-  Notes: Requires VT Intelligence subscription; pivot to the behavior tab to extract the full service kill list for each ransomware
-    family and feed service names into the analyst Sigma rule.
+  Notes: Requires VT Intelligence subscription; pivot to the behavior tab to extract
+    the full service kill list for each ransomware family and feed service names into
+    the analyst Sigma rule.
 - Platform: GitHub Code Search
   Query: '"net stop" "sc delete" ransomware path:*.ps1 OR path:*.bat OR path:*.txt'
   URL: https://github.com/search?q=%22net+stop%22+%22sc+delete%22+ransomware&type=code
-  Notes: Finds researcher-published kill lists extracted from decompiled ransomware samples; update the analyst rule's service
-    name list whenever new families are documented.
+  Notes: Finds researcher-published kill lists extracted from decompiled ransomware
+    samples; update the analyst rule's service name list whenever new families are
+    documented.
 - Platform: ANY.RUN Public Feed
   URL: https://app.any.run/submissions#status=public&tag=ransomware
-  Notes: Public ransomware task feed; filter to recent submissions and inspect process trees to see sc.exe and net.exe child
-    process chains without a local sandbox.
+  Notes: Public ransomware task feed; filter to recent submissions and inspect process
+    trees to see sc.exe and net.exe child process chains without a local sandbox.
 - Platform: Ransomware.live
   URL: https://www.ransomware.live
-  Notes: Real-time ransomware group activity tracker; use to identify currently active families and prioritize hunting for
-    their service kill lists.
+  Notes: Real-time ransomware group activity tracker; use to identify currently active
+    families and prioritize hunting for their service kill lists.
 KnownBypasses:
 - Bypass: Tamper protection enabled on EDR (requires kernel-level access to disable)
-  Mitigation: Enable tamper protection on all EDR products; require a signed kernel driver to disable it.
+  Mitigation: Enable tamper protection on all EDR products; require a signed kernel
+    driver to disable it.
 - Bypass: Renaming service before stopping (evades name-based filters)
-  Mitigation: Allowlist by service binary path rather than service name; alert on service config changes before stop.
+  Mitigation: Allowlist by service binary path rather than service name; alert on
+    service config changes before stop.
 - Bypass: Process termination (taskkill /F) instead of service stop
   Mitigation: Enable Protected Process Light (PPL) for EDR processes.
-- Bypass: WMI or PowerShell-based service stop (evades sc.exe/net.exe process-creation detections)
-  Mitigation: Monitor WMI activity broadly and restrict WMI remoting via host firewall where not operationally required.
-- Bypass: Purpose-built EDR killer tools (EDRKillShifter, weaponized drivers bundled with ransomware)
-  Mitigation: Enable HVCI and the Microsoft Vulnerable Driver Blocklist; enforce driver signing policy.
+- Bypass: WMI or PowerShell-based service stop (evades sc.exe/net.exe process-creation
+    detections)
+  Mitigation: Monitor WMI activity broadly and restrict WMI remoting via host firewall
+    where not operationally required.
+- Bypass: Purpose-built EDR killer tools (EDRKillShifter, weaponized drivers bundled
+    with ransomware)
+  Mitigation: Enable HVCI and the Microsoft Vulnerable Driver Blocklist; enforce driver
+    signing policy.
 RawLogs:
 - Type: Sysmon
   EventId: 1
   Source: Microsoft-Windows-Sysmon/Operational
-  Description: sc.exe used to stop a backup service - first service in rapid bulk-stop sequence
+  Description: sc.exe used to stop a backup service - first service in rapid bulk-stop
+    sequence
   MatchedRules:
   - Hunt
   - Analyst
@@ -243,7 +310,8 @@ RawLogs:
 - Type: Windows Event Log
   EventId: 7036
   Source: Service Control Manager
-  Description: Veeam backup service stopped as part of ransomware pre-encryption service kill
+  Description: Veeam backup service stopped as part of ransomware pre-encryption service
+    kill
   MatchedRules:
   - Research
   - Hunt
@@ -320,7 +388,10 @@ RawLogs:
 EmulationScript:
   File: emulation/ransomware-service-manipulation/emulate.ps1
   Language: powershell
-  Description: Simulates bulk service stop, disable, and delete pattern used by ransomware pre-encryption
-  SafetyNotes: Requires Administrator. Creates dummy test services. Optionally targets VSS. Lab VM only.
+  Description: Simulates bulk service stop, disable, and delete pattern used by ransomware
+    pre-encryption
+  SafetyNotes: Requires Administrator. Creates dummy test services. Optionally targets
+    VSS. Lab VM only.
   AtomicRef: T1562.001
-TheConstant: SYSTEM-level process → service enumeration → bulk service stop/delete → encryption begins
+TheConstant: SYSTEM-level process → service enumeration → bulk service stop/delete
+  → encryption begins
