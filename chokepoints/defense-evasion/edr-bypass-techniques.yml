@@ -15,16 +15,20 @@ Techniques:
 DetectionPriority: CRITICAL
 ThreatPrevalence: HIGH
 DetectionDifficulty: HIGH
-Description: 'Adversaries impair or neutralize EDR/AV products before executing their primary payload to prevent detection
-  and response. Techniques span from user-mode API unhooking (removing hooks EDRs inject into ntdll.dll) through kernel-level
-  driver exploitation (BYOVD, Bring Your Own Vulnerable Driver) to direct process termination of security tools. Despite
-  the diversity of techniques, the chokepoint is invariant: admin/SYSTEM privileges are always required, and the bypass mechanism
-  always produces a kernel-observable artifact. This is a driver load event, a VirtualProtect call against protected system memory,
-  or direct termination of a security process. As of 2024, approximately 48% of high-severity ransomware attacks incorporate
-  purpose-built EDR disablement (Cisco Talos). BYOVD has become a de facto phase in major ransomware deployment chains.
+Description: 'Adversaries impair or neutralize EDR/AV products before executing their
+  primary payload to prevent detection and response. Techniques span from user-mode
+  API unhooking (removing hooks EDRs inject into ntdll.dll) through kernel-level driver
+  exploitation (BYOVD, Bring Your Own Vulnerable Driver) to direct process termination
+  of security tools. Despite the diversity of techniques, the chokepoint is invariant:
+  admin/SYSTEM privileges are always required, and the bypass mechanism always produces
+  a kernel-observable artifact. This is a driver load event, a VirtualProtect call
+  against protected system memory, or direct termination of a security process. As
+  of 2024, approximately 48% of high-severity ransomware attacks incorporate purpose-built
+  EDR disablement (Cisco Talos). BYOVD has become a de facto phase in major ransomware
+  deployment chains.
 
   '
-LastUpdated: '2026-03-12'
+LastUpdated: '2026-05-17'
 Author: '@iimp0ster'
 Variations:
 - Name: BYOVD — EDRKillShifter
@@ -32,80 +36,96 @@ Variations:
   Status: Active
   SourceURL: https://www.sophos.com/en-us/blog/edr-kill-shifter/
   NotesShort: RansomHub Go-based loader; decrypts embedded driver with 64-char password
-  Notes: 'Deployed by RansomHub (August 2024); Go-based loader that decrypts an embedded payload and exploits multiple vulnerable
-    kernel drivers in sequence to remove EDR callbacks. Subsequently adopted by Play, Medusa, and BianLian. Requires admin
-    privileges and a password string to decrypt the embedded driver payload.'
+  Notes: Deployed by RansomHub (August 2024); Go-based loader that decrypts an embedded
+    payload and exploits multiple vulnerable kernel drivers in sequence to remove
+    EDR callbacks. Subsequently adopted by Play, Medusa, and BianLian. Requires admin
+    privileges and a password string to decrypt the embedded driver payload.
   VariantId: byovd-edrkillshifter
   Command:
-    Invocation: 'EDRKillShifter.exe <64-char-password-string>'
-    Context: 'Deployed as a pre-ransomware step. Attacker already has admin privileges. Password decrypts embedded vulnerable
-      driver payload. Second stage uses self-modifying code (runtime instruction rewriting).'
+    Invocation: EDRKillShifter.exe <64-char-password-string>
+    Context: Deployed as a pre-ransomware step. Attacker already has admin privileges.
+      Password decrypts embedded vulnerable driver payload. Second stage uses self-modifying
+      code (runtime instruction rewriting).
     Artifacts:
     - 'Sysmon EID 11: .sys file written to %TEMP% with random 4-10 char name'
     - 'Sysmon EID 6: Unsigned or newly signed driver loaded'
     - 'Sysmon EID 1: EDRKillShifter.exe (or renamed) with long password argument'
     - 'Windows System EID 7045: New service installed for the dropped driver'
-    - 'Process termination of EDR processes (MsMpEng.exe, CSFalconService.exe, etc.)'
-  ChokepointMapping: 'admin privileges → driver written to TEMP → driver loaded as service (EID 6) → EDR process termination'
+    - Process termination of EDR processes (MsMpEng.exe, CSFalconService.exe, etc.)
+  ChokepointMapping: admin privileges → driver written to TEMP → driver loaded as
+    service (EID 6) → EDR process termination
 - Name: BYOVD — Terminator (Spyboy)
   FirstSeen: 2023-Q1
   Status: Active
   SourceURL: https://www.sentinelone.com/blog/terminator-edr-killer-spyboy-detecting-and-preventing-a-windows-byovd-attack/
   NotesShort: Sold on RAMP forum; exploits Zemana zam64.sys to kill 23+ EDR/AV products
-  Notes: 'Sold on Russian forum RAMP for $300-$3,000; exploits vulnerable Zemana antimalware driver (zam64.sys, CVE-2022-42045) to kill 23+ EDR/AV products including CrowdStrike, Sophos, Defender, ESET, and Kaspersky. Open-source
-    clones (SharpTerminator, Ternimator) widely available by 2024.'
+  Notes: Sold on Russian forum RAMP for $300-$3,000; exploits vulnerable Zemana antimalware
+    driver (zam64.sys, CVE-2022-42045) to kill 23+ EDR/AV products including CrowdStrike,
+    Sophos, Defender, ESET, and Kaspersky. Open-source clones (SharpTerminator, Ternimator)
+    widely available by 2024.
   VariantId: byovd-terminator-spyboy
   Command:
-    Invocation: "Terminator.exe\n  \u2192 drops zam64.sys as C:\\Windows\\System32\\drivers\\<random>.sys\n  \u2192 sc create
-      <random_name> type=kernel binPath=C:\\Windows\\System32\\drivers\\<random>.sys\n  \u2192 sc start <random_name>\n  \u2192
-      IOCTL 0x80002010 (register PID as trusted)\n  \u2192 IOCTL to terminate target PIDs"
-    Context: 'Requires admin privileges and UAC acceptance. Drops the legitimate Zemana anti-malware driver with a randomized
-      filename to System32\drivers.'
+    Invocation: "Terminator.exe\n  → drops zam64.sys as C:\\Windows\\System32\\drivers\\\
+      <random>.sys\n  → sc create <random_name> type=kernel binPath=C:\\Windows\\\
+      System32\\drivers\\<random>.sys\n  → sc start <random_name>\n  → IOCTL 0x80002010\
+      \ (register PID as trusted)\n  → IOCTL to terminate target PIDs"
+    Context: Requires admin privileges and UAC acceptance. Drops the legitimate Zemana
+      anti-malware driver with a randomized filename to System32\drivers.
     Artifacts:
     - 'Sysmon EID 11: zam64.sys content written with random filename to System32\drivers'
     - 'Sysmon EID 6: Driver loaded, signed by "Zemana Ltd."'
     - 'Windows System EID 7045: New kernel service created'
     - 'Sysmon EID 1: Process creation with admin/SYSTEM context'
-    - 'Multiple EDR process terminations in rapid succession'
-  ChokepointMapping: 'admin + UAC acceptance → Zemana driver dropped to System32 → driver loaded as service (EID 6) → IOCTL-based EDR process kill'
+    - Multiple EDR process terminations in rapid succession
+  ChokepointMapping: admin + UAC acceptance → Zemana driver dropped to System32 →
+    driver loaded as service (EID 6) → IOCTL-based EDR process kill
 - Name: BYOVD — AuKill
   FirstSeen: 2023-Q1
   Status: Active
   SourceURL: https://www.sophos.com/en-us/blog/aukill-edr-killer-malware-abuses-process-explorer-driver/
-  NotesShort: Abuses Process Explorer driver v16.32; observed in Medusa Locker and LockBit
-  Notes: 'Uses Microsoft Process Explorer driver v16.32 (PROCEXP.SYS). Observed in Medusa Locker and LockBit ransomware
-    deployments since January 2023. Based on the open-source Backstab tool.'
+  NotesShort: Abuses Process Explorer driver v16.32; observed in Medusa Locker and
+    LockBit
+  Notes: Uses Microsoft Process Explorer driver v16.32 (PROCEXP.SYS). Observed in
+    Medusa Locker and LockBit ransomware deployments since January 2023. Based on
+    the open-source Backstab tool.
   VariantId: byovd-aukill
   Command:
-    Invocation: "AuKill.exe startkey\n  \u2192 copies self to C:\\Windows\\System32\\\n  \u2192 drops PROCEXP.SYS to
-      C:\\Windows\\System32\\drivers\\\n  \u2192 impersonates TrustedInstaller.exe for SYSTEM escalation\n  \u2192 sc create
-      / sc start for PROCEXP driver\n  \u2192 enters loop: TerminateViaProcexp() against EDR PIDs"
-    Context: 'Checks for admin rights; if not SYSTEM, impersonates TrustedInstaller. V6+ also unloads EDR drivers to
-      break installation completely.'
+    Invocation: "AuKill.exe startkey\n  → copies self to C:\\Windows\\System32\\\n\
+      \  → drops PROCEXP.SYS to C:\\Windows\\System32\\drivers\\\n  → impersonates\
+      \ TrustedInstaller.exe for SYSTEM escalation\n  → sc create / sc start for PROCEXP\
+      \ driver\n  → enters loop: TerminateViaProcexp() against EDR PIDs"
+    Context: Checks for admin rights; if not SYSTEM, impersonates TrustedInstaller.
+      V6+ also unloads EDR drivers to break installation completely.
     Artifacts:
-    - 'Sysmon EID 11: PROCEXP.SYS written to System32\drivers (legitimate PE signed by Microsoft)'
+    - 'Sysmon EID 11: PROCEXP.SYS written to System32\drivers (legitimate PE signed
+      by Microsoft)'
     - 'Sysmon EID 6: Process Explorer driver loaded (v16.32, not current v152)'
     - 'Sysmon EID 1: AuKill process with "startkey" command-line argument'
     - 'Sysmon EID 1: TrustedInstaller impersonation activity'
     - 'Windows System EID 7045: Service install for PROCEXP driver'
     - 'Windows System EID 7036: EDR services transitioning to stopped state'
-  ChokepointMapping: 'admin → TrustedInstaller impersonation → PROCEXP.SYS dropped and loaded (EID 6) → EDR processes and services terminated'
+  ChokepointMapping: admin → TrustedInstaller impersonation → PROCEXP.SYS dropped
+    and loaded (EID 6) → EDR processes and services terminated
 - Name: BYOVD — POORTRY / STONESTOP
   FirstSeen: 2022-Q4
   Status: Active
   SourceURL: https://www.sophos.com/en-us/blog/burnt-cigar-2/
-  NotesShort: Purpose-built malicious driver with stolen certs; EDR wiper capability since 2024
-  Notes: 'Custom-built kernel driver (POORTRY) with dedicated userland loader (STONESTOP). Not a repurposed vulnerable
-    driver. It is a purpose-built malicious driver signed with stolen/forged certificates. Used by Cuba, BlackCat, Medusa, LockBit,
-    RansomHub. Evolved from process termination to full EDR file wiping in 2024.'
+  NotesShort: Purpose-built malicious driver with stolen certs; EDR wiper capability
+    since 2024
+  Notes: Custom-built kernel driver (POORTRY) with dedicated userland loader (STONESTOP).
+    Not a repurposed vulnerable driver. It is a purpose-built malicious driver signed
+    with stolen/forged certificates. Used by Cuba, BlackCat, Medusa, LockBit, RansomHub.
+    Evolved from process termination to full EDR file wiping in 2024.
   VariantId: byovd-poortry-stonestop
   Command:
-    Invocation: "Stonestop.exe (packed with ASMGuard/VMProtect/Themida)\n  \u2192 drops POORTRY driver (masquerades as
-      idmtdi.sys / Internet Download Manager)\n  \u2192 driver signed with stolen cert (rotates: \"bopsoft\", \"Evangel
-      Technology\", \"FEI XIAO\", etc.)\n  \u2192 sends IOCTLs to:\n    a) Remove kernel notify callbacks\n    b) Terminate
-      EDR processes\n    c) Delete EDR files from disk (2024+ capability)"
-    Context: 'Certificate roulette: multiple variants with different certs deployed in same attack. 2024+: deletes EDR
-      executable files and DLLs from disk. Operates in two deletion modes: by file type or by specific filename.'
+    Invocation: "Stonestop.exe (packed with ASMGuard/VMProtect/Themida)\n  → drops\
+      \ POORTRY driver (masquerades as idmtdi.sys / Internet Download Manager)\n \
+      \ → driver signed with stolen cert (rotates: \"bopsoft\", \"Evangel Technology\"\
+      , \"FEI XIAO\", etc.)\n  → sends IOCTLs to:\n    a) Remove kernel notify callbacks\n\
+      \    b) Terminate EDR processes\n    c) Delete EDR files from disk (2024+ capability)"
+    Context: 'Certificate roulette: multiple variants with different certs deployed
+      in same attack. 2024+: deletes EDR executable files and DLLs from disk. Operates
+      in two deletion modes: by file type or by specific filename.'
     Artifacts:
     - 'Sysmon EID 11: Driver file dropped, masquerading as legitimate software driver'
     - 'Sysmon EID 6: Driver loaded with non-standard or recently issued certificate'
@@ -113,199 +133,271 @@ Variations:
     - 'Windows System EID 7034: EDR service terminated unexpectedly'
     - 'Sysmon EID 23/26: File deletion events for EDR components'
     - 'Security EID 4616: System time changed (timestamp forging for DSE bypass)'
-  ChokepointMapping: 'admin → Stonestop drops POORTRY driver → driver loaded with forged/stolen cert (EID 6) → kernel callbacks removed → EDR processes killed → EDR files deleted'
+  ChokepointMapping: admin → Stonestop drops POORTRY driver → driver loaded with forged/stolen
+    cert (EID 6) → kernel callbacks removed → EDR processes killed → EDR files deleted
 - Name: Kernel Callback Removal (EDRSandblast)
   FirstSeen: 2022-Q1
   Status: Active
   SourceURL: https://github.com/wavestone-cdt/EDRSandblast
   NotesShort: Removes kernel callbacks without killing EDR processes. EDR runs blind.
-  Notes: 'Directly removes registered kernel callbacks (PsSetCreateProcessNotifyRoutine, PsSetLoadImageNotifyRoutine) from
-    the kernel callback array, blinding EDRs at the kernel level without killing their processes. Uses hardcoded kernel
-    offsets to avoid BSOD. Absence of expected callbacks is detectable via memory analysis.'
+  Notes: Directly removes registered kernel callbacks (PsSetCreateProcessNotifyRoutine,
+    PsSetLoadImageNotifyRoutine) from the kernel callback array, blinding EDRs at
+    the kernel level without killing their processes. Uses hardcoded kernel offsets
+    to avoid BSOD. Absence of expected callbacks is detectable via memory analysis.
   VariantId: kernel-callback-removal-edrsandblast
   Command:
-    Invocation: "EDRSandblast.exe [--usermode | --kernelmode | --all]\n  \u2192 uses ntoskrnl.exe offsets database to
-      locate callback arrays\n  \u2192 patches PsSetCreateProcessNotifyRoutine callbacks\n  \u2192 patches
-      PsSetLoadImageNotifyRoutine callbacks\n  \u2192 patches CmRegisterCallback callbacks\n  \u2192 optionally unhooks
-      SSDT entries"
-    Context: 'EDR processes continue running but receive no kernel notifications. No process termination events —
-      EDR stays alive but blinded.'
+    Invocation: "EDRSandblast.exe [--usermode | --kernelmode | --all]\n  → uses ntoskrnl.exe\
+      \ offsets database to locate callback arrays\n  → patches PsSetCreateProcessNotifyRoutine\
+      \ callbacks\n  → patches PsSetLoadImageNotifyRoutine callbacks\n  → patches\
+      \ CmRegisterCallback callbacks\n  → optionally unhooks SSDT entries"
+    Context: EDR processes continue running but receive no kernel notifications. No
+      process termination events — EDR stays alive but blinded.
     Artifacts:
     - 'Sysmon EID 6: Vulnerable driver loaded (used for kernel R/W)'
     - 'Sysmon EID 1: EDRSandblast execution with --kernelmode or --all flags'
-    - 'Memory analysis: Absence of expected kernel callbacks (PsNotifyRoutine array zeroed)'
-    - 'No process termination events. EDR processes stay alive but blinded.'
-  ChokepointMapping: 'admin → vulnerable driver loaded for kernel R/W → kernel callback arrays patched → EDR blinded (no process/image notifications)'
+    - 'Memory analysis: Absence of expected kernel callbacks (PsNotifyRoutine array
+      zeroed)'
+    - No process termination events. EDR processes stay alive but blinded.
+  ChokepointMapping: admin → vulnerable driver loaded for kernel R/W → kernel callback
+    arrays patched → EDR blinded (no process/image notifications)
 - Name: PPL Abuse (PPLKiller / PPLdump)
   FirstSeen: 2020-Q4
   Status: Active
   SourceURL: https://github.com/RedCursorSecurityConsulting/PPLKiller
   NotesShort: Strips Protected Process Light attribute from security processes
-  Notes: 'Protected Process Light (PPL) guards LSA and security processes from user-mode attacks. PPLKiller uses a kernel
-    driver to strip PPL protection, enabling termination of EDR processes and LSASS dumping even with RunAsPPL enabled.
-    PPLdump was patched by Microsoft; PPLKiller and Ghost-in-the-PPL variants remain active.'
+  Notes: Protected Process Light (PPL) guards LSA and security processes from user-mode
+    attacks. PPLKiller uses a kernel driver to strip PPL protection, enabling termination
+    of EDR processes and LSASS dumping even with RunAsPPL enabled. PPLdump was patched
+    by Microsoft; PPLKiller and Ghost-in-the-PPL variants remain active.
   VariantId: ppl-abuse-pplkiller-ppldump
   Command:
-    Invocation: "PPLKiller.exe /installDriver\nPPLKiller.exe /disablePPL <target_pid>\nPPLKiller.exe /dumpProcess
-      <target_pid>"
-    Context: 'Requires kernel-level access (typically via BYOVD). Modifies the _PS_PROTECTION field in the target
-      process EPROCESS structure to remove PPL flag.'
+    Invocation: 'PPLKiller.exe /installDriver
+
+      PPLKiller.exe /disablePPL <target_pid>
+
+      PPLKiller.exe /dumpProcess <target_pid>'
+    Context: Requires kernel-level access (typically via BYOVD). Modifies the _PS_PROTECTION
+      field in the target process EPROCESS structure to remove PPL flag.
     Artifacts:
     - 'Sysmon EID 6: Vulnerable driver loaded'
     - 'Sysmon EID 1: PPLKiller/PPLdump execution with PID argument'
-    - 'Sysmon EID 10: Process access to formerly-protected process with full access rights'
-    - 'Process termination of PPL-protected EDR process'
-  ChokepointMapping: 'admin → vulnerable driver for kernel R/W → PPL flag stripped from EPROCESS → EDR process terminated or dumped'
+    - 'Sysmon EID 10: Process access to formerly-protected process with full access
+      rights'
+    - Process termination of PPL-protected EDR process
+  ChokepointMapping: admin → vulnerable driver for kernel R/W → PPL flag stripped
+    from EPROCESS → EDR process terminated or dumped
 - Name: User-mode Unhooking (ntdll Fresh Copy)
   FirstSeen: 2020-Q1
   Status: Active
   SourceURL: https://www.ired.team/offensive-security/defense-evasion/how-to-unhook-a-dll-using-c++
   NotesShort: Loads clean ntdll.dll from disk to bypass EDR userland hooks
-  Notes: 'EDRs inject hooks into ntdll.dll at process startup to intercept syscalls. Attackers restore the original (unhooked)
-    ntdll.dll by reading a clean copy from a suspended process or directly from disk, then overwriting the hooked version.
-    Eliminates all user-mode EDR visibility without touching the kernel.'
+  Notes: EDRs inject hooks into ntdll.dll at process startup to intercept syscalls.
+    Attackers restore the original (unhooked) ntdll.dll by reading a clean copy from
+    a suspended process or directly from disk, then overwriting the hooked version.
+    Eliminates all user-mode EDR visibility without touching the kernel.
   VariantId: user-mode-unhooking-ntdll-fresh-copy
   Command:
-    Invocation: "# Embedded in malware. No standalone CLI.\nntdll_base = LoadLibraryEx(\"C:\\\\Windows\\\\System32\\\\ntdll.dll\",
-      LOAD_LIBRARY_AS_DATAFILE)\n# Overwrite .text section of hooked ntdll with clean copy"
-    Context: 'Technique is embedded in malware code, not a standalone tool. Kernel-level ETW Threat-Intelligence providers
-      still fire on sensitive operations.'
+    Invocation: '# Embedded in malware. No standalone CLI.
+
+      ntdll_base = LoadLibraryEx("C:\\Windows\\System32\\ntdll.dll", LOAD_LIBRARY_AS_DATAFILE)
+
+      # Overwrite .text section of hooked ntdll with clean copy'
+    Context: Technique is embedded in malware code, not a standalone tool. Kernel-level
+      ETW Threat-Intelligence providers still fire on sensitive operations.
     Artifacts:
     - 'Sysmon EID 7: Second ntdll.dll loaded into process memory'
     - 'ETW: Microsoft-Windows-Kernel-Process shows unusual syscall patterns'
     - 'Memory analysis: Process with two ntdll.dll mappings or modified .text section'
-  ChokepointMapping: 'malware execution → fresh ntdll.dll loaded or direct syscalls → EDR userland hooks bypassed'
+  ChokepointMapping: malware execution → fresh ntdll.dll loaded or direct syscalls
+    → EDR userland hooks bypassed
 - Name: Direct and Indirect Syscalls (SysWhispers, Hell's Gate, Halo's Gate)
   FirstSeen: 2019-Q3
   Status: Active
   SourceURL: https://github.com/jthuraisamy/SysWhispers
   NotesShort: Bypass userland hooks via direct kernel syscall invocation
-  Notes: 'Bypass user-mode EDR hooks by invoking Windows kernel syscalls directly without passing through ntdll.dll hook stubs.
-    Direct syscalls embed syscall instructions in attacker code; indirect syscalls jump to the syscall instruction inside
-    ntdll for a legitimate call stack appearance. SysWhispers3 (2022) adds randomized jump targets.'
+  Notes: Bypass user-mode EDR hooks by invoking Windows kernel syscalls directly without
+    passing through ntdll.dll hook stubs. Direct syscalls embed syscall instructions
+    in attacker code; indirect syscalls jump to the syscall instruction inside ntdll
+    for a legitimate call stack appearance. SysWhispers3 (2022) adds randomized jump
+    targets.
   VariantId: direct-and-indirect-syscalls-syswhispers-hell-s-gate-halo-s-gate
   Command:
-    Invocation: "# Direct syscall via assembly:\nmov r10, rcx\nmov eax, <syscall_number>  # e.g., 0x0026 for NtOpenProcess\nsyscall"
-    Context: 'Technique is embedded in malware/implant code. Effective against user-mode-only EDRs; ineffective against
-      kernel-level callback monitoring.'
+    Invocation: '# Direct syscall via assembly:
+
+      mov r10, rcx
+
+      mov eax, <syscall_number>  # e.g., 0x0026 for NtOpenProcess
+
+      syscall'
+    Context: Technique is embedded in malware/implant code. Effective against user-mode-only
+      EDRs; ineffective against kernel-level callback monitoring.
     Artifacts:
     - 'ETW: Microsoft-Windows-Kernel-Process shows unusual syscall patterns'
     - 'Call stack analysis: syscall return address not within ntdll.dll memory range'
-    - 'No single CLI command. Technique is embedded in malware code.'
-  ChokepointMapping: 'malware execution → direct syscall instructions bypass ntdll hooks → EDR userland visibility bypassed'
+    - No single CLI command. Technique is embedded in malware code.
+  ChokepointMapping: malware execution → direct syscall instructions bypass ntdll
+    hooks → EDR userland visibility bypassed
 - Name: ETW Patching (EtwEventWrite)
   FirstSeen: 2020-Q2
   Status: Active
   SourceURL: https://blog.xpnsec.com/hiding-your-dotnet-etw/
   NotesShort: Patches EtwEventWrite with RET opcode to blind user-mode ETW
-  Notes: Patches EtwEventWrite or NtTraceEvent with a RET (0xC3) opcode to prevent user-mode ETW events from firing. Frequently
-    combined with AMSI bypass. Kernel-mode ETW Threat-Intelligence providers (ETW-TI) operate in ring-0 and are unaffected.
+  Notes: Patches EtwEventWrite or NtTraceEvent with a RET (0xC3) opcode to prevent
+    user-mode ETW events from firing. Frequently combined with AMSI bypass. Kernel-mode
+    ETW Threat-Intelligence providers (ETW-TI) operate in ring-0 and are unaffected.
   VariantId: etw-patching-etweventwrite
   Command:
-    Invocation: "# Patches EtwEventWrite to return immediately:\n# VirtualProtect(EtwEventWrite, PAGE_EXECUTE_READWRITE)\n#
-      Write 0xC3 (RET) to first byte\n# VirtualProtect(EtwEventWrite, PAGE_EXECUTE_READ)"
-    Context: 'Used by CobaltStrike, Meterpreter, and custom loaders. Blinds ETW-based detections without killing any processes.'
+    Invocation: '# Patches EtwEventWrite to return immediately:
+
+      # VirtualProtect(EtwEventWrite, PAGE_EXECUTE_READWRITE)
+
+      # Write 0xC3 (RET) to first byte
+
+      # VirtualProtect(EtwEventWrite, PAGE_EXECUTE_READ)'
+    Context: Used by CobaltStrike, Meterpreter, and custom loaders. Blinds ETW-based
+      detections without killing any processes.
     Artifacts:
     - 'ETW-TI: VirtualProtect call targeting EtwEventWrite address'
     - 'Memory analysis: First byte of EtwEventWrite is 0xC3 (RET)'
-    - 'Absence of expected ETW events from a process that should be generating them'
-  ChokepointMapping: 'malware execution → VirtualProtect on EtwEventWrite → ETW event stream silenced'
+    - Absence of expected ETW events from a process that should be generating them
+  ChokepointMapping: malware execution → VirtualProtect on EtwEventWrite → ETW event
+    stream silenced
 - Name: AMSI Bypass (AmsiScanBuffer Patch)
   FirstSeen: 2019-Q1
   Status: Declining
   SourceURL: https://www.cyberark.com/resources/threat-research-blog/amsi-bypass-patching-technique
-  NotesShort: Patches AmsiScanBuffer to return clean; largely mitigated by modern EDRs
-  Notes: Patches AmsiScanBuffer to return AMSI_RESULT_CLEAN, preventing script content scanning by PowerShell and other
-    AMSI-integrated hosts. Largely mitigated by modern EDRs via ETW Threat-Intelligence monitoring. Still attempted but
-    increasingly flagged.
+  NotesShort: Patches AmsiScanBuffer to return clean; largely mitigated by modern
+    EDRs
+  Notes: Patches AmsiScanBuffer to return AMSI_RESULT_CLEAN, preventing script content
+    scanning by PowerShell and other AMSI-integrated hosts. Largely mitigated by modern
+    EDRs via ETW Threat-Intelligence monitoring. Still attempted but increasingly
+    flagged.
   VariantId: amsi-bypass-amsiscanbuffer-patch
   Command:
-    Invocation: "[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)"
-    Context: 'One-liner PowerShell AMSI bypass. Blinds script-based detection without disabling EDR. Increasingly
-      detected by memory protection monitoring.'
+    Invocation: '[Ref].Assembly.GetType(''System.Management.Automation.AmsiUtils'').GetField(''amsiInitFailed'',''NonPublic,Static'').SetValue($null,$true)'
+    Context: One-liner PowerShell AMSI bypass. Blinds script-based detection without
+      disabling EDR. Increasingly detected by memory protection monitoring.
     Artifacts:
     - 'ETW-TI: VirtualProtect call targeting AmsiScanBuffer address'
-    - 'PowerShell ScriptBlock logging may capture the bypass attempt'
+    - PowerShell ScriptBlock logging may capture the bypass attempt
     - 'Memory analysis: AmsiScanBuffer patched to return AMSI_RESULT_CLEAN'
-  ChokepointMapping: 'script execution → AmsiScanBuffer patched → script content scanning bypassed'
+  ChokepointMapping: script execution → AmsiScanBuffer patched → script content scanning
+    bypassed
 - Name: EDRSilencer
   FirstSeen: 2024-Q2
   Status: Active
   SourceURL: https://github.com/netero1010/EDRSilencer
   NotesShort: Blocks EDR network comms via WFP filters; EDR runs but cannot report
-  Notes: 'Blocks EDR network communication using Windows Filtering Platform (WFP) callout drivers to prevent telemetry and
-    alerts from reaching the management console. Does not kill EDR processes. Instead creates a silent EDR that cannot
-    report. Requires admin privileges.'
+  Notes: Blocks EDR network communication using Windows Filtering Platform (WFP) callout
+    drivers to prevent telemetry and alerts from reaching the management console.
+    Does not kill EDR processes. Instead creates a silent EDR that cannot report.
+    Requires admin privileges.
   VariantId: edrsilencer
   Command:
-    Invocation: "EDRSilencer.exe blockedr\n# Enumerates running EDR processes\n# Creates WFP filters blocking their
-      outbound network traffic\n# EDR continues running but telemetry never reaches console"
-    Context: 'Alternative to process termination. EDR stays alive but isolated from its management plane.'
+    Invocation: 'EDRSilencer.exe blockedr
+
+      # Enumerates running EDR processes
+
+      # Creates WFP filters blocking their outbound network traffic
+
+      # EDR continues running but telemetry never reaches console'
+    Context: Alternative to process termination. EDR stays alive but isolated from
+      its management plane.
     Artifacts:
     - 'Security EID 5441: WFP filter installation'
     - 'Sysmon EID 1: EDRSilencer process execution'
     - 'Network monitoring: EDR management traffic drops to zero'
     - 'WFP filter audit: New persistent filters targeting security product executables'
-  ChokepointMapping: 'admin → WFP filters installed blocking EDR traffic (EID 5441) → EDR telemetry silenced'
+  ChokepointMapping: admin → WFP filters installed blocking EDR traffic (EID 5441)
+    → EDR telemetry silenced
 - Name: Module Stomping / Reflective DLL Injection
   FirstSeen: 2014-Q1
   Status: Active
   SourceURL: https://www.ired.team/offensive-security/code-injection-process-injection/modulestomping-dll-hollowing-shellcode-injection
   NotesShort: Execute shellcode from trusted DLL address space; no disk artifacts
-  Notes: 'Module stomping overwrites a legitimately loaded DLL memory with shellcode, executing from within a trusted DLL
-    address space. Reflective DLL injection loads a DLL entirely from memory without the Windows loader. Both evade RWX
-    memory detections. Still used in Cobalt Strike and Havoc.'
+  Notes: Module stomping overwrites a legitimately loaded DLL memory with shellcode,
+    executing from within a trusted DLL address space. Reflective DLL injection loads
+    a DLL entirely from memory without the Windows loader. Both evade RWX memory detections.
+    Still used in Cobalt Strike and Havoc.
   VariantId: module-stomping-reflective-dll-injection
   Command:
-    Invocation: "# Embedded in C2 frameworks. No standalone CLI.\n# 1. Load legitimate DLL (e.g., amsi.dll)\n# 2. Overwrite
-      .text section with shellcode\n# 3. Execute from legitimate DLL's address space"
-    Context: 'Technique is built into C2 frameworks (Cobalt Strike, Havoc). Leaves no disk artifact for the injected code.'
+    Invocation: '# Embedded in C2 frameworks. No standalone CLI.
+
+      # 1. Load legitimate DLL (e.g., amsi.dll)
+
+      # 2. Overwrite .text section with shellcode
+
+      # 3. Execute from legitimate DLL''s address space'
+    Context: Technique is built into C2 frameworks (Cobalt Strike, Havoc). Leaves
+      no disk artifact for the injected code.
     Artifacts:
     - 'Sysmon EID 7: DLL loaded then memory region changed to RWX'
     - 'ETW-TI: VirtualProtect calls on legitimate DLL memory regions'
     - 'Memory analysis: DLL .text section hash mismatch with on-disk version'
-  ChokepointMapping: 'C2 execution → legitimate DLL memory overwritten with shellcode → code runs from trusted address space'
+  ChokepointMapping: C2 execution → legitimate DLL memory overwritten with shellcode
+    → code runs from trusted address space
 - Name: SafeMode Boot EDR Bypass
   FirstSeen: 2019-Q4
   Status: Active
   SourceURL: https://www.sophos.com/en-us/blog/snatch-ransomware-reboots-pcs-into-safe-mode-to-bypass-protection/
   NotesShort: Boot to Safe Mode where EDR services don't load; encrypt without interference
-  Notes: 'Boot Windows into Safe Mode where EDR services are not configured to load. Register ransomware as RunOnce startup
-    item, reboot into Safe Mode, encrypt without EDR running. Used by Snatch, REvil, BlackMatter, AvosLocker.'
+  Notes: Boot Windows into Safe Mode where EDR services are not configured to load.
+    Register ransomware as RunOnce startup item, reboot into Safe Mode, encrypt without
+    EDR running. Used by Snatch, REvil, BlackMatter, AvosLocker.
   VariantId: safemode-boot-edr-bypass
   Command:
-    Invocation: "bcdedit /set {default} safeboot minimal\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce\"
-      /v \"payload\" /t REG_SZ /d \"C:\\temp\\ransomware.exe\" /f\nshutdown /r /f /t 0"
-    Context: 'Sets next boot to Safe Mode (minimal, no networking). Registers ransomware as RunOnce entry. Forces
-      immediate reboot. EDR services are not configured for Safe Mode boot.'
+    Invocation: 'bcdedit /set {default} safeboot minimal
+
+      reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v "payload"
+      /t REG_SZ /d "C:\temp\ransomware.exe" /f
+
+      shutdown /r /f /t 0'
+    Context: Sets next boot to Safe Mode (minimal, no networking). Registers ransomware
+      as RunOnce entry. Forces immediate reboot. EDR services are not configured for
+      Safe Mode boot.
     Artifacts:
     - 'Sysmon EID 1: bcdedit.exe with /set and safeboot arguments'
     - 'Sysmon EID 13: Registry modification to RunOnce key'
     - 'Windows System EID 1074: System shutdown/restart initiated'
     - 'Post-reboot: Ransomware process running with no EDR telemetry'
-  ChokepointMapping: 'admin → bcdedit sets Safe Mode boot → ransomware registered in RunOnce → reboot → EDR absent → encryption'
+  ChokepointMapping: admin → bcdedit sets Safe Mode boot → ransomware registered in
+    RunOnce → reboot → EDR absent → encryption
 - Name: BlackSanta EDR Killer
   FirstSeen: 2026-Q1
   Status: Active
-  NotesShort: Russian-speaking actor targets HR departments; likely BYOVD or callback removal
-  Notes: Russian-speaking threat actor delivers BlackSanta EDR killer via social engineering targeting HR departments. Likely
-    uses BYOVD or kernel callback removal to disable EDR products.
+  NotesShort: Russian-speaking actor targets HR departments; likely BYOVD or callback
+    removal
+  Notes: Russian-speaking threat actor delivers BlackSanta EDR killer via social engineering
+    targeting HR departments. Likely uses BYOVD or kernel callback removal to disable
+    EDR products.
   VariantId: blacksanta-edr-killer
+- Name: HPE Operations Agent Abuse (Trusted RMM/IT Tool)
+  FirstSeen: 2026-Q1
+  Status: Active
+  Notes: Threat actor compromised a third-party IT services provider and used their
+    legitimate HPE Operations Agent (OA) deployment to execute scripts and binaries
+    across the victim environment. HPE OA is a signed enterprise monitoring/automation
+    tool; no vulnerability in HPE OA itself was exploited. Activity was indistinguishable
+    from normal IT operations for 100+ days.
 Prerequisites:
 - Admin or SYSTEM privileges on target system (required without exception)
 - Execution capability on target (process creation for bypass tool)
 - For BYOVD: a vulnerable signed driver loadable via NtLoadDriver or SCM
-- For kernel callback removal: ability to read/write kernel memory (via vulnerable driver)
-- For user-mode techniques: VirtualProtect/NtProtectVirtualMemory access to target DLL memory
-- Target EDR must be using one of the impaired mechanisms (user-mode hooks, ETW, kernel callbacks)
+- For kernel callback removal: ability to read/write kernel memory (via vulnerable
+    driver)
+- For user-mode techniques: VirtualProtect/NtProtectVirtualMemory access to target
+    DLL memory
+- Target EDR must be using one of the impaired mechanisms (user-mode hooks, ETW, kernel
+  callbacks)
 Chokepoints:
 - Stage: Privilege Escalation
   Input: Attacker has code execution on the target but lacks admin rights
-  Invariant: Must obtain admin or SYSTEM privileges. No BYOVD, callback removal, or PPL abuse works without elevation.
-  Observable: 'Sysmon EID 1 showing privilege escalation (token manipulation, UAC bypass, service exploitation) or process
-    running with high integrity level'
-  WhyCantBypass: Kernel drivers require admin to load. Process termination of protected processes requires SYSTEM. No EDR
-    bypass variant works from a standard user context.
+  Invariant: Must obtain admin or SYSTEM privileges. No BYOVD, callback removal, or
+    PPL abuse works without elevation.
+  Observable: Sysmon EID 1 showing privilege escalation (token manipulation, UAC bypass,
+    service exploitation) or process running with high integrity level
+  WhyCantBypass: Kernel drivers require admin to load. Process termination of protected
+    processes requires SYSTEM. No EDR bypass variant works from a standard user context.
   LogSources:
   - Sysmon Event ID 1 (Process Creation)
   - Windows Security Event ID 4688 (Process Creation with Token Elevation)
@@ -314,15 +406,19 @@ Chokepoints:
   SigmaRef: sigma-rules/edr-bypass/hunt.yml
 - Stage: EDR Telemetry Disruption
   Input: Attacker has admin/SYSTEM privileges
-  Invariant: Must disrupt EDR telemetry collection. Options include loading a kernel driver (BYOVD), modifying
-    kernel memory (callback removal), patching userland hooks (ntdll unhooking, direct syscalls), patching ETW/AMSI functions,
-    blocking EDR network traffic (WFP filters), or booting into Safe Mode where EDR services don't load.
-  Observable: 'Kernel path: Sysmon EID 6 (Driver Loaded) for BYOVD variants. Userland path: Sysmon EID 7 (second ntdll.dll
-    loaded) or ETW-TI VirtualProtect on EtwEventWrite/AmsiScanBuffer. Network path: Security EID 5441 (WFP filter installed).
-    Safe Mode: Sysmon EID 1 showing bcdedit with safeboot argument.'
-  WhyCantBypass: EDR telemetry must be disrupted before the primary payload runs. Whether the attacker targets the kernel
-    (BYOVD, callbacks), userland (hooks, ETW, AMSI), network (WFP), or boot environment (Safe Mode), each path produces
-    observable artifacts specific to that mechanism.
+  Invariant: Must disrupt EDR telemetry collection. Options include loading a kernel
+    driver (BYOVD), modifying kernel memory (callback removal), patching userland
+    hooks (ntdll unhooking, direct syscalls), patching ETW/AMSI functions, blocking
+    EDR network traffic (WFP filters), or booting into Safe Mode where EDR services
+    don't load.
+  Observable: 'Kernel path: Sysmon EID 6 (Driver Loaded) for BYOVD variants. Userland
+    path: Sysmon EID 7 (second ntdll.dll loaded) or ETW-TI VirtualProtect on EtwEventWrite/AmsiScanBuffer.
+    Network path: Security EID 5441 (WFP filter installed). Safe Mode: Sysmon EID
+    1 showing bcdedit with safeboot argument.'
+  WhyCantBypass: EDR telemetry must be disrupted before the primary payload runs.
+    Whether the attacker targets the kernel (BYOVD, callbacks), userland (hooks, ETW,
+    AMSI), network (WFP), or boot environment (Safe Mode), each path produces observable
+    artifacts specific to that mechanism.
   LogSources:
   - Sysmon Event ID 6 (Driver Loaded)
   - Sysmon Event ID 1 (Process Creation)
@@ -331,11 +427,14 @@ Chokepoints:
   SigmaRef: sigma-rules/edr-bypass/analyst.yml
 - Stage: Security Process Impairment
   Input: Kernel protections are bypassed or disabled
-  Invariant: Must stop, kill, or blind the security agent process/service to prevent detection of the actual payload
-  Observable: 'Process termination of known EDR processes (MsMpEng.exe, CSFalconService.exe, SentinelAgent.exe). Service
-    state changes (sc stop, net stop). Sysmon EID 10 with PROCESS_TERMINATE access rights to security processes.'
-  WhyCantBypass: The EDR agent must be neutralized before the real payload runs. If the agent is still collecting telemetry,
-    the payload gets detected. The termination/impairment event is the artifact.
+  Invariant: Must stop, kill, or blind the security agent process/service to prevent
+    detection of the actual payload
+  Observable: Process termination of known EDR processes (MsMpEng.exe, CSFalconService.exe,
+    SentinelAgent.exe). Service state changes (sc stop, net stop). Sysmon EID 10 with
+    PROCESS_TERMINATE access rights to security processes.
+  WhyCantBypass: The EDR agent must be neutralized before the real payload runs. If
+    the agent is still collecting telemetry, the payload gets detected. The termination/impairment
+    event is the artifact.
   LogSources:
   - Sysmon Event ID 10 (Process Access)
   - Windows System Event ID 7036 (Service State Change)
@@ -345,103 +444,139 @@ Chokepoints:
 EvolutionTimeline:
 - Date: 2012-2014
   Event: Process hollowing, DLL injection, and reflective DLL loading established
-  Change: Foundational code injection primitives; reflective DLL loading (Stephen Fewer, 2014) enables in-memory DLL execution
-    without disk artifacts
+  Change: Foundational code injection primitives; reflective DLL loading (Stephen
+    Fewer, 2014) enables in-memory DLL execution without disk artifacts
   DetectionImpact: User-mode behavioral hooks begin appearing; EDRs inject into ntdll.dll
   TheConstant: Admin/SYSTEM privileges → bypass mechanism → security telemetry impaired
   Variants: []
   EventType: event
 - Date: 2017-2019
   Event: Direct syscall techniques and SysWhispers published
-  Change: Attackers skip ntdll.dll entirely; Hell's Gate (2018) and SysWhispers (2019) make syscall bypasses accessible to
-    non-researchers; user-mode EDR hooks become defeatable without touching hooked memory
-  DetectionImpact: User-mode hook detection alone insufficient; kernel callbacks become critical
+  Change: Attackers skip ntdll.dll entirely; Hell's Gate (2018) and SysWhispers (2019)
+    make syscall bypasses accessible to non-researchers; user-mode EDR hooks become
+    defeatable without touching hooked memory
+  DetectionImpact: User-mode hook detection alone insufficient; kernel callbacks become
+    critical
   TheConstant: Admin/SYSTEM privileges → bypass mechanism → security telemetry impaired
   Variants: []
   EventType: event
 - Date: 2020-2021
   Event: ntdll fresh-copy unhooking, ETW patching, and PPL abuse documented
-  Change: Unhooking removes all user-mode hooks in one operation; ETW patching blinds script content logging; PPL abuse (PPLdump)
-    enables termination of protected security processes; Heaven's Gate exploits WoW64 architecture
-  DetectionImpact: Kernel-level ETW-TI and process-callback monitoring become essential; user-mode telemetry no longer reliable
-    in isolation
+  Change: Unhooking removes all user-mode hooks in one operation; ETW patching blinds
+    script content logging; PPL abuse (PPLdump) enables termination of protected security
+    processes; Heaven's Gate exploits WoW64 architecture
+  DetectionImpact: Kernel-level ETW-TI and process-callback monitoring become essential;
+    user-mode telemetry no longer reliable in isolation
   TheConstant: Admin/SYSTEM privileges → bypass mechanism → security telemetry impaired
   Variants: []
   EventType: event
 - Date: 2022-Q1
   Event: BYOVD operationalized by ransomware groups; EDRSandblast published
-  Change: BlackByte demonstrates BYOVD using RTCore64.sys in production ransomware; EDRSandblast (Wavestone) documents kernel
-    callback removal as a systematic technique; Terminator concept developed
-  DetectionImpact: Kernel driver load (Sysmon EID 6) becomes primary detection signal; known-bad driver hash lists required;
-    HVCI/Vulnerable Driver Blocklist adoption urged
+  Change: BlackByte demonstrates BYOVD using RTCore64.sys in production ransomware;
+    EDRSandblast (Wavestone) documents kernel callback removal as a systematic technique;
+    Terminator concept developed
+  DetectionImpact: Kernel driver load (Sysmon EID 6) becomes primary detection signal;
+    known-bad driver hash lists required; HVCI/Vulnerable Driver Blocklist adoption
+    urged
   TheConstant: Admin/SYSTEM privileges → bypass mechanism → security telemetry impaired
   Variants: []
   EventType: event
 - Date: 2023-Q1
   Event: Terminator (Spyboy) sold commercially on RAMP forum
-  Change: BYOVD becomes a purchasable commodity ($300-$3,000); open-source clones proliferate; 23+ EDR/AV products targeted;
-    EDR killing is no longer only for sophisticated actors
-  DetectionImpact: Hash-based driver blocklists alone insufficient as variants proliferate; certificate-based and behavioral
-    detection required
+  Change: BYOVD becomes a purchasable commodity ($300-$3,000); open-source clones
+    proliferate; 23+ EDR/AV products targeted; EDR killing is no longer only for sophisticated
+    actors
+  DetectionImpact: Hash-based driver blocklists alone insufficient as variants proliferate;
+    certificate-based and behavioral detection required
   TheConstant: Admin/SYSTEM privileges → bypass mechanism → security telemetry impaired
   Variants: []
   EventType: event
 - Date: 2024-Q3
   Event: EDRKillShifter deployed by RansomHub; BYOVD adoption surges
-  Change: RansomHub deploys EDRKillShifter (Go-based, multi-driver loader) in August 2024; adopted by Play, Medusa, BianLian
-    within months; ~48% of high-severity 2024 ransomware attacks incorporate purpose-built EDR disablement (Cisco Talos);
-    EDRSilencer demonstrates network-layer EDR silencing
-  DetectionImpact: Driver load + security process termination correlation window becomes critical; single-driver-hash detection
-    obsolete against loaders; certificate age/trust detection gains importance
+  Change: RansomHub deploys EDRKillShifter (Go-based, multi-driver loader) in August
+    2024; adopted by Play, Medusa, BianLian within months; ~48% of high-severity 2024
+    ransomware attacks incorporate purpose-built EDR disablement (Cisco Talos); EDRSilencer
+    demonstrates network-layer EDR silencing
+  DetectionImpact: Driver load + security process termination correlation window becomes
+    critical; single-driver-hash detection obsolete against loaders; certificate age/trust
+    detection gains importance
   TheConstant: Admin/SYSTEM privileges → bypass mechanism → security telemetry impaired
   Variants: []
   EventType: event
 - Date: 2025-Q1
-  Event: Multiple ransomware groups ship purpose-built EDR killers bundled in primary payload
-  Change: DeadLock embeds novel Baidu driver-based loader; Reynolds integrates BYOVD directly into primary payload (first
-    observed Feb 2025); EDR killing transitions from a separate pre-ransomware step to a bundled capability
-  DetectionImpact: Dwell time between driver load and encryption shrinks; pre-encryption detection window narrows; driver
-    load + immediate bulk file activity correlation becomes highest-priority signal
+  Event: Multiple ransomware groups ship purpose-built EDR killers bundled in primary
+    payload
+  Change: DeadLock embeds novel Baidu driver-based loader; Reynolds integrates BYOVD
+    directly into primary payload (first observed Feb 2025); EDR killing transitions
+    from a separate pre-ransomware step to a bundled capability
+  DetectionImpact: Dwell time between driver load and encryption shrinks; pre-encryption
+    detection window narrows; driver load + immediate bulk file activity correlation
+    becomes highest-priority signal
   TheConstant: Admin/SYSTEM privileges → bypass mechanism → security telemetry impaired
   Variants: []
   EventType: event
 - Date: 2026-Q1
   Event: BlackSanta EDR killer discovered targeting HR departments
-  Change: New EDR killer variant delivered via HR-themed social engineering lures, attributed to Russian-speaking actor; specific
-    kill technique not yet fully detailed but targets EDR processes.
-  DetectionImpact: Existing BYOVD and kernel callback removal detections may catch underlying technique, but new tool signatures
-    and delivery via HR-themed lures require updated behavioral and email/endpoint rules.
-  TheConstant: Still requires admin/SYSTEM privileges on the target system to disable EDR, and must impair kernel callbacks,
-    user-mode hooks, or ETW. The core invariant prerequisites remain unchanged.
+  Change: New EDR killer variant delivered via HR-themed social engineering lures,
+    attributed to Russian-speaking actor; specific kill technique not yet fully detailed
+    but targets EDR processes.
+  DetectionImpact: Existing BYOVD and kernel callback removal detections may catch
+    underlying technique, but new tool signatures and delivery via HR-themed lures
+    require updated behavioral and email/endpoint rules.
+  TheConstant: Still requires admin/SYSTEM privileges on the target system to disable
+    EDR, and must impair kernel callbacks, user-mode hooks, or ETW. The core invariant
+    prerequisites remain unchanged.
   Variants: []
   EventType: event
+- Date: 2026-Q2
+  Event: HPE Operations Agent abused as RMM-equivalent via third-party compromise
+  Change: Expands RMM abuse beyond traditional remote desktop tools (AnyDesk, ScreenConnect,
+    etc.) to enterprise IT monitoring/automation agents managed by third-party providers;
+    trust relationship (T1199) used for initial access rather than social engineering
+    or browser download
+  DetectionImpact: Traditional renamed-RMM detection (browser download paths, file
+    masquerading) does not apply; detection must focus on anomalous script/binary
+    execution by HPE OA processes and unexpected outbound connections from monitoring
+    infrastructure
+  TheConstant: A signed legitimate binary must still execute attacker-controlled commands/scripts
+    and establish outbound connectivity; process creation and network telemetry remain
+    observable
 Detections:
 - Level: Research
-  Description: Identify all kernel driver load events in the environment, focusing on non-Microsoft and recently signed drivers
+  Description: Identify all kernel driver load events in the environment, focusing
+    on non-Microsoft and recently signed drivers
   LogSources:
   - Sysmon Event ID 6 (Driver Loaded)
   - Windows Security Event ID 4688 (Process Creation)
   - Windows System Event ID 7045 (Service Installed)
-  Logic: 'Sysmon EID 6 driver loads where Signature is non-Microsoft, SignatureStatus is not Valid, the driver was signed within the last 90 days, or the hash matches the Microsoft Vulnerable Driver Blocklist.'
+  Logic: Sysmon EID 6 driver loads where Signature is non-Microsoft, SignatureStatus
+    is not Valid, the driver was signed within the last 90 days, or the hash matches
+    the Microsoft Vulnerable Driver Blocklist.
   ExpectedFPRate: High
-  UseCase: Build baseline of all drivers loaded in the environment; identify gaps in driver allowlisting; compare against
-    Microsoft Vulnerable Driver Blocklist
+  UseCase: Build baseline of all drivers loaded in the environment; identify gaps
+    in driver allowlisting; compare against Microsoft Vulnerable Driver Blocklist
   SigmaRule: sigma-rules/edr-bypass/research.yml
 - Level: Hunt
-  Description: Kernel driver load followed by security process termination or service stop
+  Description: Kernel driver load followed by security process termination or service
+    stop
   LogSources:
   - Sysmon Event ID 6 (Driver Loaded)
   - Sysmon Event ID 1 (Process Creation)
   - Sysmon Event ID 10 (Process Access)
   - Windows Security Event ID 4688 (Process Creation)
   - Windows System Event ID 7036 (Service State Change)
-  Logic: 'Driver Loaded (EID 6) non-Microsoft OR signed <90 days OR hash on blocklist, AND within 5 minutes one of: EDR/AV process terminated (MsMpEng.exe, SophosFileScanner.exe, CSFalconService.exe, SentinelAgent.exe), OR sc.exe/net.exe stop targeting a security service, OR process access (EID 10) opening a security process with PROCESS_TERMINATE. Source must be an elevated process (high integrity or SYSTEM).'
+  Logic: 'Driver Loaded (EID 6) non-Microsoft OR signed <90 days OR hash on blocklist,
+    AND within 5 minutes one of: EDR/AV process terminated (MsMpEng.exe, SophosFileScanner.exe,
+    CSFalconService.exe, SentinelAgent.exe), OR sc.exe/net.exe stop targeting a security
+    service, OR process access (EID 10) opening a security process with PROCESS_TERMINATE.
+    Source must be an elevated process (high integrity or SYSTEM).'
   ExpectedFPRate: Medium
-  UseCase: Proactive hunt for BYOVD-based EDR killing; correlates driver load with subsequent security tool impairment
+  UseCase: Proactive hunt for BYOVD-based EDR killing; correlates driver load with
+    subsequent security tool impairment
   SigmaRule: sigma-rules/edr-bypass/hunt.yml
 - Level: Analyst
-  Description: Known vulnerable or recently signed driver load immediately followed by security process termination. Direct
-    EDR kill signal.
+  Description: Known vulnerable or recently signed driver load immediately followed
+    by security process termination. Direct EDR kill signal.
   LogSources:
   - Sysmon Event ID 6 (Driver Loaded)
   - Sysmon Event ID 1 (Process Creation)
@@ -449,96 +584,122 @@ Detections:
   - Windows Security Event ID 4688 (Process Creation)
   - Windows Security Event ID 4624 (Logon)
   - Windows System Event ID 7036 (Service State Change)
-  Logic: 'Driver load (EID 6) where hash matches the Microsoft Vulnerable Driver Blocklist OR certificate was issued within 14 days by an unknown vendor, AND within 120 seconds a security process is terminated or service stopped (EID 7036) targeting MsMpEng.exe, SophosFileScanner.exe, CSFalconService.exe, SentinelAgent.exe, or CylanceSvc.exe. Source is SYSTEM or local Administrators, ideally after-hours or from a non-standard admin workstation.'
+  Logic: Driver load (EID 6) where hash matches the Microsoft Vulnerable Driver Blocklist
+    OR certificate was issued within 14 days by an unknown vendor, AND within 120
+    seconds a security process is terminated or service stopped (EID 7036) targeting
+    MsMpEng.exe, SophosFileScanner.exe, CSFalconService.exe, SentinelAgent.exe, or
+    CylanceSvc.exe. Source is SYSTEM or local Administrators, ideally after-hours
+    or from a non-standard admin workstation.
   ExpectedFPRate: Low
-  UseCase: SOC alerting; direct escalation trigger for active EDR impairment; treat as ransomware precursor
+  UseCase: SOC alerting; direct escalation trigger for active EDR impairment; treat
+    as ransomware precursor
   SigmaRule: sigma-rules/edr-bypass/analyst.yml
 Intel:
 - Name: Wavestone — EDRSandblast
   Tier: primary
   URL: https://github.com/wavestone-cdt/EDRSandblast
-  Description: Open-source tool demonstrating kernel callback removal via vulnerable driver; includes 1000+ driver knowledge
-    base and detection of which EDR callbacks are registered; essential reference for defenders building callback-monitoring
+  Description: Open-source tool demonstrating kernel callback removal via vulnerable
+    driver; includes 1000+ driver knowledge base and detection of which EDR callbacks
+    are registered; essential reference for defenders building callback-monitoring
     detection
 - Name: 'MITRE ATT&CK — T1562.001 Impair Defenses: Disable or Modify Tools'
   Tier: primary
   URL: https://attack.mitre.org/techniques/T1562/001/
-  Description: Primary technique definition covering BYOVD, process termination, and service stop as EDR impairment methods;
-    procedure examples link to known threat actor usage
+  Description: Primary technique definition covering BYOVD, process termination, and
+    service stop as EDR impairment methods; procedure examples link to known threat
+    actor usage
 - Name: 'MITRE ATT&CK — T1562.006 Impair Defenses: Indicator Blocking'
   Tier: primary
   URL: https://attack.mitre.org/techniques/T1562/006/
-  Description: Technique definition covering ETW patching, AMSI bypass, and other telemetry-blocking methods; distinct from
-    process termination; attacker keeps EDR running but blinds it
+  Description: Technique definition covering ETW patching, AMSI bypass, and other
+    telemetry-blocking methods; distinct from process termination; attacker keeps
+    EDR running but blinds it
 - Name: Microsoft — Vulnerable Driver Blocklist
   Tier: primary
   URL: https://learn.microsoft.com/en-us/windows/security/threat-protection/windows-defender-application-control/microsoft-recommended-driver-block-rules
-  Description: The authoritative list of drivers known to be abused in BYOVD attacks; updated multiple times per year; use
-    as a hash and cert blocklist for Sysmon EID 6 detection rules
+  Description: The authoritative list of drivers known to be abused in BYOVD attacks;
+    updated multiple times per year; use as a hash and cert blocklist for Sysmon EID
+    6 detection rules
 RelatedChokepoints:
 - ransomware-service-manipulation
 OsintSources:
 - Platform: VirusTotal Intelligence
   Query: tag:byovd positives:0
   URL: https://www.virustotal.com/gui/search/tag%3Abyovd%20positives%3A0
-  Notes: Requires VT Intelligence subscription. Finds BYOVD samples with zero AV detections; these are the most dangerous current variants.
-    Pivot to the behavior tab to extract the specific driver filename, hash, and kernel callback manipulation sequence.
+  Notes: Requires VT Intelligence subscription. Finds BYOVD samples with zero AV detections;
+    these are the most dangerous current variants. Pivot to the behavior tab to extract
+    the specific driver filename, hash, and kernel callback manipulation sequence.
 - Platform: GitHub Code Search
   Query: '"PsSetCreateProcessNotifyRoutine" OR "ObRegisterCallbacks" path:*.c OR path:*.cpp'
   URL: https://github.com/search?q=%22PsSetCreateProcessNotifyRoutine%22+OR+%22ObRegisterCallbacks%22&type=code
-  Notes: Finds kernel driver source code interacting with process notification callbacks, the primary mechanism BYOVD tools
-    manipulate. Monitor for new public tools targeting these APIs.
+  Notes: Finds kernel driver source code interacting with process notification callbacks,
+    the primary mechanism BYOVD tools manipulate. Monitor for new public tools targeting
+    these APIs.
 - Platform: GitHub Code Search
   Query: '"EtwEventWrite" "0xC3" path:*.c OR path:*.asm'
   URL: https://github.com/search?q=%22EtwEventWrite%22+%220xC3%22&type=code
-  Notes: Finds ETW patching implementations targeting EtwEventWrite with a RET opcode. New variants appear regularly; use
-    to track new ETW bypass techniques before they reach production campaigns.
+  Notes: Finds ETW patching implementations targeting EtwEventWrite with a RET opcode.
+    New variants appear regularly; use to track new ETW bypass techniques before they
+    reach production campaigns.
 - Platform: LOLDrivers
   URL: https://www.loldrivers.io
-  Notes: 'Community-maintained catalog of known vulnerable (BYOVD) and malicious drivers with hashes, CVE references, and
-    detection guidance. Feed driver hashes from this list into Sysmon EID 6 detection rules and your EDR''s driver blocklist.
-    Updated regularly as new BYOVD tools emerge. Filter by ''Type: Vulnerable'' for BYOVD drivers; ''Type: Malicious'' for
-    purpose-built EDR killers like EDRKillShifter. Essential complement to Microsoft''s Vulnerable Driver Blocklist, which
-    lags behind community discovery.'
+  Notes: 'Community-maintained catalog of known vulnerable (BYOVD) and malicious drivers
+    with hashes, CVE references, and detection guidance. Feed driver hashes from this
+    list into Sysmon EID 6 detection rules and your EDR''s driver blocklist. Updated
+    regularly as new BYOVD tools emerge. Filter by ''Type: Vulnerable'' for BYOVD
+    drivers; ''Type: Malicious'' for purpose-built EDR killers like EDRKillShifter.
+    Essential complement to Microsoft''s Vulnerable Driver Blocklist, which lags behind
+    community discovery.'
 KnownBypasses:
 - Bypass: Using a driver signed within days of use (defeats static hash blocklists)
-  Mitigation: Enable HVCI (Hypervisor-Protected Code Integrity) and enforce the Microsoft Vulnerable Driver Blocklist; require
-    EV code signing for all internal drivers
-  Detection: Alert on driver loads where certificate issuance date is within 14 days of the load event; combine with signer
-    reputation (first-time or unknown vendor)
-- Bypass: Kernel callback removal instead of process termination (EDR stays running but callbacks are removed)
-  Mitigation: Implement anti-tamper monitoring that periodically verifies kernel callback registration from a protected process;
-    use VBS/HVCI to protect callback arrays
-  Detection: 'Detect absence of expected callbacks: if a known EDR driver is loaded but its registered callback count drops
-    to zero, treat as active compromise. Requires kernel-mode telemetry (e.g., custom minifilter or EDR with callback-integrity
+  Mitigation: Enable HVCI (Hypervisor-Protected Code Integrity) and enforce the Microsoft
+    Vulnerable Driver Blocklist; require EV code signing for all internal drivers
+  Detection: Alert on driver loads where certificate issuance date is within 14 days
+    of the load event; combine with signer reputation (first-time or unknown vendor)
+- Bypass: Kernel callback removal instead of process termination (EDR stays running
+    but callbacks are removed)
+  Mitigation: Implement anti-tamper monitoring that periodically verifies kernel callback
+    registration from a protected process; use VBS/HVCI to protect callback arrays
+  Detection: 'Detect absence of expected callbacks: if a known EDR driver is loaded
+    but its registered callback count drops to zero, treat as active compromise. Requires
+    kernel-mode telemetry (e.g., custom minifilter or EDR with callback-integrity
     monitoring).
 
     '
-- Bypass: EDRSilencer blocks EDR network communication via WFP instead of killing the process
-  Mitigation: Monitor WFP filter installation; require code signing for WFP callout drivers; implement out-of-band EDR health
-    checks from management console
-  Detection: Windows Security Event ID 5441 (WFP filter added); alert on WFP filter additions by non-Microsoft processes with
-    SYSTEM privileges outside maintenance windows.
-- Bypass: User-mode unhooking (ntdll fresh copy) bypasses user-mode EDR hooks without kernel interaction
-  Mitigation: Implement kernel-level ETW Threat-Intelligence (ETW-TI) monitoring; ensure EDR uses kernel callbacks not just
-    user-mode hooks; enable Credential Guard
-  Detection: 'ETW-TI events fire on sensitive operations (NtReadVirtualMemory, NtWriteVirtualMemory, NtProtectVirtualMemory)
-    even when user-mode hooks are removed. Detect via Microsoft Defender ATP telemetry or kernel ETW providers; process-level
-    events for these APIs sourced from unusual parent chains are anomalous.
+- Bypass: EDRSilencer blocks EDR network communication via WFP instead of killing
+    the process
+  Mitigation: Monitor WFP filter installation; require code signing for WFP callout
+    drivers; implement out-of-band EDR health checks from management console
+  Detection: Windows Security Event ID 5441 (WFP filter added); alert on WFP filter
+    additions by non-Microsoft processes with SYSTEM privileges outside maintenance
+    windows.
+- Bypass: User-mode unhooking (ntdll fresh copy) bypasses user-mode EDR hooks without
+    kernel interaction
+  Mitigation: Implement kernel-level ETW Threat-Intelligence (ETW-TI) monitoring;
+    ensure EDR uses kernel callbacks not just user-mode hooks; enable Credential Guard
+  Detection: 'ETW-TI events fire on sensitive operations (NtReadVirtualMemory, NtWriteVirtualMemory,
+    NtProtectVirtualMemory) even when user-mode hooks are removed. Detect via Microsoft
+    Defender ATP telemetry or kernel ETW providers; process-level events for these
+    APIs sourced from unusual parent chains are anomalous.
 
     '
-- Bypass: Indirect syscalls with call stack spoofing (legitimate-looking stack, no ntdll traversal)
-  Mitigation: EDR solutions must implement kernel callbacks rather than relying solely on user-mode hooks; enforce application
-    control to block unknown binaries
-  Detection: 'Kernel-level process and thread creation callbacks still fire regardless of syscall technique. Detect by correlating
-    process creation callbacks with the absence of expected user-mode telemetry. A process that creates threads but generates
+- Bypass: Indirect syscalls with call stack spoofing (legitimate-looking stack, no
+    ntdll traversal)
+  Mitigation: EDR solutions must implement kernel callbacks rather than relying solely
+    on user-mode hooks; enforce application control to block unknown binaries
+  Detection: 'Kernel-level process and thread creation callbacks still fire regardless
+    of syscall technique. Detect by correlating process creation callbacks with the
+    absence of expected user-mode telemetry. A process that creates threads but generates
     no user-mode hook events is anomalous.
 
     '
-- Bypass: Living Off the Land using Windows-native tools (sc.exe, WMI) to stop security services instead of deploying a driver
-  Mitigation: Enable tamper protection on EDR products; use PPL to protect security processes from user-mode termination
-  Detection: See ransomware-service-manipulation chokepoint for sc.exe/net.exe service stop detection; combine with preceding
-    driver load context for full kill-chain coverage
+- Bypass: Living Off the Land using Windows-native tools (sc.exe, WMI) to stop security
+    services instead of deploying a driver
+  Mitigation: Enable tamper protection on EDR products; use PPL to protect security
+    processes from user-mode termination
+  Detection: See ransomware-service-manipulation chokepoint for sc.exe/net.exe service
+    stop detection; combine with preceding driver load context for full kill-chain
+    coverage
 YaraRules:
 - yara-rules/edr-bypass-drivers.yar
 RawLogs:
@@ -564,7 +725,8 @@ RawLogs:
 
     # Driver signed by "Raynet Inc.", a certificate issued 6 days prior to this event
 
-    # Hash matches Microsoft Vulnerable Driver Blocklist (truesight.sys / RogueKiller driver)
+    # Hash matches Microsoft Vulnerable Driver Blocklist (truesight.sys / RogueKiller
+    driver)
 
     # Research rule: non-Microsoft driver OR recently-signed OR blocklist match
 
@@ -647,9 +809,11 @@ RawLogs:
 EmulationScript:
   File: emulation/edr-bypass-techniques/emulate.ps1
   Language: powershell
-  Description: Simulates EDR process handle opening, service stop/disable, and driver install event
-  SafetyNotes: 'Requires Administrator. Temporarily stops WinDefend for service stop telemetry (re-enables immediately). Does
-    NOT load vulnerable kernel drivers. Run in isolated lab VM only.
+  Description: Simulates EDR process handle opening, service stop/disable, and driver
+    install event
+  SafetyNotes: 'Requires Administrator. Temporarily stops WinDefend for service stop
+    telemetry (re-enables immediately). Does NOT load vulnerable kernel drivers. Run
+    in isolated lab VM only.
 
     '
   AtomicRef: T1562.001
