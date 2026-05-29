@@ -1,0 +1,38 @@
+title: Entra ID Interactive Device Code Redemption via Microsoft Authentication Broker (High-Confidence Phishing)
+id: d0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a
+status: experimental
+description: >
+  Detects successful interactive OAuth device-code-flow sign-ins using the Microsoft
+  Authentication Broker app ID (29d9ed98-a469-4536-ade2-f981bc1d605e) with isInteractive
+  true — confirming victim-entered redemption at microsoft.com/devicelogin. The
+  isInteractive flag distinguishes victim redemption (attacker delivers code as lure)
+  from legitimate service flows. This three-field combination (deviceCode + MAB appId +
+  isInteractive) is high-confidence phishing in managed tenants. Remediation: enumerate
+  registered devices on victim UPN, delete any unrecognized devices BEFORE revoking
+  sessions (to prevent PRT persistence), then revoke sessions and reset credentials.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.defense-evasion
+  - attack.t1550.001
+  - detection.maturity.analyst
+logsource:
+  product: azure
+  service: signinlogs
+detection:
+  selection:
+    AuthenticationProtocol: 'deviceCode'
+    AppId: '29d9ed98-a469-4536-ade2-f981bc1d605e'
+    ResultType: '0'
+    IsInteractive: 'true'
+  filter_known_legitimate:
+    # Document any tenant-specific legitimate MAB interactive device-code flows
+    UserPrincipalName|contains:
+      - '<UNKNOWN -- verify against lab data: add known-good interactive MAB sources>'
+  condition: selection and not filter_known_legitimate
+falsepositives:
+  - Interactive MAB device-code flows from documented shared-device or kiosk enrollment
+  - Internal IT workflows requiring manual device-code entry with Auth Broker (rare)
+level: high

@@ -1,0 +1,73 @@
+title: Post-AiTM Graph API Multi-Category Recon Burst — 4+ Categories in 60 Seconds
+id: f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c
+status: experimental
+description: >
+  Detects a single UPN issuing requests spanning 4 or more distinct Graph API endpoint
+  categories (role, cross-tenant, mailbox, contacts, org/licensing) within 60 seconds
+  with an empty c_DeviceId. This is the Tycoon 2FA operator console automated
+  reconnaissance pattern: 20-30+ calls across all 5 categories within 30-60 seconds,
+  impossible at human portal-navigation speed. Empty c_DeviceId confirms an unmanaged
+  device (operator's residential proxy), not an IT admin managed device.
+  NOTE: This rule requires category-tagging aggregation that cannot be expressed in
+  standard Sigma. Implement via ES|QL or KQL with STATS aggregation.
+  CRITICAL: c_sid in Graph Activity Logs is NOT the user object ID — pivot on source
+  IP + appId against sign-in logs to identify UPN. DO NOT filter c_sid == user_object_id.
+  REQUIRES Graph Activity Logs enabled and ingested in the tenant.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.discovery
+  - attack.t1087.004
+  - attack.t1069.003
+  - attack.t1526
+  - detection.maturity.hunt
+logsource:
+  product: azure
+  service: MicrosoftGraphActivityLogs
+detection:
+  # This rule requires category-tagging aggregation and a STATS/bucket aggregation —
+  # cannot be expressed as standard Sigma field matching.
+  # Implement as ES|QL or KQL with the following logic:
+  #
+  # ES|QL conceptual:
+  #   FROM MicrosoftGraphActivityLogs
+  #   | WHERE timestamp > now() - 60 seconds
+  #   | EVAL category = CASE(
+  #       requestUri LIKE "*transitiveRoleAssignments*" OR requestUri LIKE "*directoryRole*", "role",
+  #       requestUri LIKE "*tenantRelationships*", "cross-tenant",
+  #       requestUri LIKE "*mailboxSettings*", "mailbox",
+  #       requestUri LIKE "*contactFolders*", "contacts",
+  #       requestUri LIKE "*subscribedSkus*" OR requestUri LIKE "*organization*" OR
+  #         requestUri LIKE "*appRoleAssignedResources*", "org-licensing",
+  #       "other")
+  #   | WHERE category != "other" AND DeviceId IS NULL
+  #   | STATS distinct_categories = COUNT_DISTINCT(category) BY UserId, bin(timestamp, 60s)
+  #   | WHERE distinct_categories >= 4
+  #
+  # STUB -- verify log source and field names against lab data
+  selection:
+    # Partial signal: empty DeviceId + any recon endpoint (for high-volume environments)
+    # without full aggregation — use only as a supporting signal, not standalone alert
+    DeviceId: ''
+    RequestUri|contains:
+      - 'transitiveRoleAssignments'
+      - 'tenantRelationships'
+      - 'mailboxSettings'
+      - 'contactFolders'
+      - 'subscribedSkus'
+      - 'appRoleAssignedResources'
+  filter_managed_devices:
+    # Exclude requests where DeviceId is populated (managed devices = likely IT admin)
+    DeviceId|exists: true
+  filter_known_tooling:
+    # Add known compliance/admin tool service principals
+    AppId|contains:
+      - '<UNKNOWN -- verify against lab data: add known-good admin tool app IDs>'
+  condition: selection and not filter_managed_devices and not filter_known_tooling
+falsepositives:
+  - Broad-scope compliance tools querying multiple categories in automated scans
+  - IT admin portal performing multi-step identity audit (document and exclude by appId)
+  - Identity governance tools with scheduled access reviews
+level: high

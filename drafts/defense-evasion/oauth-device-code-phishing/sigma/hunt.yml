@@ -1,0 +1,36 @@
+title: Entra ID Device Code Flow on Microsoft Authentication Broker App (OAuth Device Code Phishing)
+id: c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3f
+status: experimental
+description: >
+  Detects successful OAuth device-code-flow sign-ins using the Microsoft Authentication
+  Broker app ID (29d9ed98-a469-4536-ade2-f981bc1d605e). Tycoon 2FA's device-code-grant
+  variant hardcodes this client ID to obtain FOCI refresh tokens granting access to
+  Exchange, Graph, SharePoint, and Teams without a phishing page. End users in managed
+  environments rarely initiate device-code flows to the Auth Broker interactively;
+  any occurrence should be reviewed. CA policy blocking device code flows (error 53003)
+  is the most effective prevention — this rule covers tenants without that policy.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.defense-evasion
+  - attack.t1550.001
+  - detection.maturity.hunt
+logsource:
+  product: azure
+  service: signinlogs
+detection:
+  selection:
+    AuthenticationProtocol: 'deviceCode'
+    AppId: '29d9ed98-a469-4536-ade2-f981bc1d605e'
+    ResultType: '0'
+  filter_known_automation:
+    # Add known-good service account UPNs or device enrollment flows if documented
+    UserPrincipalName|contains:
+      - '<UNKNOWN -- verify against lab data: add known-good MAB device-code sources>'
+  condition: selection and not filter_known_automation
+falsepositives:
+  - Legitimate Microsoft Authentication Broker device-code flows in managed device enrollment
+  - Shared device scenarios (kiosk, Surface Hub) using MAB for token refresh
+level: high

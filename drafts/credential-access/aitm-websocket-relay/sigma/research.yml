@@ -1,0 +1,35 @@
+title: Entra ID Sign-In with Node.js User Agent (AiTM Kit Relay Baseline)
+id: f1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c
+status: experimental
+description: >
+  Baseline visibility rule: logs all successful Entra ID sign-ins where the user agent
+  contains Node.js HTTP client strings (node, axios, undici, node-fetch). High FP rate
+  from legitimate Graph API automation — run for one week to build allowlist before
+  promoting to hunt tier.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.credential-access
+  - attack.t1539
+  - detection.maturity.research
+logsource:
+  product: azure
+  service: signinlogs
+detection:
+  selection_success:
+    ResultType: '0'
+  selection_ua:
+    UserAgent|contains:
+      - 'node'
+      - 'axios'
+      - 'undici'
+      - 'node-fetch'
+  condition: selection_success and selection_ua
+falsepositives:
+  - Legitimate Node.js SDK automation against Microsoft Graph API
+  - DevOps pipelines using Azure CLI or Graph SDK
+  - IT automation scripts using Node.js HTTP clients
+  - Service accounts with documented Node.js tooling
+level: informational

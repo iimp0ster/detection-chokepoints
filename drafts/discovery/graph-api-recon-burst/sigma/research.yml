@@ -1,0 +1,54 @@
+title: Microsoft Graph API Request to AiTM Post-Compromise Recon Endpoint (Baseline)
+id: e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b
+status: experimental
+description: >
+  Baseline visibility rule: logs all Microsoft Graph Activity Log requests matching
+  any endpoint in the five Tycoon 2FA post-compromise reconnaissance categories
+  (role discovery, cross-tenant, mailbox, contact harvest, org/licensing). High FP
+  rate from IT admin tooling, compliance platforms, and Microsoft first-party portal
+  navigation — run for one week to identify legitimate admin tooling and build
+  exclusion lists before promoting to hunt tier.
+  REQUIRES Microsoft Graph Activity Logs (MicrosoftGraphActivityLogs) to be enabled
+  and ingested — not available by default in all tenants.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.discovery
+  - attack.t1087.004
+  - attack.t1069.003
+  - attack.t1526
+  - detection.maturity.research
+logsource:
+  product: azure
+  service: MicrosoftGraphActivityLogs
+detection:
+  selection_role_discovery:
+    RequestUri|contains:
+      - 'transitiveRoleAssignments'
+      - 'microsoft.graph.directoryRole'
+      - 'roleManagement/directory/roleAssignments'
+  selection_cross_tenant:
+    RequestUri|contains:
+      - 'tenantRelationships'
+  selection_mailbox:
+    RequestUri|contains:
+      - 'mailboxSettings'
+  selection_contacts:
+    RequestUri|contains:
+      - 'contactFolders'
+  selection_org_licensing:
+    RequestUri|contains:
+      - 'subscribedSkus'
+      - '/organization'
+      - 'appRoleAssignedResources'
+  condition: >
+    selection_role_discovery or selection_cross_tenant or selection_mailbox
+    or selection_contacts or selection_org_licensing
+falsepositives:
+  - IT admin tooling performing role audits (compliance, PAM platforms)
+  - Microsoft 365 admin portal navigation
+  - Third-party compliance and governance tools (AvePoint, Varonis, Stealthbits)
+  - Internal Graph SDK tooling by identity engineering teams
+level: informational

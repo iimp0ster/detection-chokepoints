@@ -1,0 +1,33 @@
+title: Entra ID Successful Device Code Flow Sign-In (OAuth Device Code Phishing Baseline)
+id: b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e
+status: experimental
+description: >
+  Baseline visibility rule: logs all successful OAuth device-code-flow sign-ins
+  regardless of application ID. High FP rate from legitimate IoT device enrollment,
+  Azure CLI, VS Code Azure extension, and Intune tooling — run for one week to build
+  an allowlist of expected app IDs and user populations before promoting to hunt tier.
+  The Microsoft Authentication Broker app ID (29d9ed98-a469-4536-ade2-f981bc1d605e)
+  is the Tycoon 2FA hardcoded client; other app IDs may also be used by other kits.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.defense-evasion
+  - attack.t1550.001
+  - detection.maturity.research
+logsource:
+  product: azure
+  service: signinlogs
+detection:
+  selection_device_code:
+    AuthenticationProtocol: 'deviceCode'
+    ResultType: '0'
+  condition: selection_device_code
+falsepositives:
+  - Azure CLI (az login --device-code)
+  - VS Code Azure and Remote extensions
+  - IoT device enrollment (printer, AV display, shared kiosk)
+  - Intune-enrolled shared devices
+  - GitHub Actions with device-code OIDC flows
+level: informational

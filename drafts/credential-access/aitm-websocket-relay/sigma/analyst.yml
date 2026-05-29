@@ -1,0 +1,61 @@
+title: Entra ID Two-Tier ASN AiTM Pattern — Same UPN Cloud-VPS and Residential within 20 Minutes
+id: b3c4d5e6-f7a8-4b9c-0d1e-2f3a4b5c6d7e
+status: experimental
+description: >
+  Detects two successful Entra ID sign-ins by the same UPN within 20 minutes where one
+  source IP is from a cloud-hosting/VPS ASN and the other is from a residential or small-ISP
+  ASN. This two-tier ASN pattern is structurally required by AiTM kits: cloud-VPS for the
+  high-throughput kit relay, residential proxy for the operator console. Single-ASN rules
+  miss one tier. This rule targets the architectural requirement and survives user agent rotation.
+  REQUIRES ASN enrichment lookup on source IP against a cloud-provider ASN list.
+  NOTE: This rule requires correlation across two sign-in events and ASN enrichment —
+  implement in SIEM with lookup table or KQL join rather than standard Sigma evaluation.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.credential-access
+  - attack.t1539
+  - attack.t1078.004
+  - detection.maturity.analyst
+logsource:
+  product: azure
+  service: signinlogs
+detection:
+  # This rule requires correlation and ASN enrichment — the detection block below
+  # is a conceptual stub. Implement via KQL join or SIEM correlation rule.
+  selection_cloud_vps:
+    ResultType: '0'
+    # EnrichedASN field (requires lookup table enrichment):
+    # EnrichedASNCategory: 'cloud-hosting'
+    # Cloud-hosting ASN examples: Alibaba Cloud (AS37963), M247 (AS9009),
+    # DigitalOcean (AS14061), Linode/Akamai (AS63949), OVH (AS16276),
+    # Hetzner (AS24940), Clouvider (AS62240), Host Telecom
+    UserAgent|contains:
+      - 'node'
+      - 'axios'
+      - 'undici'
+      - 'node-fetch'
+  selection_residential:
+    ResultType: '0'
+    # EnrichedASNCategory: 'residential-isp'
+    UserAgent|contains:
+      - 'Mozilla'
+    AppDisplayName|contains:
+      - 'OfficeHome'
+      - 'My Signins'
+      - 'Microsoft Approval Management'
+      - 'Outlook Web'
+  # CORRELATION: same UserPrincipalName across both sign-ins within 1200 seconds (20 min)
+  # STUB -- verify log source and field names against lab data
+  condition: >
+    # <UNKNOWN -- verify against lab data: implement as SIEM correlation rule>
+    # Conceptual: (selection_cloud_vps correlated_with selection_residential)
+    # within timeframe 1200s by UserPrincipalName
+    selection_cloud_vps
+falsepositives:
+  - Corporate VPN egress shared across multiple ASN categories (exclude corporate VPN IPs)
+  - Legitimate split-routing scenarios (mobile + desktop same UPN)
+  - Known corporate proxies in non-cloud ASNs
+level: high

@@ -1,0 +1,270 @@
+Name: Post-AiTM Graph API Reconnaissance Burst
+Id: d4a6c8e0-f2b4-4d6e-8f0a-2b4c6e8f0a2b
+MitreIds:
+- T1087.004
+- T1069.003
+- T1526
+Tactics:
+- Discovery
+Techniques:
+- 'Account Discovery: Cloud Account'
+- 'Permission Groups Discovery: Cloud Groups'
+- Cloud Service Discovery
+DetectionPriority: HIGH
+ThreatPrevalence: MEDIUM
+DetectionDifficulty: MEDIUM
+Description: >
+  Within 10-20 minutes of successful AiTM session token theft, Tycoon 2FA's operator
+  console tier executes an automated burst of 20-30+ Microsoft Graph API calls across
+  five distinct reconnaissance categories (role discovery, cross-tenant recon, mailbox
+  recon, contact harvesting, org and licensing) within 30-60 seconds. Normal Microsoft
+  365 portal navigation by a human user touches 1-2 endpoint categories in a session;
+  4+ distinct categories within 60 seconds is mechanically impossible at human speed
+  and indicates automated tooling. The operator automation uses first-party apps with
+  pre-consented broad scopes, an empty c_DeviceId (unmanaged device), and
+  disproportionate /beta/ API usage. A common analyst mistake is filtering on c_sid
+  (Graph Activity Log client session ID) as if it were the user object ID — c_sid is
+  a session/security-context identifier and does NOT equal the user object ID;
+  filtering c_sid == user_object_id returns empty results.
+
+LastUpdated: '2026-05-27'
+Author: '@iimp0ster'
+
+Prerequisites:
+- Kit has successfully obtained session tokens (Tier 1 relay) or device-code-grant tokens
+- Graph Activity Logs must be enabled and ingested (not enabled by default in all tenants)
+- Operator automation must have access tokens with broad pre-consented scopes
+  (RoleManagement.ReadWrite.Directory, MailboxSettings.ReadWrite, etc.)
+
+Chokepoints:
+- Stage: Multi-Category Graph API Burst
+  Input: Operator console tier has received stolen session tokens from kit relay;
+    begins automated reconnaissance within 10-20 minutes of Tier 1 completion
+  Invariant: The attacker MUST enumerate multiple distinct Graph API endpoint
+    categories to triage the compromised identity's value (roles, cross-tenant trust,
+    mailbox configuration, contacts, licensing). The automation cannot perform all
+    reconnaissance from a single endpoint — each category requires distinct API
+    calls. Covering 4+ categories within 60 seconds is not achievable by human
+    portal navigation (normal = 1-2 categories per session).
+  Observable: >
+    Microsoft Graph Activity Logs (MicrosoftGraphActivityLogs in Sentinel):
+    Single UPN makes requests to endpoints spanning 4+ of these categories
+    within a 60-second window:
+    - Role Discovery: transitiveRoleAssignments, memberOf/directoryRole,
+      roleManagement/directory/roleAssignments
+    - Cross-Tenant: tenantRelationships/getResourceTenants (POST)
+    - Mailbox Recon: me/mailboxSettings
+    - Contact Harvest: me/contactFolders/contacts ($top=1000)
+    - Org & Licensing: subscribedSkus, organization, appRoleAssignedResources
+    Additional signals: empty c_DeviceId, $top=999/$count=true parameters,
+    /beta/ API usage, mixed GET/POST methods, mixed 200/400/403 response codes.
+  WhyCantBypass: >
+    The operator automation requires breadth to triage the compromised identity's
+    value — checking roles, cross-tenant trusts, mailbox forwarding rules, contact
+    lists, and licensing in one pass. These data are spread across 5 distinct Graph
+    API endpoint categories. Slowing the requests to human-navigation speed (>60s
+    between categories) would add 10+ minutes to the recon phase, increasing
+    detection window and reducing the automation's value. The category diversity
+    is the invariant — the attacker cannot collapse it into a single endpoint.
+  LogSources:
+  - Microsoft Graph Activity Logs (MicrosoftGraphActivityLogs Sentinel table)
+  - Entra ID Sign-in Logs (for ASN correlation with Tier 2 residential proxy)
+  DetectionTier: Hunt
+  SigmaRef: drafts/discovery/graph-api-recon-burst/sigma/hunt.yml
+  BypassNote: >
+    Graph Activity Logs may not be enabled in all tenants — check ingestion before
+    relying on this detection. c_sid is NOT the user object ID; pivot on source IP
+    + appId cross-referenced with sign-in logs to identify UPN.
+
+Variations:
+- Name: Tycoon 2FA Operator Console — 5-Category Recon Automation
+  FirstSeen: 2023-Q3
+  Status: Active
+  SourceURL: https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+  Notes: >
+    Operator console tier (Tier 2) executes 20-30+ Graph API calls within 30-60
+    seconds. Accesses all 5 recon categories. Uses residential-proxy ASN, single
+    fixed browser UA (Firefox on Windows). Appears 10-20 minutes after Tier 1
+    kit relay success. First-party apps with broad pre-consented scopes:
+    RoleManagement.ReadWrite.Directory, MailboxSettings.ReadWrite,
+    UserAuthenticationMethod.ReadWrite, User.RevokeSessions.All.
+    Empty c_DeviceId (unmanaged, unregistered device from Tier 2 residential proxy).
+    Common mistake: filtering c_sid == user_object_id returns empty results;
+    pivot on source IP + appId against sign-in logs instead.
+  VariantId: tycoon-2fa-operator-recon
+  Command:
+    Invocation: |
+      # Role Discovery
+      GET https://graph.microsoft.com/beta/me/transitiveRoleAssignments?$select=roleDefinitionId
+      GET https://graph.microsoft.com/v1.0/me/memberOf/microsoft.graph.directoryRole
+      GET https://graph.microsoft.com/beta/roleManagement/directory/roleAssignments?$filter=principalId eq '<id>'
+
+      # Cross-Tenant Recon
+      POST https://graph.microsoft.com/beta/tenantRelationships/getResourceTenants
+
+      # Mailbox Recon
+      GET https://graph.microsoft.com/v1.0/me/mailboxSettings
+
+      # Contact Harvesting
+      GET https://graph.microsoft.com/v1.0/me/contactFolders/contacts?$top=1000
+
+      # Org & Licensing
+      GET https://graph.microsoft.com/v1.0/subscribedSkus
+      GET https://graph.microsoft.com/v1.0/organization
+      GET https://graph.microsoft.com/beta/me/appRoleAssignedResources?$top=999&$count=true
+    Context: >
+      20-30+ calls within 30-60 seconds. Structured query params ($top=999,
+      $count=true). /beta/ API disproportionate. Mixed 200/400/403 responses
+      (400/403 still indicate recon attempts). Empty c_DeviceId.
+      Residential ASN (Tier 2) appears ~10-20 min after Tier 1 cloud-VPS sign-in.
+    Artifacts:
+    - 'Graph Activity Logs: 4+ endpoint categories from single UPN within 60s'
+    - 'Graph Activity Logs: $top=999 / $count=true structured query parameters'
+    - 'Graph Activity Logs: empty c_DeviceId on all requests'
+    - 'Graph Activity Logs: /beta/ API disproportionate to /v1.0/'
+    - 'Entra ID Sign-in Logs: residential ASN sign-in 10-20 min after cloud-VPS sign-in same UPN'
+  ChokepointMapping: >
+    Tier 1 relay steals session → Tier 2 operator console (residential ASN) receives tokens →
+    automated 5-category Graph recon burst (20-30+ calls / 60s) → operator triages
+    identity value for fraud / BEC / lateral movement
+
+EvolutionTimeline:
+- Date: 2023-Q3
+  Event: Tycoon 2FA introduces automated post-compromise Graph API recon as standard operator step
+  Change: >
+    Tycoon 2FA's operator console automation implements a structured 5-category
+    Graph API reconnaissance sequence as a standard post-compromise triage step.
+    Operator appears within 10-20 minutes of kit relay success, demonstrating
+    that the handoff window between automated kit relay and human-operated console
+    is predictably short and exploitable for containment automation.
+  DetectionImpact: >
+    Graph Activity Logs become a critical detection log source for AiTM post-
+    compromise. 4+ distinct endpoint categories in 60s becomes the automated-
+    tooling threshold. Manual SOC response (typically >10-20 minutes) is too slow
+    without automated playbooks.
+  TheConstant: 4+ Graph API endpoint categories from single UPN within 60s from residential ASN
+  Variants: []
+  EventType: event
+
+- Date: 2026-05-27
+  Event: Elastic Security Labs publishes ES|QL rule with category-tagging and c_sid pivot mistake
+  Change: >
+    ES|QL rule with category-tagging enrichment published. Critical analyst mistake
+    documented: c_sid != user_object_id. Correct hunt pivot: source IP + appId
+    cross-referenced with sign-in logs. Empty c_DeviceId as FP-reduction signal added.
+    /beta/ API disproportionate usage documented as secondary signal.
+  DetectionImpact: >
+    Sigma/ES|QL rules must use category-tagging logic (tag each requestUri into
+    one of 5 categories, then count distinct categories per UPN per 60s).
+    Standard field-based Sigma cannot express this directly without preprocessing
+    or pipeline enrichment. KQL / ES|QL preferred for production deployment.
+  TheConstant: 4+ Graph API endpoint categories from single UPN within 60s
+  Variants: []
+  EventType: event
+
+Detections:
+- Level: Research
+  Description: >
+    Log all Graph API requests matching any of the 5 recon categories from
+    Graph Activity Logs. Baseline for understanding legitimate admin tooling
+    usage of these endpoints.
+  LogSources:
+  - Microsoft Graph Activity Logs (MicrosoftGraphActivityLogs)
+  Logic: >
+    requestUri contains_any [transitiveRoleAssignments, directoryRole,
+    roleManagement/directory/roleAssignments, tenantRelationships,
+    mailboxSettings, contactFolders/contacts, subscribedSkus, /organization,
+    appRoleAssignedResources]. No volume/timing filter. Run for one week to
+    identify legitimate admin tooling and build exclusion list.
+  ExpectedFPRate: Medium (IT admin tooling, compliance tools, Microsoft first-party portal)
+  UseCase: >
+    Baseline Graph Activity Log coverage. Identify legitimate admin tooling that
+    queries multiple categories. Build c_DeviceId allowlist for managed devices.
+  SigmaRule: drafts/discovery/graph-api-recon-burst/sigma/research.yml
+
+- Level: Hunt
+  Description: >
+    4+ distinct Graph API endpoint categories from a single UPN within 60 seconds
+    with empty c_DeviceId (unmanaged device). Requires category-tagging enrichment
+    or ES|QL / KQL aggregation pipeline.
+  LogSources:
+  - Microsoft Graph Activity Logs
+  Logic: >
+    Tag each request into one of 5 categories based on requestUri pattern.
+    Alert when same UPN has requests spanning 4+ distinct categories within 60s
+    AND c_DeviceId is empty. Exclude known IT admin service accounts and
+    compliance tool service principals. ES|QL or KQL recommended over Sigma
+    for the category-count aggregation.
+    NOTE: c_sid is NOT the user object ID — pivot on source IP + appId against
+    sign-in logs to identify UPN. Do NOT filter c_sid == user_object_id.
+  ExpectedFPRate: Low (third-party compliance/audit tools; document and exclude)
+  UseCase: >
+    Active hunting for post-AiTM operator recon. Category diversity at automated
+    speed is the invariant. False positives limited to broad-scope IT tooling.
+  SigmaRule: drafts/discovery/graph-api-recon-burst/sigma/hunt.yml
+
+- Level: Analyst
+  Description: >
+    4+ Graph API categories / 60s with empty c_DeviceId correlated with preceding
+    AiTM sign-in from same UPN (Node.js UA or residential ASN transition within
+    20 minutes).
+  LogSources:
+  - Microsoft Graph Activity Logs
+  - Entra ID Sign-in Logs (for AiTM correlation)
+  Logic: >
+    Graph recon burst (4+ categories / 60s / empty c_DeviceId) AND same UPN
+    has a preceding sign-in with Node.js UA on OfficeHome/Auth Broker within
+    20 minutes. Correlated with AiTM relay signal = high-confidence post-
+    compromise recon confirmation.
+  ExpectedFPRate: Very Low
+  UseCase: >
+    SOC alerting. Immediate IR escalation. Trigger automated response:
+    disable account → enumerate/delete registered devices → revoke sessions.
+  SigmaRule: drafts/discovery/graph-api-recon-burst/sigma/analyst.yml
+
+Intel:
+- Name: Elastic Security Labs — Tycoon 2FA AiTM Detection Engineering
+  Tier: primary
+  URL: https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+  Description: >
+    Primary source. 5-category endpoint taxonomy documented. ES|QL rule published.
+    c_sid pivot mistake documented. Empty c_DeviceId as FP-reduction signal.
+    /beta/ API disproportionate usage as secondary signal. 10-20 minute
+    kit-to-operator handoff window quantified.
+
+- Name: MITRE ATT&CK — T1087.004 Account Discovery: Cloud Account
+  Tier: primary
+  URL: https://attack.mitre.org/techniques/T1087/004/
+  Description: Primary technique definition.
+
+RelatedChokepoints:
+- aitm-websocket-relay
+- aitm-device-prt-enrollment
+
+KnownBypasses:
+- Bypass: Graph Activity Logs not enabled in tenant
+  Mitigation: Enable Graph Activity Logs in all tenants; alert if logging
+    configuration changes unexpectedly
+  Detection: >
+    Cannot detect this chokepoint without Graph Activity Logs. Ensure log ingestion
+    is confirmed before relying on this detection. Fall back to Entra ID sign-in
+    log correlations (two-tier ASN) as the primary signal when Graph logs unavailable.
+
+- Bypass: Operator slows recon to below 4-category threshold within 60s
+  Mitigation: Reduce aggregation window; monitor for 3+ categories over 5 minutes
+  Detection: >
+    Extended time window (3+ categories / 5 minutes) may catch slowed automation
+    at the cost of higher FP rate. /beta/ API usage + empty c_DeviceId remain
+    as secondary signals regardless of pace.
+
+OsintSources:
+- Platform: '<UNKNOWN -- verify against lab data>'
+  Query: '<UNKNOWN -- no public OSINT query for Graph API recon bursts>'
+  Notes: >
+    Graph API recon bursts are internal Microsoft log signals — not externally
+    observable via OSINT. Detection relies entirely on Graph Activity Log ingestion.
+
+TheConstant: >
+  4+ distinct Graph API endpoint categories (role/cross-tenant/mailbox/contact/org)
+  from single UPN within 60 seconds, empty c_DeviceId, from residential ASN
+  10-20 minutes after AiTM relay session theft

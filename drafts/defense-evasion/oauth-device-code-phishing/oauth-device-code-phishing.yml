@@ -1,0 +1,239 @@
+Name: OAuth Device Code Phishing via Auth Broker
+Id: c3f5a7b9-d1e3-4f5a-9b1c-3d5f7a9b1c3d
+MitreIds:
+- T1550.001
+Tactics:
+- Defense Evasion
+Techniques:
+- 'Use Alternate Authentication Material: Application Access Token'
+DetectionPriority: HIGH
+ThreatPrevalence: MEDIUM
+DetectionDifficulty: LOW
+Description: >
+  Adversaries abuse the OAuth 2.0 device authorization grant flow to obtain
+  Microsoft access and refresh tokens without a credential-harvest page or
+  MFA bypass. The attacker initiates a device code using the Microsoft
+  Authentication Broker (MAB) app (client ID 29d9ed98-a469-4536-ade2-f981bc1d605e),
+  then social-engineers the victim to enter the code at microsoft.com/devicelogin,
+  presenting it as a "verification code" or MFA prompt. The completed flow yields
+  access and refresh tokens scoped to the Auth Broker FOCI (Family of Client IDs)
+  family, granting access to Exchange, Graph, SharePoint, and Teams without
+  requiring the victim to visit a fake login page. The MAB app ID is hardcoded
+  in Tycoon 2FA's device-code-grant variant and generates a distinctive
+  authenticationProtocol: deviceCode signal in Entra ID sign-in logs on a
+  first-party app ID rarely used interactively by end users.
+
+LastUpdated: '2026-05-27'
+Author: '@iimp0ster'
+
+Prerequisites:
+- Attacker can deliver a lure to the victim (email, Teams message, embedded link)
+  that presents a device code as a legitimate verification prompt
+- Target must have a Microsoft 365 / Entra ID account
+- Tenant must not have a Conditional Access policy blocking device code flows
+  (CA policy "Block device code flow" returns error 53003)
+- Attacker must be able to poll oauth2/token until victim redeems the code
+
+Chokepoints:
+- Stage: Device Code Redemption via MAB App
+  Input: Victim has entered the device code at microsoft.com/devicelogin
+  Invariant: The attacker MUST use a specific OAuth application to initiate the
+    device code flow — Tycoon 2FA hardcodes the Microsoft Authentication Broker
+    (client ID 29d9ed98-a469-4536-ade2-f981bc1d605e). Redemption generates an
+    interactive sign-in event with authenticationProtocol: deviceCode and the MAB
+    app ID, regardless of how the code was delivered to the victim.
+  Observable: >
+    Entra ID SigninLogs: authenticationProtocol == "deviceCode" AND
+    appId == "29d9ed98-a469-4536-ade2-f981bc1d605e" AND
+    resultType == "0" AND isInteractive == true.
+    End users rarely initiate device-code flows to the Auth Broker interactively
+    in managed environments — this combination is low-FP.
+  WhyCantBypass: >
+    The FOCI token chain required for Exchange/Graph/SharePoint/Teams access
+    depends on the Auth Broker app ID. Using a different app ID would require
+    re-engineering the token exchange chain and would break the downstream
+    FOCI inheritance that makes the technique valuable. The authenticationProtocol:
+    deviceCode field is set server-side by Microsoft when the device-code grant
+    type is used — the attacker cannot change this to appear as a different flow.
+  LogSources:
+  - Entra ID Sign-in Logs (SigninLogs table in Sentinel)
+  - Entra ID Interactive User Sign-In Logs
+  DetectionTier: Analyst
+  SigmaRef: drafts/defense-evasion/oauth-device-code-phishing/sigma/analyst.yml
+
+- Stage: Token Inheritance via FOCI
+  Input: Kit has obtained Auth Broker refresh token; begins accessing M365 resources
+    via FOCI token exchange
+  Invariant: The attacker MUST exchange the Auth Broker refresh token for access
+    tokens to other M365 services via FOCI — generating non-interactive sign-in
+    records on Exchange, Graph, SharePoint, and Teams from a cloud-VPS ASN
+    within 10-20 minutes of the device-code completion event.
+  Observable: >
+    Entra ID NonInteractiveUserSignInLogs: Multiple resource sign-ins
+    (Exchange, Graph, SharePoint, Teams) from cloud-VPS ASN within 10-20 minutes
+    of the device-code interactive sign-in event for same UPN.
+    incomingTokenType: refreshToken → primaryRefreshToken progression in
+    Graph Activity Logs.
+  WhyCantBypass: >
+    Access to M365 resources requires valid tokens, which require token exchange
+    calls that generate non-interactive sign-in log entries. The FOCI token
+    exchange is the only mechanism to access multiple M365 resources from a
+    single Auth Broker refresh token.
+  LogSources:
+  - Entra ID NonInteractiveUserSignInLogs
+  - Microsoft Graph Activity Logs
+  DetectionTier: Hunt
+  SigmaRef: drafts/defense-evasion/oauth-device-code-phishing/sigma/hunt.yml
+
+Variations:
+- Name: Tycoon 2FA — Device Code Grant Variant
+  FirstSeen: 2024-Q1
+  Status: Active
+  SourceURL: https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+  Notes: >
+    Post-takedown adaptation by Tycoon 2FA operators. Device code delivered as
+    "verification code" lure exploiting victim familiarity with MFA prompts.
+    MAB client ID 29d9ed98-a469-4536-ade2-f981bc1d605e hardcoded. Token
+    progression: incomingTokenType none → refreshToken → (optional) Rogue Device
+    Registration → primaryRefreshToken. Bypasses URL-filtering defenses entirely
+    — no phishing page to block.
+  VariantId: tycoon-2fa-device-code
+  Command:
+    Invocation: |
+      # Step 1: Request device code using MAB app
+      POST https://login.microsoftonline.com/common/oauth2/v2.0/devicecode
+        client_id=29d9ed98-a469-4536-ade2-f981bc1d605e
+        scope=https://graph.microsoft.com/.default
+      # Returns: device_code (shown to victim as "verification code"), user_code
+
+      # Step 2: Poll until victim redeems code at microsoft.com/devicelogin
+      POST https://login.microsoftonline.com/common/oauth2/token
+        grant_type=urn:ietf:params:oauth:grant-type:device_code
+        device_code=<device_code>
+        client_id=29d9ed98-a469-4536-ade2-f981bc1d605e
+      # Polls until resultType "0" — victim has entered code
+
+      # Step 3: FOCI token exchange to access M365 resources
+      POST https://login.microsoftonline.com/common/oauth2/token
+        grant_type=refresh_token
+        refresh_token=<mab_refresh_token>
+        resource=https://outlook.office365.com  # Exchange
+        client_id=29d9ed98-a469-4536-ade2-f981bc1d605e
+    Context: >
+      Variant bypasses credential-harvest detection (no fake login page).
+      Code delivered via email lure as "verification code". Operators post-
+      takedown combined device-code tradecraft with AiTM WebSocket relay.
+    Artifacts:
+    - 'Entra ID SigninLogs: authenticationProtocol "deviceCode" appId "29d9ed98-..." resultType "0" isInteractive "true"'
+    - 'Entra ID NonInteractiveUserSignInLogs: FOCI token exchanges to Exchange/Graph/SharePoint from cloud-VPS ASN'
+    - 'Graph Activity Logs: incomingTokenType progression none → refreshToken → primaryRefreshToken'
+  ChokepointMapping: >
+    Kit requests device code → lure delivers code to victim → victim redeems at
+    devicelogin (interactive sign-in event: deviceCode + MAB app ID) → kit polls
+    and receives tokens → FOCI exchange to M365 resources
+
+EvolutionTimeline:
+- Date: 2024-Q1
+  Event: Tycoon 2FA operators adopt device-code-grant phishing post-takedown
+  Change: >
+    Following infrastructure disruptions, Tycoon 2FA operators adapt by combining
+    AiTM tradecraft with OAuth device-code-grant phishing. The device-code variant
+    bypasses URL-filtering defenses (no phishing page) and is harder to detect
+    via traditional email scanning. MAB app ID hardcoded, generating a reliable
+    detection signal.
+  DetectionImpact: >
+    URL-based phishing detection insufficient for device-code variant. authenticationProtocol:
+    deviceCode on MAB app ID becomes the primary detection signal. CA policy
+    "Block device code flow" (error 53003) provides prevention. Tenant admins
+    should audit frequency of interactive device-code flows — most managed users
+    never initiate them.
+  TheConstant: authenticationProtocol: deviceCode + MAB app ID + resultType 0 on interactive sign-in
+  Variants: []
+  EventType: event
+
+Detections:
+- Level: Research
+  Description: >
+    Log all successful device-code-flow sign-ins regardless of app ID.
+    Baseline for understanding legitimate device-code usage in the tenant.
+  LogSources:
+  - Entra ID Sign-in Logs
+  Logic: >
+    authenticationProtocol == "deviceCode" AND resultType == "0".
+    No app filter. Run for one week to identify legitimate IoT devices,
+    CLI tools (Azure CLI uses device code), and admin tooling.
+  ExpectedFPRate: Medium (Azure CLI, VS Code Azure extension, IoT device enrollment)
+  UseCase: >
+    Baseline device-code flow volume and identify legitimate sources
+    (Azure CLI, VS Code). Build exclusion list for analyst-tier rule.
+  SigmaRule: drafts/defense-evasion/oauth-device-code-phishing/sigma/research.yml
+
+- Level: Hunt
+  Description: >
+    Device-code flow on the Microsoft Authentication Broker app ID — rarely
+    used interactively by end users in managed environments.
+  LogSources:
+  - Entra ID Sign-in Logs
+  Logic: >
+    authenticationProtocol == "deviceCode" AND
+    appId == "29d9ed98-a469-4536-ade2-f981bc1d605e" AND
+    resultType == "0". Alert on any occurrence — MAB app ID + device code
+    interactive sign-in is low-volume and should be reviewed.
+  ExpectedFPRate: Low (legitimate MAB device-code in managed device enrollment; rare)
+  UseCase: >
+    Active hunting. MAB app ID + device-code combination is low-FP in
+    most enterprise tenants. Investigate each occurrence.
+  SigmaRule: drafts/defense-evasion/oauth-device-code-phishing/sigma/hunt.yml
+
+- Level: Analyst
+  Description: >
+    MAB device-code flow + isInteractive flag confirms victim redemption.
+    High-confidence phishing indicator in managed tenants.
+  LogSources:
+  - Entra ID Sign-in Logs
+  Logic: >
+    authenticationProtocol == "deviceCode" AND
+    appId == "29d9ed98-a469-4536-ade2-f981bc1d605e" AND
+    resultType == "0" AND isInteractive == true.
+    Exclude known-legitimate automation (document per tenant).
+  ExpectedFPRate: Very Low
+  UseCase: SOC alerting. Immediate investigation. Trigger: enumerate registered devices,
+    review recent sign-ins, revoke if confirmed phishing.
+  SigmaRule: drafts/defense-evasion/oauth-device-code-phishing/sigma/analyst.yml
+
+Intel:
+- Name: Elastic Security Labs — Tycoon 2FA AiTM Detection Engineering
+  Tier: primary
+  URL: https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+  Description: >
+    Primary source. MAB client ID (29d9ed98-a469-4536-ade2-f981bc1d605e) documented.
+    Token progression (none → refreshToken → PRT) documented in Graph Activity Logs.
+    CA policy mitigation (Block device code flow → error 53003) confirmed.
+
+- Name: MITRE ATT&CK — T1550.001 Use Alternate Authentication Material
+  Tier: primary
+  URL: https://attack.mitre.org/techniques/T1550/001/
+  Description: Primary technique definition.
+
+RelatedChokepoints:
+- aitm-websocket-relay
+- aitm-device-prt-enrollment
+
+KnownBypasses:
+- Bypass: Using a different OAuth app ID (not MAB)
+  Mitigation: Audit all app IDs used in device-code flows; alert on any
+    non-allow-listed app ID initiating device code
+  Detection: >
+    Research-tier rule catches all device-code flows. Review any non-Azure CLI
+    / non-VS Code app ID initiating device codes. The FOCI token chain restricts
+    which app IDs are useful for broad M365 access.
+
+- Bypass: Blocking CA policy not deployed (device code flows allowed)
+  Mitigation: Deploy CA policy "Block device code flow" as a preventive control
+  Detection: >
+    authenticationProtocol: deviceCode detection remains the primary signal.
+    Prevention via CA policy (error 53003) is the most effective mitigation.
+
+TheConstant: >
+  authenticationProtocol: deviceCode + MAB app ID 29d9ed98-... + resultType 0 +
+  isInteractive on Entra ID sign-in event when victim redeems device code

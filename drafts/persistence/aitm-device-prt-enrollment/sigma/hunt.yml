@@ -1,0 +1,43 @@
+title: Entra ID Device Registration with Non-Native User Agent (AiTM PRT Persistence)
+id: f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c
+status: experimental
+description: >
+  Detects Entra ID device registration audit events where the initiating user agent
+  is not a native OS registration client. Tycoon 2FA's kit performs DRS
+  EnrollmentServer/device enrollment using axios/1.15.2, not the expected OS agents
+  (Dsreg, DeviceRegistrationClient, Dalvik, Windows-AzureAD-Authentication-Provider).
+  A registered device from a non-native UA obtains a PRT that survives
+  revokeSignInSessions, enabling persistent M365 access after IR response.
+  VERIFY field names (UserAgent vs. InitiatedBy.app.displayName) against lab data.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.persistence
+  - attack.t1098.005
+  - detection.maturity.hunt
+logsource:
+  product: azure
+  service: auditlogs
+detection:
+  selection:
+    OperationName: 'Add registered users to device'
+    ResultType: '0'
+  filter_native_ua:
+    # Native OS registration clients — these are expected
+    UserAgent|contains:
+      - 'Dsreg'
+      - 'DeviceRegistrationClient'
+      - 'Dalvik'
+      - 'Windows-AzureAD-Authentication-Provider'
+  filter_known_automation:
+    # Add documented automation service accounts or Intune pipeline identities
+    InitiatedBy|contains:
+      - '<UNKNOWN -- verify against lab data: add known-good enrollment service principals>'
+  condition: selection and not filter_native_ua and not filter_known_automation
+falsepositives:
+  - Third-party MDM solutions using custom HTTP clients for device enrollment
+  - Custom Intune enrollment wrappers with non-standard UA strings
+  - Vendor tooling not yet in the native UA filter
+level: high

@@ -1,0 +1,258 @@
+Name: AiTM Kit Device PRT Enrollment
+Id: b2e4f6a8-c0d2-4e6f-8a0b-2c4d6e8f0a2b
+MitreIds:
+- T1098.005
+Tactics:
+- Persistence
+Techniques:
+- 'Account Manipulation: Device Registration'
+DetectionPriority: HIGH
+ThreatPrevalence: MEDIUM
+DetectionDifficulty: LOW
+Description: >
+  After capturing a victim's session via AiTM proxy, the Tycoon 2FA kit registers a
+  synthetic device with Microsoft Device Registration Service (DRS) to obtain a
+  Primary Refresh Token (PRT) bound to a kit-controlled device object. This PRT
+  survives the standard IR playbook of revokeSignInSessions because the device is a
+  separate Entra ID principal — its PRT remains valid indefinitely unless the device
+  object is explicitly deleted first. The enrollment call always uses the kit's
+  Node.js HTTP client (axios/1.15.2), not the native Entra ID join clients (Dsreg,
+  DeviceRegistrationClient, Dalvik) — a binary distinction exploitable as a
+  high-fidelity detection. Critical IR finding: the correct containment sequence is
+  atomically disable account → enumerate and DELETE all registered devices →
+  THEN revoke sign-in sessions → reset password. Reversing steps 2 and 3 leaves
+  the device-PRT valid and allows the kit to continue brokering fresh access tokens
+  via HMAC-SHA256 signed PRT assertions.
+
+LastUpdated: '2026-05-27'
+Author: '@iimp0ster'
+
+Prerequisites:
+- Kit has already captured victim's session via AiTM relay (Tier 1 success)
+- Kit holds a Microsoft Authentication Broker refresh token for the victim
+- Victim tenant allows device registration (not restricted to Entra ID joined devices only)
+- Kit has network access to enterpriseregistration.windows.net (DRS endpoint)
+
+Chokepoints:
+- Stage: DRS Enrollment with Non-Native User Agent
+  Input: Kit has captured MAB refresh token; proceeds to register synthetic device
+    for PRT persistence
+  Invariant: The attacker MUST call the DRS EnrollmentServer/device endpoint to
+    register a device — this is the only path to a device-bound PRT in Entra ID.
+    The enrollment always generates an audit event in Entra ID AuditLogs.
+    The kit's HTTP client (axios/1.15.2) is the user agent on this call, not the
+    native clients (Dsreg / DeviceRegistrationClient / Dalvik) used by legitimate
+    join workflows.
+  Observable: >
+    Entra ID AuditLogs: operationName == "Add registered users to device" AND
+    resultType == "0" (success) AND userAgent NOT IN [Dsreg,
+    DeviceRegistrationClient, Dalvik, Windows-AzureAD-Authentication-Provider].
+    The non-native UA is the binary invariant — legitimate device enrollment
+    from managed endpoints never uses axios or node.
+  WhyCantBypass: >
+    DRS EnrollmentServer/device is the only API path to obtain a device-bound PRT
+    in Entra ID. There is no alternative enrollment mechanism. The audit event is
+    generated server-side by Microsoft's DRS — the attacker cannot suppress it.
+    The kit cannot use native Dsreg/DeviceRegistrationClient because those are
+    Windows OS components that would require code execution on a managed endpoint,
+    defeating the purpose of the cloud-side AiTM kit.
+  LogSources:
+  - Entra ID AuditLogs (AuditLogs table in Sentinel; filter ActivityDisplayName "Add registered users to device")
+  - Entra ID Sign-in Logs (cross-reference UPN for preceding AiTM sign-in within 5-15 min)
+  DetectionTier: Analyst
+  SigmaRef: drafts/persistence/aitm-device-prt-enrollment/sigma/analyst.yml
+
+- Stage: PRT Persistence Post-Revocation
+  Input: IR team has executed revokeSignInSessions (but NOT deleted device objects first)
+  Invariant: The attacker MUST use the PRT + session key to sign per-request
+    HMAC-SHA256 assertions for ongoing oauth2/token calls — these generate
+    non-interactive sign-in records with incomingTokenType: primaryRefreshToken
+    even after revokeSignInSessions has been executed.
+  Observable: >
+    Microsoft Graph Activity Logs or Entra ID NonInteractiveUserSignInLogs:
+    incomingTokenType == "primaryRefreshToken" from same UPN AFTER a
+    revokeSignInSessions event. This confirms device-PRT is still active and
+    device objects were not deleted before session revocation.
+  WhyCantBypass: >
+    PRT token grants always log incomingTokenType in Microsoft's audit infrastructure.
+    The attacker cannot obtain fresh access tokens without making oauth2/token calls
+    that generate log entries. The signal is generated server-side by Microsoft.
+  LogSources:
+  - Microsoft Graph Activity Logs (incomingTokenType field)
+  - Entra ID NonInteractiveUserSignInLogs
+  DetectionTier: Hunt
+  SigmaRef: drafts/persistence/aitm-device-prt-enrollment/sigma/hunt.yml
+  BypassNote: >
+    If IR deletes device objects before revoking sessions (correct order), the PRT
+    is invalidated and this stage never fires. This stage is a post-IR-failure
+    indicator, not a preventive detection.
+
+Variations:
+- Name: Tycoon 2FA — Device PRT Enrollment Chain
+  FirstSeen: 2023-Q3
+  Status: Active
+  SourceURL: https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+  Notes: >
+    Full API call chain documented by Elastic Security Labs. Five steps:
+    (1) Resource-swap MAB refresh token for DRS access token at oauth2/token
+        (resource=urn:ms-drs:enterpriseregistration.windows.net).
+    (2) POST EnrollmentServer/device with PKCS#10 CSR + synthetic device metadata.
+    (3) Build RS256 JWT signed with kit-generated device private key.
+    (4) POST jwt-bearer grant to obtain PRT + encrypted session key.
+    (5) Sign per-request HMAC-SHA256 PRT assertions for ongoing access.
+    User agent on enrollment call: axios/1.15.2.
+  VariantId: tycoon-2fa-device-prt
+  Command:
+    Invocation: |
+      # Step 1: Resource-swap MAB refresh token for DRS access token
+      # User-Agent: axios/1.15.2
+      POST https://login.microsoftonline.com/common/oauth2/token
+        grant_type=refresh_token
+        refresh_token=<stolen_refresh_token>
+        resource=urn:ms-drs:enterpriseregistration.windows.net
+        client_id=29d9ed98-a469-4536-ade2-f981bc1d605e
+
+      # Step 2: Register synthetic device
+      # User-Agent: axios/1.15.2
+      POST https://enterpriseregistration.windows.net/EnrollmentServer/device
+        {"CertificateRequest":{"Type":"pkcs10","Data":"<base64_PKCS10_CSR>"},
+         "DeviceDisplayName":"<fabricated>","OSVersion":"<fabricated>"}
+
+      # Step 3-4: JWT bearer grant → obtain PRT
+      POST https://login.microsoftonline.com/common/oauth2/token
+        grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
+        assertion=<RS256_JWT_signed_with_device_key>
+
+      # Step 5: Ongoing — sign PRT assertions with HMAC-SHA256 session key
+    Context: >
+      Audit event fires on Step 2 (DRS enrollment). Kit user agent (axios/1.15.2)
+      is the binary distinguishing signal vs. legitimate Dsreg/DeviceRegistrationClient.
+      PRT obtained in Step 4 survives revokeSignInSessions — device must be deleted first.
+    Artifacts:
+    - 'Entra ID AuditLogs: operationName "Add registered users to device" resultType "0" userAgent "axios/1.15.2"'
+    - 'Entra ID Device objects: fabricated DeviceDisplayName, OSVersion on registeredDevices/ownedDevices'
+    - 'Graph Activity Logs: incomingTokenType "primaryRefreshToken" from cloud-VPS ASN post-revokeSignInSessions'
+  ChokepointMapping: 'Kit captures session → axios enrolls DRS device (audit event) → PRT obtained → survives revokeSignInSessions → ongoing non-interactive sign-ins'
+
+EvolutionTimeline:
+- Date: 2023-Q3
+  Event: Tycoon 2FA introduces device-PRT enrollment as post-session-theft persistence
+  Change: >
+    First documented AiTM kit to implement device-PRT enrollment as an automated
+    persistence step following session token theft. Previous AiTM kits relied solely
+    on session tokens, which are invalidated by revokeSignInSessions. Device-PRT
+    enrollment creates a persistence layer that survives the most common IR response,
+    requiring IR teams to change their containment playbooks.
+  DetectionImpact: >
+    Standard IR playbooks (revokeSignInSessions → password reset) are insufficient.
+    New detection requirement: audit "Add registered users to device" events for
+    non-native user agents. New IR requirement: device enumeration and deletion
+    before session revocation.
+  TheConstant: DRS EnrollmentServer/device call with non-native UA → audit event → device-bound PRT
+  Variants: []
+  EventType: event
+
+- Date: 2026-05-27
+  Event: Elastic Security Labs documents full DRS enrollment API chain and IR playbook gap
+  Change: >
+    Complete 5-step API call chain published. Correct IR atomic sequence documented:
+    disable account → delete registered devices → revoke sessions → reset password.
+    Automated Elastic response workflow confirmed to execute in <10 seconds.
+  DetectionImpact: >
+    Non-native UA on DRS enrollment audit event becomes the primary analyst-tier
+    detection. Post-revocation incomingTokenType: primaryRefreshToken becomes the
+    hunting signal for IR teams that executed revocation in the wrong order.
+  TheConstant: DRS EnrollmentServer/device call with axios UA → audit event → device-bound PRT
+  Variants: []
+  EventType: event
+
+Detections:
+- Level: Research
+  Description: >
+    Log all successful device registration audit events regardless of user agent.
+    Baseline for understanding legitimate enrollment patterns.
+  LogSources:
+  - Entra ID AuditLogs
+  Logic: >
+    ActivityDisplayName == "Add device" OR operationName == "Add registered users
+    to device" AND Result == "success". No UA filter — capture all to understand
+    baseline enrollment volume and UA distribution.
+  ExpectedFPRate: Medium (legitimate MDM enrollment, Intune, SCCM)
+  UseCase: Baseline enrollment activity; identify MDM and Intune patterns before
+    adding UA-based filters.
+  SigmaRule: drafts/persistence/aitm-device-prt-enrollment/sigma/research.yml
+
+- Level: Hunt
+  Description: >
+    Device registration with user agent NOT in the native Entra ID join client set.
+    High-fidelity due to binary distinction between kit and native clients.
+  LogSources:
+  - Entra ID AuditLogs
+  Logic: >
+    operationName == "Add registered users to device" AND resultType == "0" AND
+    userAgent NOT contains_any [Dsreg, DeviceRegistrationClient, Dalvik,
+    Windows-AzureAD-Authentication-Provider]. Correlate with preceding AiTM
+    sign-in from same UPN within 5-15 minutes (Node.js UA on OfficeHome/Auth Broker).
+  ExpectedFPRate: Low (custom MDM tools with non-standard UAs; document and exclude)
+  UseCase: >
+    Active hunting for device-PRT persistence. High-fidelity due to binary UA
+    distinction. False positives limited to bespoke MDM automation.
+  SigmaRule: drafts/persistence/aitm-device-prt-enrollment/sigma/hunt.yml
+
+- Level: Analyst
+  Description: >
+    Device registration with non-native UA correlated with preceding AiTM sign-in
+    signal from same UPN within 15 minutes.
+  LogSources:
+  - Entra ID AuditLogs
+  - Entra ID Sign-in Logs (for AiTM correlation)
+  Logic: >
+    operationName == "Add registered users to device" AND resultType == "0" AND
+    userAgent NOT contains_any [Dsreg, DeviceRegistrationClient, Dalvik] AND
+    same UPN has preceding sign-in with Node.js UA within 15 minutes. Correlated
+    alert: high confidence AiTM device-PRT persistence chain.
+  ExpectedFPRate: Very Low
+  UseCase: >
+    SOC alerting. Immediate IR escalation. Trigger automated response:
+    disable account → delete registered devices → revoke sessions → reset password.
+  SigmaRule: drafts/persistence/aitm-device-prt-enrollment/sigma/analyst.yml
+
+Intel:
+- Name: Elastic Security Labs — Tycoon 2FA AiTM Detection Engineering
+  Tier: primary
+  URL: https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+  Description: >
+    Primary source. Full DRS enrollment API chain documented (Steps 1-5).
+    IR playbook gap identified. Correct containment sequence published.
+    Automated response workflow (disable → delete devices → revoke → reset)
+    executes in <10 seconds.
+
+- Name: MITRE ATT&CK — T1098.005 Account Manipulation: Device Registration
+  Tier: primary
+  URL: https://attack.mitre.org/techniques/T1098/005/
+  Description: Primary technique definition.
+
+RelatedChokepoints:
+- aitm-websocket-relay
+- oauth-device-code-phishing
+
+KnownBypasses:
+- Bypass: IR executes revokeSignInSessions before deleting device objects
+  Mitigation: Update IR playbooks to enumerate/delete devices first; automate
+    the correct sequence via Logic Apps / playbook
+  Detection: >
+    Graph Activity Logs: incomingTokenType == "primaryRefreshToken" from same UPN
+    after revokeSignInSessions event. Confirms device-PRT active post-revocation.
+    Trigger immediate device deletion and second revocation cycle.
+
+- Bypass: Attacker uses custom MDM UA that mimics Dsreg/DeviceRegistrationClient
+  Mitigation: Validate device certificate issuance chain; monitor for device
+    objects with fabricated metadata (unusual DeviceDisplayName, synthetic OSVersion)
+  Detection: >
+    Device objects with display names matching no corporate naming convention.
+    Device cert issued for non-corporate domain. Cross-reference with Intune/SCCM
+    inventory — any device in Entra not in MDM inventory is suspicious.
+
+TheConstant: >
+  DRS EnrollmentServer/device call with non-native UA (axios/1.15.2 not Dsreg) →
+  Entra ID audit event → device-bound PRT surviving revokeSignInSessions

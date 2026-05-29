@@ -1,0 +1,69 @@
+title: Post-AiTM Graph API Recon Burst Correlated with Preceding AiTM Session Theft
+id: a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d
+status: experimental
+description: >
+  Detects the Tycoon 2FA two-stage post-compromise kill chain: a 4+ category Graph API
+  recon burst (20-30+ calls / 60 seconds / empty c_DeviceId) correlated with a
+  preceding AiTM relay sign-in (Node.js UA on OfficeHome/Auth Broker) from the same UPN
+  within 20 minutes. The two-stage pattern confirms session theft (Tier 1 cloud-VPS
+  relay) followed by operator console triage (Tier 2 residential proxy). This is the
+  highest-confidence post-AiTM detection signal: the category breadth is invariant to
+  kit rotation because it reflects the operator's need to triage identity value.
+  NOTE: Requires correlation across Graph Activity Logs and Entra ID sign-in logs.
+  Category-count aggregation cannot be expressed as standard Sigma.
+  Implement as KQL multi-table join or SIEM correlation rule with two legs.
+  CRITICAL: c_sid is NOT the user object ID — identify UPN via source IP + appId pivot
+  against sign-in logs; do NOT filter c_sid == user_object_id (returns empty results).
+  REQUIRES Graph Activity Logs enabled and ingested.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.discovery
+  - attack.t1087.004
+  - attack.t1069.003
+  - attack.t1526
+  - attack.credential-access
+  - attack.t1539
+  - attack.t1078.004
+  - detection.maturity.analyst
+logsource:
+  product: azure
+  service: MicrosoftGraphActivityLogs
+detection:
+  # This rule requires:
+  # 1. Category-count aggregation (4+ categories / 60s / empty DeviceId) in Graph logs
+  # 2. Correlation with preceding sign-in event in Entra ID SigninLogs (same UPN, within 20 min)
+  #    where the preceding sign-in has Node.js UA + OfficeHome/Auth Broker app
+  #
+  # Both legs are conceptual stubs. Implement as KQL:
+  #   Leg 1: MicrosoftGraphActivityLogs
+  #     | category-tagging aggregation (see hunt.yml for ES|QL pattern)
+  #     | WHERE distinct_categories >= 4 AND DeviceId IS NULL
+  #   Leg 2: SigninLogs
+  #     | WHERE ResultType == "0"
+  #     | WHERE UserAgent has_any ("node", "axios", "undici", "node-fetch")
+  #     | WHERE AppDisplayName has_any ("OfficeHome", "Microsoft Authentication Broker")
+  #   JOIN Leg1 with Leg2 on UserPrincipalName within 1200 seconds (20 min), Leg2 preceding
+  #
+  # STUB -- verify log source and field names against lab data
+  selection_graph_burst:
+    DeviceId: ''
+    RequestUri|contains:
+      - 'transitiveRoleAssignments'
+      - 'tenantRelationships'
+      - 'mailboxSettings'
+  # CORRELATION: same UPN in SigninLogs within 1200 seconds preceding
+  # selection_preceding_aitm_signin:
+  #   ResultType: '0'
+  #   UserAgent|contains: ['node', 'axios', 'undici', 'node-fetch']
+  #   AppDisplayName|contains: ['OfficeHome', 'Microsoft Authentication Broker']
+  condition: >
+    # <UNKNOWN -- verify against lab data: implement as SIEM correlation rule>
+    # Conceptual: (selection_graph_burst correlated_with selection_preceding_aitm_signin)
+    # within timeframe 1200s by UserPrincipalName, aitm_signin preceding graph_burst
+    selection_graph_burst
+falsepositives:
+  - Admin tooling + coincident Node.js automation from the same UPN (document per tenant)
+level: high

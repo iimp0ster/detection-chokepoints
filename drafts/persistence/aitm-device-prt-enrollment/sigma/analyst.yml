@@ -1,0 +1,47 @@
+title: Entra ID AiTM Device PRT Enrollment — Non-Native UA Correlated with Preceding AiTM Sign-In
+id: a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d
+status: experimental
+description: >
+  Detects a synthetic Entra ID device registration (non-native UA) within 15 minutes
+  of a preceding AiTM kit relay sign-in (Node.js UA on OfficeHome/Auth Broker) for the
+  same UPN. This correlation confirms the Tycoon 2FA persistence chain: kit relay steals
+  session token → kit immediately enrolls synthetic device using DRS API with axios UA →
+  device-bound PRT acquired → persists through revokeSignInSessions. IR teams MUST delete
+  registered devices BEFORE revoking sessions; skipping device deletion leaves the PRT
+  active and allows immediate re-authentication.
+  NOTE: This rule requires correlation across two log sources (AuditLogs + SigninLogs)
+  and is a conceptual stub — implement as KQL join or SIEM correlation rule.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.persistence
+  - attack.t1098.005
+  - detection.maturity.analyst
+logsource:
+  product: azure
+  service: auditlogs
+detection:
+  # This rule requires correlation across AuditLogs and SigninLogs — the detection block
+  # below is a conceptual stub. Implement via KQL join or SIEM correlation rule.
+  selection_device_registration:
+    OperationName: 'Add registered users to device'
+    ResultType: '0'
+    # UserAgent NOT in [Dsreg, DeviceRegistrationClient, Dalvik]:
+    # filter_native_ua NOT applied here — implement in correlated query
+  # CORRELATION: same UserPrincipalName in SigninLogs within 900 seconds (15 min)
+  # preceding sign-in must have:
+  #   ResultType: '0'
+  #   UserAgent|contains: ['node', 'axios', 'undici', 'node-fetch']
+  #   AppDisplayName|contains: ['OfficeHome', 'Microsoft Authentication Broker']
+  # STUB -- verify log source and field names against lab data
+  condition: >
+    # <UNKNOWN -- verify against lab data: implement as SIEM correlation rule>
+    # Conceptual: (selection_device_registration correlated_with aitm_signin_signal)
+    # within timeframe 900s by UserPrincipalName
+    selection_device_registration
+falsepositives:
+  - Automated device enrollment workflows triggered by sign-in event (document and exclude)
+  - Split-session scenarios where Node.js tooling and device enrollment coincidentally overlap
+level: high

@@ -1,0 +1,31 @@
+title: Entra ID Device Registration Event (AiTM PRT Persistence Baseline)
+id: e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b
+status: experimental
+description: >
+  Baseline visibility rule: logs all successful Entra ID device registration
+  audit events (Add registered users to device). High FP rate from legitimate
+  Autopilot, Intune, and native device join operations — run for one week to
+  establish baseline and identify known-good user agents (Dsreg, Dalvik,
+  DeviceRegistrationClient) before promoting to hunt tier.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.persistence
+  - attack.t1098.005
+  - detection.maturity.research
+logsource:
+  product: azure
+  service: auditlogs
+detection:
+  selection:
+    OperationName: 'Add registered users to device'
+    ResultType: '0'
+  condition: selection
+falsepositives:
+  - Legitimate Intune/Autopilot device enrollment (Dsreg UA)
+  - BYOD enrollment via Company Portal (DeviceRegistrationClient UA)
+  - Android device enrollment (Dalvik UA)
+  - Legitimate Azure AD join operations
+level: informational

@@ -1,0 +1,337 @@
+Name: AiTM WebSocket Kit Relay
+Id: a1f3e2d4-7b8c-4e9f-b0a1-2c3d4e5f6a7b
+MitreIds:
+- T1539
+- T1078.004
+Tactics:
+- Credential Access
+Techniques:
+- Steal Web Session Cookie
+- Valid Accounts: Cloud Accounts
+DetectionPriority: CRITICAL
+ThreatPrevalence: HIGH
+DetectionDifficulty: MEDIUM
+Description: >
+  Adversary-in-the-Middle (AiTM) kits operate a server-side WebSocket reverse proxy
+  (typically Node.js + Socket.IO) that relays a victim's full authentication flow to
+  Microsoft Entra ID or Google identity providers in real time, capturing post-MFA
+  session tokens without touching the victim's endpoint. The kit relay tier makes
+  server-to-server HTTP calls to Microsoft/Google using a Node.js HTTP client, which
+  leaves a distinctive user agent (node, axios, undici, node-fetch) on sign-in events.
+  Operators then access the compromised account from residential-proxy infrastructure,
+  creating a two-tier ASN pattern that is structurally unavoidable: cloud-VPS for kit
+  relay performance, residential proxy for operator evasion. Both tiers authenticate as
+  the same UPN within ~20 minutes — a high-confidence correlation no single-ASN rule
+  catches. Tycoon 2FA (Storm-1747) is the most prolific operator as of 2025,
+  accounting for ~62% of AiTM phishing attempts blocked by Microsoft and reaching
+  500,000+ organizations monthly at peak. The Google variant additionally compresses
+  the full authentication sequence (login_success → MFA relay → OAuth token →
+  device registration) into ~1 second — mechanically impossible for human interaction.
+
+LastUpdated: '2026-05-27'
+Author: '@iimp0ster'
+
+Prerequisites:
+- Victim must visit a phishing page that loads the kit's JavaScript (delivered via
+  email link, QR code, PDF/SVG/HTML attachment lure)
+- Kit server must be running and reachable from victim's browser
+- Target must be a cloud identity tenant (Microsoft 365 / Entra ID or Google Workspace)
+  where the kit can proxy the login flow to the real IdP
+- Victim must complete MFA challenge (kit relays all MFA methods except FIDO2/passkeys,
+  which cryptographically bind to the legitimate origin domain)
+
+Chokepoints:
+- Stage: Kit Relay Sign-In (Node.js UA)
+  Input: Victim has completed MFA on the phishing page; kit has relayed credentials
+    server-side to Microsoft/Google
+  Invariant: The attacker MUST make server-to-server HTTP calls to Microsoft/Google
+    login endpoints using a non-browser HTTP client (Node.js) — these calls appear in
+    Entra ID sign-in logs with the kit's user agent.
+  Observable: >
+    Entra ID SigninLogs: resultType == "0" (success) AND userAgent contains
+    node / axios / undici / node-fetch AND appDisplayName contains OfficeHome /
+    Microsoft Authentication Broker / Microsoft Graph / Microsoft Exchange Online.
+    Google Workspace Login Audit: login_success → login_verification
+    (is_second_factor: true) → token:authorize (Chrome OAuth client 77185425430)
+    → DEVICE_REGISTER_UNREGISTER_EVENT — all within ~1 second.
+  WhyCantBypass: >
+    The AiTM relay is server-side: the kit's Node.js process makes the actual
+    HTTP calls to Microsoft/Google on behalf of the victim. Using a browser UA
+    on these server-to-server calls would require rewriting the kit's HTTP client
+    as a headless browser, which breaks the WebSocket relay architecture and would
+    still generate anomalous behavioral signals (headless browser on server infra).
+    The user agent cannot be spoofed to match a legitimate end-user browser session
+    without making the relay technically infeasible.
+  LogSources:
+  - Entra ID Sign-in Logs (SigninLogs table in Microsoft Sentinel)
+  - Google Workspace Login Audit (login, token activity events)
+  DetectionTier: Hunt
+  SigmaRef: drafts/credential-access/aitm-websocket-relay/sigma/hunt.yml
+
+- Stage: Two-Tier ASN Transition
+  Input: Kit relay (Tier 1) has completed session token capture; operator console
+    (Tier 2) begins accessing the victim account 10-20 minutes later
+  Invariant: The attacker MUST use two structurally distinct ASN categories —
+    cloud-VPS for the high-throughput kit relay and residential/ISP proxy for the
+    operator console accessing M365 web apps — creating a detectable dual-ASN
+    authentication pattern for the same UPN within a short window.
+  Observable: >
+    Entra ID SigninLogs: Two successful sign-ins by the same UPN within 20 minutes
+    where one source IP belongs to a cloud-hosting ASN (Alibaba Cloud, M247,
+    DigitalOcean, Linode, OVH, Hetzner, Clouvider) and the other to a residential
+    or small-ISP ASN. The cloud-VPS sign-in has Node.js UA; the residential sign-in
+    has a browser UA accessing My Profile / My Signins / OfficeHome / Outlook Web.
+    Shared c_sid in Graph Activity Logs across multiple /24 IPs confirms Tier 2
+    operator console coordination.
+  WhyCantBypass: >
+    The two-tier architecture is structurally required: the kit relay needs high-
+    throughput cloud VPS infrastructure to proxy real-time WebSocket sessions at
+    scale, while the operator console must use residential-shaped ASNs to evade
+    geo-velocity and IP risk scoring. The attacker cannot use the same cloud-VPS
+    ASN for both tiers without triggering geo-velocity alerts; cannot use residential
+    proxy for the kit relay without unacceptable throughput degradation.
+  LogSources:
+  - Entra ID Sign-in Logs with ASN enrichment (GeoIP/ASN database required)
+  - Microsoft Graph Activity Logs (c_sid correlation across /24 IPs)
+  DetectionTier: Hunt
+  SigmaRef: drafts/credential-access/aitm-websocket-relay/sigma/analyst.yml
+  BypassNote: >
+    Single-ASN rules miss one tier entirely. Attackers may attempt to flatten the
+    two-tier model by routing both relay and console through residential proxies,
+    trading throughput for evasion. Monitor for Node.js UA on residential ASNs
+    as a bypass adaptation indicator.
+
+Variations:
+- Name: Tycoon 2FA (Storm-1747) — WebSocket Variant
+  FirstSeen: 2023-Q3
+  Status: Active
+  SourceURL: https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+  Notes: >
+    Most prolific AiTM PhaaS kit as of 2025; ~62% of AiTM phishing blocked by
+    Microsoft. Uses Socket.IO 4.6.0 with recieveid (typo) event name fingerprint.
+    Tier 1: Alibaba Cloud / cheap-VPS ASNs, axios/1.15.2 / undici user agents.
+    Tier 2: Residential ISP proxy, browser UA (Firefox on Windows), accesses
+    My Profile / My Signins / Microsoft Approval Management / Outlook Web / OfficeHome
+    ~10-20 minutes post-relay.
+  VariantId: tycoon-2fa-websocket
+  Command:
+    Invocation: |
+      # Kit relay tier (cloud VPS) — server-to-server calls:
+      # User-Agent: axios/1.15.2
+      POST https://login.microsoftonline.com/common/oauth2/token [Kit relay]
+      # Socket.IO relay events:
+      # send_to_browser / response_from_browser / recieveid (typo fingerprint)
+      #
+      # Google variant — 4-event sequence within ~1s:
+      # login_success → login_verification(is_second_factor:true) →
+      # token:authorize(client:77185425430) → DEVICE_REGISTER_UNREGISTER_EVENT
+    Context: >
+      Storm-1747 PhaaS. Kit relay uses Node.js HTTP clients (node, axios/1.15.2,
+      undici, node-fetch). Operator console appears 10-20 minutes later on
+      residential proxy. Entra sign-in log shows Node.js UA on OfficeHome/Auth
+      Broker as the primary Tier 1 signal.
+    Artifacts:
+    - 'Entra ID SigninLogs: userAgent contains axios/1.15.2 on appDisplayName OfficeHome/Microsoft Authentication Broker'
+    - 'Entra ID SigninLogs: Residential ASN sign-in 10-20 min after cloud-VPS sign-in, same UPN'
+    - 'Graph Activity Logs: shared c_sid across multiple /24 IPs (Tier 2 operator console)'
+    - 'Google Workspace Login Audit: 4-event sequence compressed to <1.2 seconds'
+  ChokepointMapping: 'Victim visits phishing page → Kit relays auth via Node.js (axios UA on Entra sign-in) → Session tokens captured → Operator console (residential ASN) accesses M365 web apps'
+
+- Name: EvilProxy
+  FirstSeen: 2022-Q3
+  Status: Active
+  SourceURL: https://www.proofpoint.com/us/blog/threat-insight/cloud-account-takeover-campaign-leveraging-evilproxy-targets-top-level-executives
+  Notes: >
+    Commercial AiTM reverse proxy service targeting Microsoft 365 and Google. Uses
+    similar reverse-proxy architecture but typically routes through dedicated relay
+    infrastructure. Generates same class of server-to-server sign-in events with
+    non-browser user agents.
+  VariantId: evilproxy
+  Command:
+    Invocation: |
+      # EvilProxy architecture similar to Tycoon 2FA
+      # Server-side relay generates non-browser UA on IdP sign-in events
+    Context: >
+      Commercial AiTM proxy targeting C-suite. Same detection chokepoint applies —
+      server-side relay must make HTTP calls to Microsoft/Google with non-browser UA.
+    Artifacts:
+    - 'Entra ID SigninLogs: non-browser user agent on O365 sign-in events'
+    - 'Two-tier ASN pattern when operator console is distinct from relay infra'
+  ChokepointMapping: 'Phishing page → EvilProxy relay (non-browser UA on Entra sign-in) → Session theft → Operator access'
+
+EvolutionTimeline:
+- Date: 2022-Q3
+  Event: EvilProxy and Evilginx2 establish commercial AiTM-as-a-service market
+  Change: >
+    AiTM reverse proxy kits move from bespoke tools (Modlishka, Evilginx) to
+    commercial PhaaS offerings. EvilProxy targets Microsoft 365 executives.
+    Server-side relay architecture becomes the dominant model, generating the
+    Node.js UA signal on IdP sign-in logs for the first time at commercial scale.
+  DetectionImpact: >
+    Entra ID sign-in logs begin showing non-browser user agents (Python, Go HTTP
+    clients, curl) on M365 app sign-in events. Node.js / axios UA pattern emerges
+    as the primary kit relay signal.
+  TheConstant: Server-side relay → non-browser HTTP client → IdP sign-in event with kit UA
+  Variants: []
+  EventType: event
+
+- Date: 2023-Q3
+  Event: Tycoon 2FA launches; reaches 500,000+ orgs/month at peak
+  Change: >
+    Tycoon 2FA (Storm-1747) launches as a Node.js + Socket.IO based PhaaS kit.
+    First observed August 2023. Adds per-victim encryption (Caesar+XOR with LCG
+    PRNG), anti-analysis (IP filtering via api.ipapi.is, DevTools blocking, DOM
+    vanishing, debugger trap), and fake CAPTCHA (3x3 Unsplash grid). Rapidly
+    becomes the most prolific AiTM kit, accounting for ~62% of Microsoft-blocked
+    AiTM phishing at peak.
+  DetectionImpact: >
+    axios/1.15.2 and undici user agents become high-fidelity Tycoon 2FA kit relay
+    signals. Two-tier ASN pattern (cloud-VPS Tier 1 + residential Tier 2 within
+    20 min) documented as structural architectural signal.
+  TheConstant: Server-side relay → Node.js HTTP client → Entra ID sign-in with kit UA
+  Variants: []
+  EventType: event
+
+- Date: 2024-Q1
+  Event: Tycoon 2FA adds device-code-grant variant post-takedown adaptation
+  Change: >
+    Operators combine Tycoon 2FA tradecraft with OAuth device-code-grant phishing
+    after infrastructure disruptions. Device-code variant bypasses URL-filtering
+    defenses (no phishing page to block). Token progression
+    (none → refreshToken → PRT) documented in Graph Activity Logs.
+  DetectionImpact: >
+    Device-code detection becomes required complement to WebSocket relay detection.
+    authenticationProtocol: deviceCode on MAB app ID is the new signal.
+    See chokepoint: oauth-device-code-phishing.
+  TheConstant: Server-side relay → non-browser HTTP client → IdP sign-in with kit UA
+  Variants: []
+  EventType: event
+
+- Date: 2026-05-27
+  Event: Elastic Security Labs publishes two-tier infrastructure model and Google 1-second compression analysis
+  Change: >
+    Elastic documents the structural two-tier ASN model (Tier 1 cloud-VPS / Tier 2
+    residential proxy) and the Google authentication 4-event sequence compressed to
+    <1.2 seconds as mechanically verifiable automation signals. Confirms that
+    standard Identity Protection may mark Tier 2 as aiConfirmedSafe, creating a
+    false-negative blind spot when aiConfirmedSafe events are excluded.
+  DetectionImpact: >
+    Two-tier ASN correlation added as a second detection stage alongside Node.js UA.
+    c_sid pivot mistake documented: c_sid is session context ID, NOT user object ID;
+    filtering c_sid == user_object_id returns empty results. ASN enrichment becomes
+    required for two-tier correlation.
+  TheConstant: Server-side relay → Node.js UA on Entra sign-in + cloud-VPS/residential two-tier ASN pattern
+  Variants: []
+  EventType: event
+
+Detections:
+- Level: Research
+  Description: >
+    Log all Entra ID sign-ins where the user agent contains Node.js HTTP client
+    strings. Establishes baseline of legitimate Node.js SDK usage vs. kit relay.
+  LogSources:
+  - Entra ID Sign-in Logs (SigninLogs / AADSignInEventsBeta in MDE)
+  Logic: >
+    resultType == "0" AND userAgent contains_any [node, axios, undici, node-fetch,
+    node-fetch/1.0]. No app filter — capture all apps to build baseline of
+    legitimate Node.js automation. Run for one week to identify known-good
+    DevOps pipelines and IT automation.
+  ExpectedFPRate: Medium (legitimate Node.js Graph API automation, DevOps pipelines)
+  UseCase: >
+    Baseline visibility into Node.js user agents on Entra ID sign-in events.
+    Identify known-good automation to build the analyst-tier allowlist.
+  SigmaRule: drafts/credential-access/aitm-websocket-relay/sigma/research.yml
+
+- Level: Hunt
+  Description: >
+    Node.js user agent on Entra sign-in to high-value M365 apps (OfficeHome,
+    Auth Broker, Graph, Exchange Online). Filters out low-value apps.
+  LogSources:
+  - Entra ID Sign-in Logs
+  Logic: >
+    resultType == "0" AND userAgent contains_any [node, axios, undici, node-fetch]
+    AND appDisplayName contains_any [OfficeHome, Microsoft Authentication Broker,
+    Microsoft Graph, Microsoft Exchange Online]. Exclude known-good service accounts
+    with documented Node.js automation.
+  ExpectedFPRate: Low-Medium
+  UseCase: >
+    Active hunting for kit relay tier. High-value app filter reduces FP rate from
+    legitimate Graph API automation while preserving coverage of the most common
+    Tycoon 2FA relay targets.
+  SigmaRule: drafts/credential-access/aitm-websocket-relay/sigma/hunt.yml
+
+- Level: Analyst
+  Description: >
+    Two-tier ASN correlation: cloud-VPS ASN and residential/ISP ASN both
+    authenticating as the same UPN within 20 minutes. High-confidence AiTM signal
+    that survives user agent rotation.
+  LogSources:
+  - Entra ID Sign-in Logs with ASN enrichment
+  Logic: >
+    Requires ASN enrichment lookup on source IP. Alert when same UPN has two
+    successful sign-ins within 20 minutes where ASN1 is a cloud-hosting provider
+    (Alibaba Cloud, M247, DigitalOcean, Linode, OVH, Hetzner, Clouvider,
+    Host Telecom) AND ASN2 is a residential ISP or small proxy ASN. Exclude
+    known corporate VPN egress ASNs.
+  ExpectedFPRate: Low
+  UseCase: >
+    SOC alerting. Two-tier ASN correlation is structurally durable — survives
+    user agent rotation and IP rotation because it targets the architectural
+    requirement, not the specific kit implementation.
+  SigmaRule: drafts/credential-access/aitm-websocket-relay/sigma/analyst.yml
+
+Intel:
+- Name: Elastic Security Labs — Tycoon 2FA AiTM Detection Engineering
+  Tier: primary
+  URL: https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+  Description: >
+    Primary source. Documents Tycoon 2FA two-tier infrastructure model, Node.js
+    user agent signals (axios/1.15.2, undici), Google 4-event 1-second compression,
+    c_sid pivot mistake, Tier 2 aiConfirmedSafe blind spot, and automated response
+    workflow. Grounds invariant behavior and Sigma logic.
+
+- Name: MITRE ATT&CK — T1539 Steal Web Session Cookie
+  Tier: primary
+  URL: https://attack.mitre.org/techniques/T1539/
+  Description: Primary technique definition.
+
+RelatedChokepoints:
+- oauth-device-code-phishing
+- aitm-device-prt-enrollment
+- graph-api-recon-burst
+
+KnownBypasses:
+- Bypass: User agent rotation (kit changes from axios to another Node.js HTTP client)
+  Mitigation: Build allowlist of known-legitimate Node.js UA strings; alert on unknown
+    Node.js variants
+  Detection: >
+    Two-tier ASN correlation is UA-agnostic. Maintain UA-based rules at Hunt tier while
+    relying on ASN correlation for Analyst-tier alerting. Any new Node.js UA on
+    Entra sign-in to high-value app should trigger Hunt review.
+
+- Bypass: Using a headless browser instead of Node.js HTTP client for relay
+  Mitigation: Monitor for headless browser signatures (Selenium navigator.webdriver,
+    PhantomJS, CDP remote debugging port)
+  Detection: >
+    Headless browser UA strings differ from native browser UAs (missing expected
+    Chrome version stamps, headless indicators). Entra sign-in from headless
+    browser on cloud-VPS ASN is still anomalous. Two-tier ASN correlation still applies.
+
+- Bypass: Routing both tiers through residential proxies (flatten the two-tier model)
+  Mitigation: Enable token protection (token binding) to bind tokens to device identity
+  Detection: >
+    Monitor for Node.js UA on residential ASN sign-ins — this combination is anomalous
+    regardless of the two-tier model. Single-tier residential routing still generates
+    behavioral signals (rapid sequential M365 app access, empty c_DeviceId).
+
+OsintSources:
+- Platform: URLScan
+  Query: 'page.ip.asn:"AS37963" OR page.ip.asn:"AS9009" AND filename:*.js AND page.status:200'
+  Notes: >
+    Alibaba Cloud (AS37963) and M247 (AS9009) are common Tycoon 2FA Tier 1 ASNs.
+    JS file responses on cheap-VPS ASNs may be kit relay JavaScript. Pivot to
+    associated domains for infrastructure expansion.
+
+TheConstant: >
+  Server-side relay → Node.js HTTP client UA on Entra ID / Google sign-in event +
+  cloud-VPS / residential two-tier ASN pattern within 20 minutes same UPN

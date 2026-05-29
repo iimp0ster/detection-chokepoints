@@ -1,0 +1,47 @@
+title: Entra ID AiTM Kit Relay via Node.js User Agent on High-Value M365 App
+id: a2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6d
+status: experimental
+description: >
+  Detects Entra ID sign-ins with Node.js HTTP client user agents (node, axios, undici,
+  node-fetch) on high-value Microsoft 365 applications (OfficeHome, Microsoft Authentication
+  Broker, Microsoft Graph, Exchange Online). Characteristic of Tycoon 2FA and other AiTM
+  kit relay tiers making server-to-server HTTP calls to relay victim sessions.
+  Normal M365 sign-ins use browser user agents — Node.js on these apps indicates
+  a server-side relay component, not an end-user browser session.
+references:
+  - https://www.elastic.co/security-labs/tycoon-2fa-aitm-detection-engineering
+author: '@iimp0ster'
+date: 2026-05-27
+tags:
+  - attack.credential-access
+  - attack.t1539
+  - attack.t1078.004
+  - detection.maturity.hunt
+logsource:
+  product: azure
+  service: signinlogs
+detection:
+  selection_success:
+    ResultType: '0'
+  selection_ua:
+    UserAgent|contains:
+      - 'node'
+      - 'axios'
+      - 'undici'
+      - 'node-fetch'
+  selection_app:
+    AppDisplayName|contains:
+      - 'OfficeHome'
+      - 'Microsoft Authentication Broker'
+      - 'Microsoft Graph'
+      - 'Microsoft Exchange Online'
+  filter_legit_automation:
+    # Add known-good service account UPNs with documented Node.js automation
+    UserPrincipalName|contains:
+      - '<UNKNOWN -- verify against lab data: add known-good automation service accounts>'
+  condition: selection_success and selection_ua and selection_app and not filter_legit_automation
+falsepositives:
+  - Legitimate server-side automation using Node.js Graph SDK targeting these apps
+  - DevOps pipelines with documented Graph API integration to Exchange/OfficeHome
+  - Exclude known-good service accounts in filter_legit_automation
+level: high
