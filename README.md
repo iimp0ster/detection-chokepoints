@@ -1,7 +1,7 @@
 # Detection Chokepoints
 
 <p align="center">
-  <img src="assets/img/detection-chokepoints-logo.png" alt="Detection Chokepoints — 16-bit pixel art logo of a jiu-jitsu rear naked choke with body triangle: a fighter in a blue gi controls and strangles a fighter in a red gi" width="512" />
+  <img src="assets/img/detection-chokepoints-logo.png" alt="Detection Chokepoints — 16-bit arcade fighting-game scene of a jiu-jitsu rear naked choke with body triangle: the fighter in red has back control and strangles the fighter in blue, with health bars and a match timer overhead" width="512" />
 </p>
 
 > **TTPs evolve. Chokepoints don't.**
