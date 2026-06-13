@@ -1,5 +1,5 @@
 anthropic>=0.40.0
-requests>=2.31.0
+requests>=2.34.2
 PyYAML>=6.0
 mmh3>=4.1.0
 shodan>=1.31.0
