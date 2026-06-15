@@ -1,0 +1,18 @@
+# Analyst-curated map: ASN -> display name + whether the network is bulletproof /
+# abuse-tolerant. enrich_asns.py uses this to label and highlight hosting in the
+# provenance rollup. This is analyst judgment (intel), NOT an IOC list -- ASNs are
+# public routing identifiers, safe to publish.
+#
+# Keep the `bulletproof` flag conservative and evidence-based. Add ASNs as the
+# enrichment surfaces them (run enrich_asns.py, then curate the ones that matter);
+# anything not listed defaults to its registered AS name + bulletproof: false.
+#
+# Schema:  <asn_int>: { name: <display>, bulletproof: <bool>, note: <why/source> }
+asns:
+  # Heavily documented abuse-tolerant networks (verify against current reporting):
+  44477:  { name: "Stark Industries Solutions", bulletproof: true,  note: "widely reported abuse-tolerant reseller (Recorded Future, KrebsOnSecurity)" }
+  210644: { name: "Aeza Group",                 bulletproof: true,  note: "reported bulletproof host; sanctioned 2025" }
+
+  # Proxy / CDN -- traffic fronts here, hosting lives elsewhere. NOT bulletproof,
+  # but worth labeling so the chart distinguishes fronting from origin.
+  13335:  { name: "Cloudflare",                 bulletproof: false, note: "CDN / reverse proxy -- fronting, not origin hosting" }
