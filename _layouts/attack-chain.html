@@ -754,6 +754,32 @@ layout: default
   box-shadow: 0 0 0 1px var(--lit-color);
 }
 
+/* Convergence: a cell used by EVERY selected actor (when 2+ are selected) — the
+   shared chokepoints. Cyan so it reads independent of any actor's own colour. */
+.ttp-cell.state-converge {
+  border-color: #22d3ee !important;
+  border-width: 2px !important;
+  background: color-mix(in srgb, #22d3ee 18%, var(--surface, #161b22)) !important;
+  box-shadow: 0 0 0 1px #22d3ee, 0 0 18px rgba(34, 211, 238, 0.5) !important;
+  opacity: 1;
+}
+
+/* Partial: used by some but not all of the selected actors — recede so the
+   convergence cells are the obvious ones. */
+.ttp-cell.state-partial {
+  opacity: 0.4;
+}
+
+/* Actor selection mirrored onto the convergence matrix: the selected actors'
+   rows light in their own colour, the rest recede, the chokepoint row stays. */
+.ac-matrix tbody tr.matrix-row-dim { opacity: 0.28; transition: opacity 0.15s; }
+.ac-matrix tbody tr.matrix-row-lit td {
+  background: color-mix(in srgb, var(--row-color, var(--accent, #f0883e)) 9%, transparent);
+}
+.ac-matrix tbody tr.matrix-row-lit .ac-actor-name {
+  box-shadow: inset 4px 0 0 var(--row-color, var(--accent, #f0883e));
+}
+
 .ttp-cell-dots .dot.dot-active {
   transform: scale(1.45);
   box-shadow: 0 0 0 2px var(--bg, #0d1117), 0 0 0 3.5px var(--dot-ring, currentColor);
