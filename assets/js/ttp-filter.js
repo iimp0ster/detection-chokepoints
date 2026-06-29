@@ -8,12 +8,13 @@
 
   var selected = new Set();
   var actorColors = {};
+  var actorNames = {};
 
   function init() {
     // Build actor → color map from injected data
     var groups = window.TTP_FILTER_GROUPS;
     if (!groups) return;
-    groups.forEach(function (g) { actorColors[g.id] = g.color; });
+    groups.forEach(function (g) { actorColors[g.id] = g.color; actorNames[g.id] = g.name; });
 
     // Wire filter buttons
     document.querySelectorAll('.ttp-filter-btn').forEach(function (btn) {
@@ -46,7 +47,7 @@
 
     // ── Reset all states ────────────────────────────────────────────────
     cells.forEach(function (c) {
-      c.classList.remove('state-dim', 'state-lit');
+      c.classList.remove('state-dim', 'state-lit', 'state-converge', 'state-partial');
       c.style.removeProperty('--lit-color');
     });
     connectors.forEach(function (c) { c.classList.remove('connector-dim'); });
@@ -57,6 +58,10 @@
     document.querySelectorAll('.ttp-cell-dots .dot').forEach(function (d) {
       d.classList.remove('dot-active');
       d.style.removeProperty('--dot-ring');
+    });
+    document.querySelectorAll('.ac-matrix tbody tr').forEach(function (row) {
+      row.classList.remove('matrix-row-lit', 'matrix-row-dim');
+      row.style.removeProperty('--row-color');
     });
 
     // ── Show / hide clear button ────────────────────────────────────────
@@ -88,17 +93,44 @@
 
       if (matched.length === 0) {
         cell.classList.add('state-dim');
-      } else {
-        cell.classList.add('state-lit');
-        cell.style.setProperty('--lit-color', actorColors[matched[0]] || '#f0883e');
+        return;
+      }
 
-        // Ring the matching actor dots inside this cell
-        cell.querySelectorAll('.ttp-cell-dots .dot[data-actor]').forEach(function (dot) {
-          if (selected.has(dot.dataset.actor)) {
-            dot.classList.add('dot-active');
-            dot.style.setProperty('--dot-ring', actorColors[dot.dataset.actor] || '');
-          }
-        });
+      cell.classList.add('state-lit');
+      cell.style.setProperty('--lit-color', actorColors[matched[0]] || '#f0883e');
+
+      // When 2+ actors are selected, separate convergence (used by ALL of them)
+      // from partial overlap (used by some). The shared cells get the strong
+      // highlight so the reader sees the convergence without inspecting dots.
+      if (selected.size >= 2) {
+        cell.classList.add(matched.length === selected.size ? 'state-converge' : 'state-partial');
+      }
+
+      // Ring the matching actor dots inside this cell
+      cell.querySelectorAll('.ttp-cell-dots .dot[data-actor]').forEach(function (dot) {
+        if (selected.has(dot.dataset.actor)) {
+          dot.classList.add('dot-active');
+          dot.style.setProperty('--dot-ring', actorColors[dot.dataset.actor] || '');
+        }
+      });
+    });
+
+    // ── Mirror the selection onto the convergence matrix below ──────────
+    // Light the selected actors' rows in their own colour and dim the rest.
+    // The chokepoint (tfoot) row is left untouched — the invariant holds
+    // regardless of which actors you compare.
+    var selectedNames = {};
+    selected.forEach(function (id) {
+      if (actorNames[id]) selectedNames[actorNames[id]] = actorColors[id];
+    });
+    document.querySelectorAll('.ac-matrix tbody tr').forEach(function (row) {
+      var nameCell = row.querySelector('.ac-actor-name');
+      var name = (nameCell && nameCell.childNodes[0]) ? nameCell.childNodes[0].textContent.trim() : '';
+      if (selectedNames.hasOwnProperty(name)) {
+        row.classList.add('matrix-row-lit');
+        row.style.setProperty('--row-color', selectedNames[name]);
+      } else {
+        row.classList.add('matrix-row-dim');
       }
     });
 
