@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!--
+  Build-time template for the social/link-preview cards (og:image).
+  NOT a published page (templates/ is excluded in _config.yml).
+  Render with Playwright at 1200x630:  og-card.html?s=chokepoints|attack-chains|trends
+  Output -> assets/img/social/og-<section>.png  (wired via _config.yml defaults)
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1117; --card:#161b22; --accent:#f0883e; --accent-dk:#c06c2e;
+    --ink:#f4f1ea; --muted:#8b98a5; --border:#30363d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#000}
+  .card{
+    width:1200px;height:630px;position:relative;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:'Press Start 2P',monospace;color:var(--ink);
+    background:
+      radial-gradient(circle at 50% 60%, rgba(240,136,62,.16), transparent 46%),
+      var(--bg);
+    border-top:6px solid var(--accent);
+  }
+  /* faint dotted grid for texture */
+  .card::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size:24px 24px;}
+  .nav{position:absolute;top:36px;left:0;right:0;text-align:center;
+    font-size:11px;letter-spacing:2px;color:var(--muted);}
+  .nav .on{color:var(--accent);}
+  .title{font-size:56px;line-height:1.3;text-align:center;text-transform:uppercase;
+    text-shadow:0 3px 0 rgba(0,0,0,.6);position:relative;z-index:1;}
+  .tag{font-family:'VT323',monospace;font-size:36px;color:var(--accent);
+    margin-top:24px;letter-spacing:.5px;position:relative;z-index:1;}
+  .art{margin-top:34px;width:240px;height:240px;image-rendering:pixelated;
+    filter:drop-shadow(0 0 30px rgba(240,136,62,.38));position:relative;z-index:1;}
+  .foot{position:absolute;bottom:32px;right:46px;font-family:'VT323',monospace;
+    font-size:26px;color:var(--muted);letter-spacing:.5px;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="nav" id="nav"></div>
+    <div class="title" id="title"></div>
+    <div class="tag" id="tag"></div>
+    <img class="art" id="art" alt="">
+    <div class="foot">iimp0ster.github.io/detection-chokepoints</div>
+  </div>
+<script>
+  var CFG = {
+    'chokepoints':   {title:'Detection<br>Chokepoints', tag:'– TTPs evolve. Chokepoints don’t. –', img:'/assets/img/pixel/chokepoint.png',  nav:0},
+    'attack-chains': {title:'Attack Chains',             tag:'– Different actors. Same shape. –',       img:'/assets/img/pixel/attack-chain.png', nav:1},
+    'trends':        {title:'Trends',                    tag:'– Read the wave before it breaks. –',     img:'/assets/img/pixel/trends.png',       nav:2}
+  };
+  var s = new URLSearchParams(location.search).get('s') || 'chokepoints';
+  var c = CFG[s] || CFG['chokepoints'];
+  document.getElementById('title').innerHTML = c.title;
+  document.getElementById('tag').textContent = c.tag;
+  document.getElementById('art').src = c.img + '?t=' + Date.now();
+  var items = ['CHOKEPOINTS','ATTACK CHAINS','TRENDS'];
+  document.getElementById('nav').innerHTML =
+    'DETECTION ENGINEERING &nbsp;·&nbsp; ' +
+    items.map(function(t,i){ return i===c.nav ? '<span class="on">'+t+'</span>' : t; }).join(' &nbsp;·&nbsp; ');
+</script>
+</body>
+</html>

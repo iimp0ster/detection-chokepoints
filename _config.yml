@@ -33,13 +33,28 @@ collections:
 plugins:
   - jekyll-seo-tag
 
-# Site-wide social preview card (og:image / twitter:image via jekyll-seo-tag).
-# Pages can override with their own `image:` front matter.
+# Social preview cards (og:image / twitter:image via jekyll-seo-tag).
+# Site-wide default is the home card; dedicated page types get their own card so a
+# shared link signals a new chokepoint / attack chain / trends entry.
+# Pages can still override with their own `image:` front matter.
 defaults:
   - scope:
       path: ""
     values:
       image: /assets/img/social/og.png
+  - scope:
+      path: ""
+      type: chokepoints
+    values:
+      image: /assets/img/social/og-chokepoints.png
+  - scope:
+      path: "attack-chains"
+    values:
+      image: /assets/img/social/og-attack-chains.png
+  - scope:
+      path: "trends"
+    values:
+      image: /assets/img/social/og-trends.png
 
 twitter:
   card: summary_large_image
