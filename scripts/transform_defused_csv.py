@@ -33,7 +33,7 @@ import glob
 import os
 import re
 from collections import Counter
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import yaml
@@ -66,6 +66,14 @@ HEADLINE = [
 # The 6-day hole between the two export windows; rendered as a visible gap.
 GAP_DAYS = ["2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18"]
 
+# Defused's console export appears to cap at 50,000 rows: the 2026-07-03 export hit
+# exactly 50,000 with a clean mid-record cutoff on its oldest day (sorted newest-first,
+# so the cap truncates the START of the window, not the end). unverified: no documented
+# limit found; inferred from one observation. When a file hits this, its oldest day is
+# an undercount -- flagged as partial rather than dropped, matching how the artifact day
+# (newest day, export-time cutoff) is already flagged rather than excluded.
+EXPORT_ROW_CAP = 50000
+
 
 class _QuoteCommaDumper(yaml.SafeDumper):
     """SafeDumper that single-quotes strings containing a comma, so display
@@ -86,6 +94,22 @@ def label_for(iso: str) -> str:
     return f"{MONTHS[m]} {d}"
 
 
+def _consecutive_ranges(isos):
+    """Sorted iso date strings -> list of (start, end) for each consecutive run.
+    Used to collapse a list of missing days into human-readable gap ranges."""
+    if not isos:
+        return []
+    isos = sorted(isos)
+    ranges = [[isos[0], isos[0]]]
+    for iso in isos[1:]:
+        prev_end = date.fromisoformat(ranges[-1][1])
+        if date.fromisoformat(iso) == prev_end + timedelta(days=1):
+            ranges[-1][1] = iso
+        else:
+            ranges.append([iso, iso])
+    return [(r[0], r[1]) for r in ranges]
+
+
 def human(n: int) -> str:
     return f"{n / 1000:.1f}k" if n >= 1000 else str(n)
 
@@ -100,14 +124,17 @@ def classify(alert: str) -> str:
 
 
 def aggregate_file(path):
-    """One export CSV -> {iso_date: {total, ips:set, cve:Counter, decoy:Counter}}.
+    """One export CSV -> ({iso_date: {total, ips:set, cve:Counter, decoy:Counter}}, row_count).
 
     Counts every row -- see module docstring on why there is no row-level dedup.
     Cross-export overlap is resolved at the day level in build() (newest wins).
+    row_count lets build() detect a row-capped (truncated) export.
     """
     days = {}
+    n = 0
     with open(path, encoding="utf-8", newline="") as f:
         for r in csv.DictReader(f):
+            n += 1
             iso = (r.get("Datetime") or "")[:10]
             if not iso:
                 continue
@@ -127,7 +154,7 @@ def aggregate_file(path):
             if m:
                 rec["cve"][m.group(0)] += 1
                 rec["cve_cls"][(m.group(0), cls)] += 1
-    return days
+    return days, n
 
 
 def build(paths):
@@ -137,16 +164,34 @@ def build(paths):
     # one (newest is most complete). Disjoint windows simply union.
     live_days = {}
     seen_days = set()
+    # (path, oldest_date, that_file's_count_for_oldest_date) for every capped export --
+    # resolved to a final partial-day set AFTER the merge, since a later (uncapped)
+    # export covering the same day would overwrite it with a complete count.
+    capped_candidates = []
     for p in sorted(paths):
-        fdays = aggregate_file(p)
+        fdays, row_count = aggregate_file(p)
         overlap = seen_days & set(fdays)
         if overlap:
             print(f"  WARN {p.name}: {len(overlap)} day(s) overlap an earlier "
                   "export; replaced with this (newer) export's counts.")
+        if row_count >= EXPORT_ROW_CAP and fdays:
+            oldest = min(fdays)
+            capped_candidates.append((p, oldest, fdays[oldest]["total"]))
         live_days.update(fdays)
         seen_days |= set(fdays)
     if not live_days:
         raise SystemExit("No dated rows parsed from the export(s).")
+
+    partial_old_days = set()
+    for p, oldest, day_total in capped_candidates:
+        if live_days[oldest]["total"] == day_total:
+            partial_old_days.add(oldest)
+            print(f"  WARN {p.name}: hit the {EXPORT_ROW_CAP}-row export cap -- "
+                  f"oldest day {oldest} is likely PARTIAL (undercounts; flagged "
+                  "on the page, not excluded).")
+        else:
+            print(f"  {p.name}: oldest day {oldest} was capped in this export but "
+                  "a later export supplied a complete count for that day -- not flagged.")
 
     live_total = sum(d["total"] for d in live_days.values())
     live_cve, live_decoy, live_ips = Counter(), Counter(), set()
@@ -197,24 +242,61 @@ def build(paths):
                          "count": count, "display": f"{count:,}"})
 
     artifact_day = max(live_days)
+    live_min, live_max = min(live_days), max(live_days)
+
+    # Any day between the earliest and latest live-window date with no export
+    # covering it is a genuine gap -- distinct from GAP_DAYS (the one-time, frozen
+    # baseline-to-live seam). Detected fresh every run so a new gap (e.g. exports
+    # not taken for weeks) shows up automatically instead of needing a code edit.
+    full_range = []
+    d = date.fromisoformat(live_min)
+    end = date.fromisoformat(live_max)
+    while d <= end:
+        full_range.append(d.isoformat())
+        d += timedelta(days=1)
+    missing_days = [iso for iso in full_range if iso not in live_days]
+    if missing_days:
+        print(f"  WARN: {len(missing_days)} day(s) in the live window have no export "
+              f"coverage ({missing_days[0]} to {missing_days[-1]}) -- rendered as a gap.")
+
     daily = []
     for row in baseline["daily"]:
         daily.append({"date": row["date"], "label": label_for(row["date"]),
                       "total": row["total"]})
     for iso in GAP_DAYS:
         daily.append({"date": iso, "label": "", "total": None})
-    for iso in sorted(live_days):
+    for iso in full_range:
+        if iso in missing_days:
+            daily.append({"date": iso, "label": "", "total": None})
+            continue
         d = live_days[iso]
-        entry = {"date": iso,
-                 "label": label_for(iso) + ("*" if iso == artifact_day else ""),
+        flags = ""
+        if iso == artifact_day:
+            flags += "*"
+        if iso in partial_old_days:
+            flags += "†"
+        entry = {"date": iso, "label": label_for(iso) + flags,
                  "total": d["total"], "unique_ips": len(d["ips"])}
         if iso == artifact_day:
             entry["artifact"] = True
+        if iso in partial_old_days:
+            entry["partial"] = True
         daily.append(entry)
 
     total_events = baseline["total_events"] + live_total
-    live_min, live_max = min(live_days), max(live_days)
     base_min = baseline["daily"][0]["date"]
+
+    notes = ["two export windows, 6-day gap Apr 14-18"]
+    for gap_start, gap_end in _consecutive_ranges(missing_days):
+        notes.append(
+            f"gap {label_for(gap_start)}" +
+            (f"-{label_for(gap_end)}" if gap_end != gap_start else "") +
+            " (no export covers this period)")
+    if partial_old_days:
+        partial_label = ", ".join(label_for(iso) for iso in sorted(partial_old_days))
+        notes.append(f"{partial_label} partial (export hit the row cap; "
+                      "data begins partway through the day)")
+    date_range_note = "; ".join(notes)
 
     out = {
         "meta": {
@@ -224,7 +306,7 @@ def build(paths):
             "baseline_window": baseline["window"],
             "live_window": f"{label_for(live_min)} - {label_for(live_max)}, {live_max[:4]}",
             "date_range": f"{label_for(base_min)} - {label_for(live_max)}, {live_max[:4]}",
-            "date_range_note": "two export windows, 6-day gap Apr 14-18",
+            "date_range_note": date_range_note,
             "total_events": total_events,
             "total_display": human(total_events),
             "total_events_display": f"{total_events:,}",
