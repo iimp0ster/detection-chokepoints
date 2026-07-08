@@ -2,6 +2,22 @@
 
 All notable changes to this detection chokepoints repository will be documented in this file.
 
+## [2026-07-03] - Edge-exploits trend refresh (Jun 10 - Jul 3, 2026 export)
+
+Source: Defused Cyber honeypot telemetry, manual console export (`export_shared_20260703_183931.csv`)
+
+### Changed
+
+- `_data/edge_exploits.yml`, `_data/edge_exploits_provenance.yml` — merged the new export; total events 25,420 → 75,420. CitrixBleed 2 (CVE-2025-5777) exploitation jumped 11,145 → 56,338 hits, Citrix NetScaler now >90% of decoy traffic.
+- `trends/edge-exploits/index.html` — chart caption and volume blurb now pull `meta.date_range_note` / `meta.live_decoy_count` via Liquid instead of hardcoded text, so they stay in sync on future refreshes. Daily chart flags row-cap-truncated days (new `partial` styling, distinct from the existing export-cutoff `artifact` styling).
+- `scripts/transform_defused_csv.py` — generalized gap detection (previously hardcoded to the one-time Apr 14-18 baseline seam) to scan the full live window every run, and added detection for row-capped exports (Defused's console appears to cap at 50,000 rows; `unverified:` no documented limit found, inferred from this export's clean mid-record cutoff).
+
+### Notes
+
+- Confirmed gap: May 20 - Jun 9, 2026 (21 days) — no export was taken, no data recoverable.
+- Confirmed partial day: Jun 10, 2026 — the new export hit the suspected 50,000-row cap sorted newest-first, cutting off before covering the full day. Flagged on the page rather than excluded or silently trusted.
+- `--check-seed` regression-tested clean against the original May-only seed before merging the new export.
+
 ## [2026-05-29] - AiTM / Tycoon 2FA Chokepoints (4 new entries)
 
 Source: Elastic Security Labs — Tycoon 2FA AiTM Detection Engineering (2026-05-27)
