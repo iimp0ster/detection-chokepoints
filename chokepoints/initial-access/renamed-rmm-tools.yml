@@ -551,7 +551,7 @@ OsintSources:
     per CISA AA25-163A.
 - Platform: VirusTotal Intelligence
   Query: have:itw tag:peexe (metadata:"AnyDesk" OR metadata:"ScreenConnect" OR metadata:"SimpleHelp" OR metadata:"NetSupport")
-  URL: https://www.virustotal.com/gui/search/have%3Aitw%20tag%3Apeexe%20metadata%3A%22AnyDesk%22
+  URL: https://www.virustotal.com/gui/search/have%3Aitw%20tag%3Apeexe%20%28metadata%3A%22AnyDesk%22%20OR%20metadata%3A%22ScreenConnect%22%20OR%20metadata%3A%22SimpleHelp%22%20OR%20metadata%3A%22NetSupport%22%29
   Notes: Requires VT Intelligence subscription; finds PE executables in the wild whose internal metadata references known
     RMM vendors; the core renamed-binary delivery mechanism.
 - Platform: LOLRMM
