@@ -8,7 +8,7 @@ permalink: /trends/clickgrab/
 <style>
 /* ── Page layout ────────────────────────────────────────────────────────── */
 .cg-page { }
-.cg-page h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: .25rem; }
+.cg-page h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; } /* color: theme-arcade.css accent */
 .cg-page h2 { font-size: 1.15rem; font-weight: 700; color: var(--text); margin: 2.5rem 0 .75rem; border-bottom: 1px solid transparent; border-image: linear-gradient(to right, var(--accent), var(--border) 35%, transparent) 1; padding-bottom: .4rem; }
 .cg-page h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.5rem 0 .5rem; }
 .cg-page p, .cg-page li { color: var(--text-muted); font-size: .9rem; line-height: 1.7; }

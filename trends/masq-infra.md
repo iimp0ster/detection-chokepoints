@@ -7,7 +7,7 @@ permalink: /trends/masq-infra/
 
 <style>
 /* ── Page layout (matches ClickGrab / Edge Exploits) ───────────────────── */
-.mi-page h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: .25rem; }
+.mi-page h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; } /* color: theme-arcade.css accent */
 .mi-page h2 { font-size: 1.15rem; font-weight: 700; color: var(--text); margin: 2.5rem 0 .75rem; border-bottom: 1px solid transparent; border-image: linear-gradient(to right, var(--accent), var(--border) 35%, transparent) 1; padding-bottom: .4rem; }
 .mi-page h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.5rem 0 .5rem; }
 .mi-page p, .mi-page li { color: var(--text-muted); font-size: .9rem; line-height: 1.7; }
