@@ -117,7 +117,9 @@ References:
 # OSINT queries useful for hunting this chokepoint externally
 OsintSources:
   - Platform: string        # URLScan | Shodan | Censys | GitHub | VirusTotal
-    Query: string           # The actual query string
+    Query: string           # The actual query string, in the platform's real syntax
+    URL: string             # Direct link that executes exactly the Query above; without it the
+                            # card renders as plain text instead of a clickable pivot
     Notes: string           # (optional) context on what this finds
 
 # DEPRECATED: KnownBypasses is no longer rendered in the layout.

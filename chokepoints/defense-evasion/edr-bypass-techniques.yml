@@ -488,8 +488,8 @@ OsintSources:
   Notes: Finds kernel driver source code interacting with process notification callbacks, the primary mechanism BYOVD tools
     manipulate. Monitor for new public tools targeting these APIs.
 - Platform: GitHub Code Search
-  Query: '"EtwEventWrite" "0xC3" path:*.c OR path:*.asm'
-  URL: https://github.com/search?q=%22EtwEventWrite%22+%220xC3%22&type=code
+  Query: '"EtwEventWrite" "0xC3" (path:*.c OR path:*.asm)'
+  URL: https://github.com/search?q=%22EtwEventWrite%22+%220xC3%22+%28path%3A*.c+OR+path%3A*.asm%29&type=code
   Notes: Finds ETW patching implementations targeting EtwEventWrite with a RET opcode. New variants appear regularly; use
     to track new ETW bypass techniques before they reach production campaigns.
 - Platform: LOLDrivers

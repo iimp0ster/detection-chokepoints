@@ -324,11 +324,12 @@ KnownBypasses:
 
 OsintSources:
 - Platform: URLScan
-  Query: 'page.ip.asn:"AS37963" OR page.ip.asn:"AS9009" AND filename:*.js AND page.status:200'
+  Query: '(page.asn:AS37963 OR page.asn:AS9009) AND page.status:200 AND page.mimeType:"application/javascript"'
+  URL: https://urlscan.io/search/#%28page.asn%3AAS37963%20OR%20page.asn%3AAS9009%29%20AND%20page.status%3A200%20AND%20page.mimeType%3A%22application%2Fjavascript%22
   Notes: >
     Alibaba Cloud (AS37963) and M247 (AS9009) are common Tycoon 2FA Tier 1 ASNs.
-    JS file responses on cheap-VPS ASNs may be kit relay JavaScript. Pivot to
-    associated domains for infrastructure expansion.
+    JavaScript responses served from cheap-VPS ASNs may be kit relay JavaScript.
+    Pivot to associated domains for infrastructure expansion.
 
 # PENDING LAB VALIDATION
 # RawLogs: No sample Entra ID sign-in log entries attached yet.
