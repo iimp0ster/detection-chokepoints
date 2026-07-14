@@ -1,0 +1,50 @@
+title: Security Tool Process Terminated by taskkill (Direct EDR Process Kill)
+id: d23ea1f3-7bf0-4071-8b58-323f3a850f57
+status: experimental
+description: >
+  Detects taskkill.exe terminating a named security-tool PROCESS, as opposed to stopping or
+  deleting its Windows service. Ransomware operators frequently kill the EDR process directly to
+  blind the host, which the service-name rules do not catch. EXAMPLE RULE — the process list below
+  is Sophos-only for illustration; extend selection_sectools with the process names of the EDR /
+  AV / backup products in your environment for full coverage.
+references:
+  - https://iimp0ster.github.io/detection-chokepoints/chokepoints/ransomware-service-manipulation/
+  - https://media.kasperskycontenthub.com/wp-content/uploads/sites/43/2022/06/23093553/Common-TTPs-of-the-modern-ransomware_low-res.pdf
+  - https://attack.mitre.org/techniques/T1562.001/
+  - https://attack.mitre.org/techniques/T1489/
+author: "@iimp0ster"
+date: 2026/07/13
+tags:
+  - attack.defense_evasion
+  - attack.t1562.001
+  - attack.impact
+  - attack.t1489
+  - detection.maturity.hunt
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_taskkill:
+    Image|endswith: '\taskkill.exe'
+  selection_sectools:
+    # EXAMPLE (Sophos). Extend with the process names of your EDR/AV/backup stack.
+    CommandLine|contains:
+      - 'sophosui.exe'
+      - 'sophosfilescanner.exe'
+      - 'sophosfs.exe'
+      - 'sophoshealth.exe'
+      - 'sophosips.exe'
+      - 'sophoslivequeryservice.exe'
+      - 'sophosnetfilter.exe'
+      - 'sophosntpservice.exe'
+      - 'sophososquery.exe'
+      - 'sspservice.exe'
+  filter_legit_software:
+    # Tune for your environment — add legitimate process-kill workflows (uninstallers, upgrades)
+    ParentImage|endswith:
+      - '\placeholder_tune_for_your_env.exe'
+  condition: selection_taskkill and selection_sectools and not filter_legit_software
+falsepositives:
+  - Vendor uninstallers or upgrade routines that terminate their own processes
+  - Support-driven manual process termination during troubleshooting
+level: high
