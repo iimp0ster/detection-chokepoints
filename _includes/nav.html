@@ -125,14 +125,14 @@
 
     <nav class="mobile-menu-nav" aria-label="Mobile navigation">
       <a class="m-item {% if page.url == '/' or page.url == '/index.html' %}active{% endif %}" href="{{ '/' | relative_url }}">
-        <span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg></span>Chokepoints
+        <span class="m-ic"><img src="{{ '/assets/img/pixel/chokepoint.png' | relative_url }}" alt="" width="20" height="20" /></span>Chokepoints
       </a>
       <a class="m-item {% if page.url contains '/attack-chains' %}active{% endif %}" href="{{ '/attack-chains/' | relative_url }}">
-        <span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M4 12h16M4 17h8"/><path d="M16 4l4 3-4 3"/></svg></span>Attack Chains
+        <span class="m-ic"><img src="{{ '/assets/img/pixel/attack-chain.png' | relative_url }}" alt="" width="20" height="20" /></span>Attack Chains
       </a>
 
       <button class="m-item m-trends {% if page.url contains '/trends' %}active{% endif %}" id="m-trends-toggle" type="button" aria-expanded="false" aria-controls="m-trends-panel">
-        <span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 17l6-6 4 4 7-8"/></svg></span>Trends
+        <span class="m-ic"><img src="{{ '/assets/img/pixel/trends.png' | relative_url }}" alt="" width="20" height="20" /></span>Trends
         <span class="m-chev" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span>
       </button>
       <div class="m-acc" id="m-trends-panel">
@@ -142,7 +142,7 @@
       </div>
 
       <a class="m-item {% if page.url contains '/framework' %}active{% endif %}" href="{{ '/framework/' | relative_url }}">
-        <span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 9v11"/></svg></span>Framework
+        <span class="m-ic"><img src="{{ '/assets/img/pixel/framework.png' | relative_url }}" alt="" width="20" height="20" /></span>Framework
       </a>
       <a class="m-item" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">
         <span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>Contribute<span class="m-ext" aria-hidden="true">&#8599;</span>
