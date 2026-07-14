@@ -6,6 +6,8 @@
   <meta name="description" content="{{ page.description | default: site.description | strip_html | normalize_whitespace | truncate: 160 }}" />
   <title>{% if page.title and page.title != site.title %}{{ page.title }} | {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
   {% seo %}
+  <link rel="preload" href="{{ '/assets/fonts/pressstart2p-latin.woff2' | relative_url }}" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="{{ '/assets/fonts/vt323-latin.woff2' | relative_url }}" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}" />
   <link rel="stylesheet" href="{{ '/assets/css/theme-arcade.css' | relative_url }}" />
   <link rel="icon" type="image/svg+xml" href="{{ '/assets/img/favicon.svg' | relative_url }}" />
