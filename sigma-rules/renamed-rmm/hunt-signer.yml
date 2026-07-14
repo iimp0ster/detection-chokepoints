@@ -1,0 +1,75 @@
+title: Browser-Downloaded RMM Binary Identified by Authenticode Company (Signer)
+id: 935c0102-a455-41b1-aaef-f9583eaa41ce
+status: experimental
+description: >
+  Detects a renamed/masquerading RMM tool by its Authenticode Company (signer) field rather than
+  its file name, run from a user Downloads path under a browser parent. Renaming the binary defeats
+  Image-name detections but does not change the embedded signer, so Company is the durable anchor.
+  EXAMPLE RULE — the Company list below is an illustrative A-C subset of the RMM vendor signers.
+  For production, replace it with the full, current signer list from LOLRMM
+  (https://lolrmm.io / https://github.com/magicsword-io/LOLRMM); the complete list is too long to
+  display inline here.
+references:
+  - https://iimp0ster.github.io/detection-chokepoints/chokepoints/renamed-rmm-tools/
+  - https://lolrmm.io/
+  - https://github.com/magicsword-io/LOLRMM
+  - https://attack.mitre.org/techniques/T1219/
+  - https://attack.mitre.org/techniques/T1036.003/
+author: "@iimp0ster"
+date: 2026/07/13
+tags:
+  - attack.initial_access
+  - attack.command_and_control
+  - attack.t1219
+  - attack.defense_evasion
+  - attack.t1036.003
+  - detection.maturity.hunt
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_browser_parent:
+    ParentImage|endswith:
+      - '\chrome.exe'
+      - '\firefox.exe'
+      - '\msedge.exe'
+      - '\opera.exe'
+      - '\iexplore.exe'
+      - '\brave.exe'
+  selection_location:
+    CommandLine|contains|all:
+      - '\Users\'
+      - '\Downloads\'
+  selection_rmm_signer:
+    # EXAMPLE subset (A-C). Replace with the full LOLRMM signer list for production coverage.
+    # Format: 'Signer Company' # RMM product
+    Company|contains:
+      - 'Action1 Corporation'                    # Action1
+      - 'AeroAdmin'                               # AeroAdmin
+      - 'AmidaWare'                               # TacticalRMM
+      - 'Ammyy'                                   # Ammyy Admin
+      - 'Anyplace Control Software'               # AnyplaceControl
+      - 'AOMEI International Network Limited'      # AnyViewer
+      - 'Atera Networks'                          # Atera
+      - 'AVG Technologies'                        # BarracudaRMM
+      - 'AweRay Limited'                          # AweSun
+      - 'AweRay Pte. Ltd.'                        # AweSun
+      - 'Barracuda Networks'                      # BarracudaRMM
+      - 'BeamYourScreen GmbH'                     # BeamYourScreen
+      - 'BeyondTrust Corporation'                 # BeyondTrust
+      - 'BeyondTrust Software'                    # BeyondTrust
+      - 'Bomgar Corporation'                      # BeyondTrust
+      - 'Bravura Software LLC'                    # OptiTune
+      - 'CloudBerry Lab Inc.'                     # MSP360
+      - 'ConnectWise'                             # ConnectWise
+      - 'CONTINUUM MANAGED'                       # ConnectWise
+      - 'CrossTec'                                # NetSupport
+  filter_legit_software:
+    # Tune for your environment — add RMM signers your org sanctions and runs legitimately
+    Company|contains:
+      - 'placeholder_tune_for_your_env'
+  condition: selection_browser_parent and selection_location and selection_rmm_signer and not filter_legit_software
+falsepositives:
+  - Sanctioned RMM tools your organization deploys (allowlist their signer above)
+  - IT staff downloading a legitimate RMM installer through a browser
+level: medium

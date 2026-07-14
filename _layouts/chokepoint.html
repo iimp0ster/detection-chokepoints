@@ -1533,6 +1533,48 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
     </div>
     {% endfor %}
 
+    {%- comment -%} Supplementary detection variants — render any present for this chokepoint {%- endcomment -%}
+    {% assign supp_keys = "_sigma_hunt-registry,_sigma_hunt-downloadfix,_sigma_hunt-signer,_sigma_hunt-process" | split: "," %}
+    {% assign supp_paths = "sigma-rules/clickfix/hunt-registry.yml,sigma-rules/clickfix/hunt-downloadfix.yml,sigma-rules/renamed-rmm/hunt-signer.yml,sigma-rules/ransomware-service/hunt-process.yml" | split: "," %}
+    {% assign supp_titles = "Clipboard Command in Explorer RunMRU/TypedPaths (Registry),DownloadFix: Downloaded File with Mark-of-the-Web,Renamed RMM by Authenticode Company/Signer,Direct EDR Process Kill via taskkill" | split: "," %}
+    {% assign has_supp = false %}
+    {% for k in supp_keys %}{% if cp[k] %}{% assign has_supp = true %}{% endif %}{% endfor %}
+    {% if has_supp %}
+    <div class="det-supp-block">
+      <div class="cp-section-label" style="margin-top:1.5rem">Supplementary Variants</div>
+      <p class="section-intro mb-4">Additional behavioral variants beyond the three core tiers. Experimental / unvalidated &mdash; tune before production use.</p>
+      {% for k in supp_keys %}
+      {% assign supp_content = cp[k] %}
+      {% if supp_content %}
+      {% assign idx = forloop.index0 %}
+      <details class="det-rule-item">
+        <summary class="det-rule-header">
+          <span class="det-rule-title">{{ supp_titles[idx] }}</span>
+          <div class="det-rule-badges">
+            <span class="det-rule-badge det-badge-hunt">Hunt</span>
+            <span class="det-rule-badge det-badge-new">New</span>
+          </div>
+          <span class="det-rule-chevron">&#9654;</span>
+        </summary>
+        <div class="det-rule-body">
+          <div class="sigma-block">
+            <div class="sigma-header">
+              <span class="sigma-label">Sigma Rule &mdash; Supplementary (experimental)</span>
+              <div class="sigma-actions">
+                <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ supp_paths[idx] }}" target="_blank" rel="noopener">GitHub &#8594;</a>
+                <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ supp_paths[idx] }}" download>Download</a>
+                <button class="sigma-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+            </div>
+            <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="language-yaml">{{ supp_content | xml_escape }}</code></pre>
+          </div>
+        </div>
+      </details>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
     {% else %}
     {%- comment -%} ── Legacy tab layout (pages without stages) ── {%- endcomment -%}
     <p class="section-intro mb-5">Build detections iteratively. Start broad to understand your
