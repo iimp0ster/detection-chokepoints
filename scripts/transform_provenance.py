@@ -49,10 +49,19 @@ def month_label(ym: str) -> str:        # "2026-04" -> "Apr 2026"
 
 def short(name: str) -> str:
     """Readable provider label from a Cymru AS name or a bulletproof-map name.
-    'H2NEXUS-AS - H2NEXUS LTD, GB' -> 'H2NEXUS LTD'."""
-    s = name.split(" - ", 1)[-1].strip()
-    s = re.sub(r",\s*[A-Z]{2}$", "", s)     # drop trailing country code
-    return s[:28]
+    Cymru gives 'HANDLE - Org Description, CC'. Prefer the org (usually the
+    recognizable company: 'H2NEXUS-AS - H2NEXUS LTD, GB' -> 'H2NEXUS LTD'), but
+    fall back to the short AS handle when the org would overflow the label, so a
+    long trade name isn't cut mid-word ('GreatFlower - Emil Vitukhnovskii trading
+    as Great Flower, IL' -> 'GreatFlower', not 'Emil Vitukhnovskii trading a')."""
+    LIMIT = 28
+    handle = name.split(" - ", 1)[0].strip()
+    org = re.sub(r",\s*[A-Z]{2}$", "", name.split(" - ", 1)[-1].strip())
+    if len(org) <= LIMIT:
+        return org
+    if 0 < len(handle) <= LIMIT and handle != org:
+        return handle          # long org -> use the clean AS handle instead
+    return org[:LIMIT].rsplit(" ", 1)[0] or org[:LIMIT]  # last resort: trim at a word
 
 
 def key(rec) -> str:
