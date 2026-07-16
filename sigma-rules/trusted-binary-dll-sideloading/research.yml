@@ -1,0 +1,26 @@
+title: Executable to DLL Image Load Baseline
+id: 2dac8610-edb0-4864-8fd1-a950e94217b2
+status: experimental
+description: >
+  Establishes broad visibility into executable processes loading DLLs so defenders
+  can baseline normal host/module relationships before applying side-loading filters.
+references:
+  - https://attack.mitre.org/techniques/T1574/001/
+  - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/image_load/image_load_side_load_from_non_system_location.yml
+author: '@iimp0ster'
+date: '2026/07/16'
+tags:
+  - attack.defense-evasion
+  - attack.t1574.001
+  - detection.maturity.research
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    Image|endswith: '.exe'
+    ImageLoaded|endswith: '.dll'
+  condition: selection
+falsepositives:
+  - Normal operating-system, application, plug-in, updater, security-tool, and development-runtime DLL loads
+level: informational

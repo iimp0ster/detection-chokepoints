@@ -1,0 +1,36 @@
+title: Reported Trusted Host and DLL Side-Loading Relationships From Reproducible Campaign Paths
+id: c0b675e5-cd52-4aca-bfb0-5fb34768982e
+status: experimental
+description: >
+  Detects two executable-to-DLL relationships only when they occur in the
+  source-grounded campaign directories reported for JFMBackdoor and ValleyRAT.
+  Normal system-directory basename relationships do not match. AGINGFLY does not
+  ground filenames or a directory, and the HazyBeacon assembly-path branch remains
+  Research/Hunt-only until representative telemetry is available.
+references:
+  - https://www.pwc.com/gx/en/issues/cybersecurity/cyber-threat-intelligence/red-lamassu-open-season.html
+  - https://labs.k7computing.com/index.php/fake-microsoft-teams-campaign-delivers-valleyrat-via-nsis-installer-and-dll-sideloading/
+author: '@iimp0ster'
+date: '2026/07/16'
+tags:
+  - attack.defense-evasion
+  - attack.t1574.001
+  - detection.maturity.analyst
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection_jfmbackdoor:
+    Image|endswith: '\fltMC.exe'
+    ImageLoaded|endswith: '\FLTLIB.dll'
+    ImageLoaded|contains: '\AppData\Local\Temp\'
+  selection_valleyrat:
+    Image|startswith: 'C:\ProgramData\client\'
+    Image|endswith: '\GameBox.exe'
+    ImageLoaded|startswith: 'C:\ProgramData\client\'
+    ImageLoaded|endswith: '\utility.dll'
+  condition: selection_jfmbackdoor or selection_valleyrat
+falsepositives:
+  - A legitimate package reproducing one of the exact source-grounded host, module, and directory combinations
+  - Require first-seen or low-prevalence host/module-pair enrichment, signer and hash review, and recent-file context before production alerting
+level: high

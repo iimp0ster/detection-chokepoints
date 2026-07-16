@@ -1,0 +1,45 @@
+title: Executable Host Loading a DLL From a Higher-Risk Staging Path
+id: 324de2a7-a061-478e-a6de-fb694f0b06db
+status: experimental
+description: >
+  Hunts for executable processes loading DLLs from user-writable or source-grounded
+  staging paths associated with side-loading. The rule intentionally retains validly
+  signed modules; enrich matches with same-directory, recent-file, first-seen,
+  signer, hash, and local prevalence context before treating them as malicious.
+references:
+  - https://attack.mitre.org/techniques/T1574/001/
+  - https://github.com/splunk/security_content/blob/develop/detections/endpoint/windows_unsigned_dll_side_loading_in_same_process_path.yml
+  - https://github.com/elastic/detection-rules/blob/main/rules_building_block/defense_evasion_dll_hijack.toml
+author: '@iimp0ster'
+date: '2026/07/16'
+tags:
+  - attack.defense-evasion
+  - attack.t1574.001
+  - detection.maturity.hunt
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection_load:
+    Image|endswith: '.exe'
+    ImageLoaded|endswith: '.dll'
+  selection_user_staging_path:
+    ImageLoaded|contains:
+      - '\AppData\Local\Temp\'
+      - '\AppData\Roaming\'
+      - '\Downloads\'
+      - '\Users\Public\'
+      - 'C:\Windows\Temp\'
+  selection_valleyrat_path:
+    ImageLoaded|startswith: 'C:\ProgramData\client\'
+  selection_hazybeacon_path:
+    ImageLoaded|startswith:
+      - 'C:\Windows\assembly\'
+      - 'C:\Windows\Microsoft.NET\assembly\'
+    ImageLoaded|endswith: '\mscorsvc.dll'
+  condition: selection_load and (selection_user_staging_path or selection_valleyrat_path or selection_hazybeacon_path)
+falsepositives:
+  - Legitimate per-user applications, installers, updaters, plug-ins, and development tools loading DLLs from writable directories
+  - Enterprise software installed beneath ProgramData or Windows assembly maintenance activity
+  - This portable candidate requires SIEM-side same-directory, recent-file, first-seen, and low-prevalence enrichment before alerting
+level: low
