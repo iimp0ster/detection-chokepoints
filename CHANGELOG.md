@@ -2,6 +2,23 @@
 
 All notable changes to this detection chokepoints repository will be documented in this file.
 
+## [2026-07-16] - Edge-exploits backfill (May 20 - Jun 9) + refresh to Jul 16
+
+Source: Defused Cyber honeypot telemetry, two manual console exports. A May 20 - Jun 9 export (`export_shared_20260609_000000.csv`, 46,209 rows) fills the gap the 2026-07-03 refresh left open, and a Jul 16 export (`export_shared_20260716_214508.csv`) extends coverage to Jul 16.
+
+### Changed
+
+- `_data/edge_exploits.yml` — total events 75,420 -> 88,299. Filled the May 20 - Jun 9 gap. CitrixBleed 2 (CVE-2025-5777) 56,338 -> 62,205 hits, now 70% of all traffic; a late-May surge is the largest day on record: May 26 alone is 29,520 hits, 29,274 of them CitrixBleed 2 from a single source (`193.202.84.145`). Live window extended to Jul 16. Next.js RCE (CVE-2025-55182) 7,146 and cPanel WHM (CVE-2026-41940) 2,049.
+- `trends/edge-exploits/index.html` — refreshed the volume callout, target-distribution intro, and the CitrixBleed 2 / Next.js / cPanel sections to the new totals and the May 26 single-source surge; extended the CitrixBleed 2 daily chart through Jul 16 (it stopped at the Apr 13 baseline before). Removed the now-dormant `partial`-day chart styling, superseded by the gap treatment below.
+- `scripts/transform_defused_csv.py` — four changes: (1) day merge is now per-day MAX-wins instead of newest-wins, so a newer export's partial window-start day can no longer overwrite an older export's complete count (fixed a Jun 16 undercount, 10 vs the true 139); (2) a row-capped export's truncated oldest day now renders as a GAP rather than a flagged partial bar (supersedes the 2026-07-03 partial approach; Jun 10 is the first such gap), fillable later by a narrow uncapped export that wins the max; (3) strips the source `:port` that newer exports append to the Attacker IP field, so unique-IP counts stay consistent across the two export formats; (4) the CitrixBleed 2 daily series now includes the live window, not just the frozen baseline.
+
+### Notes
+
+- Jun 10, 2026: both the Jul 3 and Jul 10 exports hit the 50,000-row cap and truncate Jun 10 (at least 36,528 hits, true count unknown). Rendered as a gap rather than published as a truncated floor. A narrow Jun 10 re-export would close it automatically.
+- The May 20 - Jun 9 gap noted in the 2026-07-03 entry is now filled with a complete (uncapped) export.
+- `_data/edge_exploits_provenance.yml` (the hosting-ASN section) was NOT regenerated; it still reflects the Jul 3 enrichment window. Refreshing it needs the separate IP-to-ASN pipeline and is a follow-up.
+- Verified: transform output cross-checked against an independent MAX-wins re-derivation (live total 73,298, CitrixBleed 2 54,093 live, Citrix decoy 54,625 live, combined 88,299, unique IPs 2,988 all matched); page built clean under Jekyll and both charts screenshot-verified (May 26 tower renders, Jun 10 renders as a gap).
+
 ## [2026-07-03] - Edge-exploits trend refresh (Jun 10 - Jul 3, 2026 export)
 
 Source: Defused Cyber honeypot telemetry, manual console export (`export_shared_20260703_183931.csv`)
