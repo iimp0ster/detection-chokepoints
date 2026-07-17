@@ -63,6 +63,7 @@ def load_chokepoint(repo: Path, slug: str) -> tuple[Path, dict[str, Any]]:
 def validate_contract_data(data: dict[str, Any], repo: Path) -> dict[str, str]:
     hits = unknown_paths(data)
     require(not hits, f"unknown placeholders remain at: {', '.join(hits)}")
+    require(data.get("TheConstant"), "a promoted chokepoint needs a top-level TheConstant for cards")
 
     variations = data.get("Variations") or []
     require(len(variations) >= 2, "a promoted chokepoint needs at least two variations")
@@ -171,6 +172,8 @@ def validate_rendered_page(repo: Path, slug: str, data: dict[str, Any]) -> Path:
         require(html.escape(str(variation["Name"])) in rendered, f"rendered page is missing {variation['Name']}")
     for pivot in data.get("OsintSources") or []:
         require(html.escape(str(pivot["URL"]), quote=True) in rendered, f"rendered page is missing OSINT URL {pivot['URL']}")
+    require(html.escape(str(data["TheConstant"])) in rendered, "rendered page is missing TheConstant")
+    require("highlight.js/11.11.1/" in rendered, "rendered page needs Highlight.js 11.11.1 selector fix")
     require('id="osint-pivots"' in rendered, "rendered page is missing the OSINT section")
     require("<UNKNOWN" not in rendered.upper(), "rendered page contains an unknown placeholder")
     return page
