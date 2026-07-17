@@ -33,6 +33,7 @@ Source: Defused Cyber honeypot telemetry, two manual console exports. A May 20 -
 ### Validation
 
 - Passed a six-case, snapshot-bracketed Windows validation sweep using Sysmon Event ID 7: two Analyst positives, two Hunt-only positives (including a signed Atomic Red Team-derived shape), and two legitimate controls.
+- Added a deterministic regression gate that enforces the multi-variation data contract, pins the sanitized 18-outcome receipt to the exact Sigma hashes, rejects stale or mutated results, and verifies the built Jekyll page renders all tiers, variations, and OSINT pivots.
 - HazyBeacon remains a source-grounded variation at Research/Hunt scope pending representative original-host telemetry; no production-validation claim is made.
 
 ## [2026-07-03] - Edge-exploits trend refresh (Jun 10 - Jul 3, 2026 export)
