@@ -238,6 +238,36 @@ Intel:
       does not reproduce an exact conventional T1574.001 host/DLL pair, so Nimbus is
       intentionally excluded from the four counted variations.
 
+OsintSources:
+  - Platform: VirusTotal Intelligence
+    Query: 'attack_technique:T1574.001 have:behavior'
+    URL: https://www.virustotal.com/gui/search/attack_technique%3AT1574.001%20have%3Abehavior
+    Notes: >
+      Finds behaviorally enriched samples mapped to DLL search-order hijacking. Review
+      process trees and filesystem activity together to extract new executable/DLL
+      relationships; an ATT&CK mapping alone is not sufficient evidence for a variation.
+  - Platform: VirusTotal Intelligence
+    Query: '(behavior_processes:"fltMC.exe" behavior_files:"FLTLIB.dll") OR (behavior_processes:"GameBox.exe" behavior_files:"utility.dll") OR (behavior_processes:"mscorsvw.exe" behavior_files:"mscorsvc.dll")'
+    URL: https://www.virustotal.com/gui/search/%28behavior_processes%3A%22fltMC.exe%22%20behavior_files%3A%22FLTLIB.dll%22%29%20OR%20%28behavior_processes%3A%22GameBox.exe%22%20behavior_files%3A%22utility.dll%22%29%20OR%20%28behavior_processes%3A%22mscorsvw.exe%22%20behavior_files%3A%22mscorsvc.dll%22%29
+    Notes: >
+      Expands the three filename-grounded seed relationships into related samples and
+      submissions. Pivot from matching samples to parents, bundled files, behavior
+      similarity, and first-seen metadata to identify campaign or packaging changes.
+  - Platform: HijackLibs
+    Query: 'CSV dataset; filter Type = DLL Sideloading'
+    URL: https://hijacklibs.net/api/hijacklibs.csv
+    Notes: >
+      Download the maintained executable-to-library mapping and filter it to DLL
+      Sideloading entries. Treat candidates as hunt seeds and require independent
+      in-the-wild or sandbox evidence before promoting one as a threat variation.
+  - Platform: GitHub Code Search
+    Query: '"T1574.001" ("DLL side-loading" OR "DLL sideloading") language:Markdown'
+    URL: https://github.com/search?q=%22T1574.001%22+%28%22DLL+side-loading%22+OR+%22DLL+sideloading%22%29+language%3AMarkdown&type=code
+    Notes: >
+      Finds newly published threat reports, research notes, and detection repositories
+      that name the ATT&CK technique. Extract a variation only when the source grounds
+      both the legitimate host and the attacker-controlled module relationship.
+
 RelatedChokepoints: []
 
 References:
