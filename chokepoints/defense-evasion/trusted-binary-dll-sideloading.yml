@@ -1,0 +1,278 @@
+Name: Trusted Binary DLL Side-Loading
+Id: d86f41ec-b5d4-48f6-b982-a51bdecc0fc8
+MitreIds:
+  - T1574.001
+Tactics:
+  - Defense Evasion
+  - Execution
+Techniques:
+  - "Hijack Execution Flow: DLL"
+DetectionPriority: HIGH
+ThreatPrevalence: MEDIUM
+DetectionDifficulty: MEDIUM
+Description: >
+  Adversaries place an attacker-controlled DLL where a legitimate executable will
+  resolve it, then launch that executable so the Windows loader maps the DLL into
+  the trusted host process. Host names, DLL names, directories, and delivery chains
+  vary, but successful DLL side-loading always produces a host-to-loaded-module
+  relationship that can be observed with image-load telemetry.
+LastUpdated: '2026-07-16'
+Author: '@iimp0ster'
+
+Prerequisites:
+  - A Windows executable whose DLL resolution behavior can be influenced by placing an attacker-controlled library in a searched location
+  - The attacker-controlled file must be a loadable PE library compatible with the selected host process
+  - The selected executable must run and invoke the Windows loader for the targeted library
+
+AttackerControls:
+  - The legitimate host executable selected for side-loading
+  - The malicious DLL contents, filename, and placement path
+  - The delivery package, launch mechanism, timing, and surrounding process chain
+
+AttackerCannotControl:
+  - The selected host process must resolve and map the attacker-controlled DLL before that DLL's code can execute through side-loading
+
+Chokepoints:
+  - Stage: Host-to-Module Load
+    Input: >
+      A legitimate executable and an attacker-controlled DLL are staged so the
+      executable's DLL resolution behavior selects the attacker-controlled library.
+    Invariant: >
+      The attacker MUST cause the selected executable to resolve and map the
+      attacker-controlled DLL into its process before the DLL's code can execute.
+    Observable: >
+      Windows image-load telemetry records the loading process in Image and the
+      mapped library in ImageLoaded. Sysmon Event ID 7 additionally provides
+      Signed, SignatureStatus, and hash context when configured.
+    WhyCantBypass: >
+      If the executable does not map the attacker-controlled DLL, the DLL's code
+      does not execute through side-loading; avoiding this observable requires
+      abandoning DLL side-loading for a different execution technique.
+    LogSources:
+      - Sysmon Event ID 7 (Image Loaded)
+      - EDR process/module image-load telemetry
+    DetectionTier: Research
+    SigmaRef: sigma-rules/trusted-binary-dll-sideloading/research.yml
+    BypassNote: >
+      Image-load telemetry may be disabled, sampled, or unavailable; signature,
+      path, and local prevalence context must be tuned to the monitored environment.
+
+Variations:
+  - Name: JFMBackdoor via fltMC.exe
+    Status: Active
+    FirstSeen: '2026-06-02'
+    SourceURL: https://www.pwc.com/gx/en/issues/cybersecurity/cyber-threat-intelligence/red-lamassu-open-season.html
+    NotesShort: fltMC.exe loads a malicious FLTLIB.dll.
+    Notes: >
+      PwC reports a legitimate fltMC.exe executable loading FLTLIB.dll in the
+      JFMBackdoor chain. PwC observed the files downloaded into the victim's
+      %TEMP% directory. Active denotes the campaign state reported on 2026-06-02,
+      not independently verified continuing activity.
+    VariantId: jfmbackdoor-fltmc-fltlib
+    ChokepointMapping: >
+      fltMC.exe launched -> Windows loader resolves FLTLIB.dll -> FLTLIB.dll is
+      mapped into fltMC.exe before the backdoor loader executes.
+
+  - Name: ValleyRAT via GameBox.exe
+    Status: Active
+    FirstSeen: '2026-05-20'
+    SourceURL: https://labs.k7computing.com/index.php/fake-microsoft-teams-campaign-delivers-valleyrat-via-nsis-installer-and-dll-sideloading/
+    NotesShort: GameBox.exe side-loads a malicious utility.dll.
+    Notes: >
+      K7 Computing documents a legitimate GameBox.exe executable abused to
+      side-load utility.dll from the hidden C:\ProgramData\client working directory
+      in a ValleyRAT delivery chain. Active denotes the campaign state reported on
+      2026-05-20, not independently verified continuing activity.
+    VariantId: valleyrat-gamebox-utility
+    ChokepointMapping: >
+      GameBox.exe launched -> Windows loader resolves utility.dll -> utility.dll
+      is mapped into GameBox.exe before the ValleyRAT chain continues.
+
+  - Name: AGINGFLY via BACHU archive executable
+    Status: Active
+    FirstSeen: '2026-04-20'
+    SourceURL: https://cert.gov.ua/article/6288271
+    NotesShort: A supplied executable side-loads the companion AGINGFLY loader DLL.
+    Notes: >
+      CERT-UA reports a BACHU archive containing an executable whose launch uses
+      DLL side-loading to start the AGINGFLY loader. The source-grounded handoff
+      does not provide a stable host/DLL filename pair, so this variation is kept
+      name-agnostic rather than filling unsupported values. Active denotes the
+      campaign state reported on 2026-04-20, not independently verified continuing
+      activity.
+    VariantId: agingfly-bachu-archive
+    ChokepointMapping: >
+      BACHU archive executable launched -> Windows loader resolves the supplied
+      companion library -> the library is mapped into the host to start AGINGFLY.
+
+  - Name: HazyBeacon via mscorsvw.exe
+    Status: Active
+    FirstSeen: '2025-07-14'
+    SourceURL: https://unit42.paloaltonetworks.com/windows-backdoor-for-novel-c2-communication/
+    NotesShort: mscorsvw.exe loads a planted mscorsvc.dll from Windows assembly storage.
+    Notes: >
+      Unit 42 reports a malicious mscorsvc.dll planted in C:\Windows\assembly
+      alongside the legitimate mscorsvw.exe executable. System-path placement
+      changes the context but does not remove the required host-to-module mapping.
+      Active denotes the campaign state reported on 2025-07-14, not independently
+      verified continuing activity.
+    VariantId: hazybeacon-mscorsvw-mscorsvc
+    ChokepointMapping: >
+      mscorsvw.exe launched -> Windows loader resolves the planted mscorsvc.dll ->
+      mscorsvc.dll is mapped into mscorsvw.exe before HazyBeacon executes.
+
+EvolutionTimeline:
+  - Date: 2025-07
+    Event: Unit 42 documents HazyBeacon side-loading
+    Change: A malicious library is planted in Windows assembly storage beside mscorsvw.exe.
+    DetectionImpact: System-directory exclusions cannot be treated as sufficient benign context.
+    TheConstant: The selected executable still maps the attacker-controlled DLL.
+  - Date: 2026-04
+    Event: CERT-UA documents the AGINGFLY chain
+    Change: Archive delivery and a separately named executable/library pair are used.
+    DetectionImpact: Detection must not depend on a known host or module filename.
+    TheConstant: Launching the supplied executable still maps the companion loader DLL.
+  - Date: 2026-05
+    Event: K7 Computing documents ValleyRAT side-loading
+    Change: GameBox.exe and utility.dll are packaged in an NSIS-based delivery chain.
+    DetectionImpact: Host/module relationship and trust context remain more durable than package indicators.
+    TheConstant: GameBox.exe still maps utility.dll before the malicious chain proceeds.
+  - Date: 2026-06
+    Event: PwC documents the JFMBackdoor implementation
+    Change: fltMC.exe and FLTLIB.dll provide a different trusted-host/library pair.
+    DetectionImpact: Another independent pair reinforces image-load telemetry as the shared observation point.
+    TheConstant: fltMC.exe still maps FLTLIB.dll before the backdoor loader executes.
+
+Detections:
+  - Level: Research
+    Description: Baseline executable-to-DLL image-load relationships
+    LogSources:
+      - Sysmon Event ID 7 (Image Loaded)
+      - EDR process/module image-load telemetry
+    Logic: >
+      Record executable processes loading DLLs using Image and ImageLoaded. This is
+      deliberately broad and is intended to establish normal host/module pairs,
+      paths, signatures, and prevalence before applying exclusions.
+    ExpectedFPRate: High
+    UseCase: Visibility baseline and host/module relationship inventory
+    SigmaRule: sigma-rules/trusted-binary-dll-sideloading/research.yml
+  - Level: Hunt
+    Description: Hunt executable hosts loading DLLs from higher-risk staging paths
+    LogSources:
+      - Sysmon Event ID 7 (Image Loaded)
+      - EDR process/module image-load telemetry
+    Logic: >
+      Select executable-to-DLL image loads from user-writable or source-grounded
+      staging paths without filtering valid signatures. Require SIEM-side
+      same-directory, recent-file, first-seen, low-prevalence, signer, and hash
+      enrichment before escalation.
+    ExpectedFPRate: High
+    UseCase: Periodic candidate generation for novel side-loading relationships
+    SigmaRule: sigma-rules/trusted-binary-dll-sideloading/hunt.yml
+  - Level: Analyst
+    Description: Detect reproducible source-grounded host/module pairs in their reported campaign directories
+    LogSources:
+      - Sysmon Event ID 7 (Image Loaded)
+      - EDR process/module image-load telemetry
+    Logic: >
+      Match fltMC.exe/FLTLIB.dll in the reported per-user TEMP directory,
+      or GameBox.exe/utility.dll under C:\ProgramData\client. Normal system-directory
+      basename relationships do not match. AGINGFLY remains Research/Hunt-only
+      because its handoff does not ground filenames or a directory. HazyBeacon also
+      remains Research/Hunt-only until the original vulnerable host or representative
+      assembly-path telemetry can exercise that selection honestly.
+    ExpectedFPRate: Low
+    UseCase: SOC alerting after first-seen/rarity, signer, hash, and recent-file enrichment
+    SigmaRule: sigma-rules/trusted-binary-dll-sideloading/analyst.yml
+
+Intel:
+  - Name: PwC Red Lamassu JFMBackdoor research
+    Tier: primary
+    URL: https://www.pwc.com/gx/en/issues/cybersecurity/cyber-threat-intelligence/red-lamassu-open-season.html
+    Description: Grounds the fltMC.exe and FLTLIB.dll host/module relationship.
+    LinkedFrom:
+      - JFMBackdoor via fltMC.exe
+      - Host-to-Module Load
+  - Name: K7 Computing ValleyRAT research
+    Tier: primary
+    URL: https://labs.k7computing.com/index.php/fake-microsoft-teams-campaign-delivers-valleyrat-via-nsis-installer-and-dll-sideloading/
+    Description: Grounds the GameBox.exe and utility.dll host/module relationship.
+    LinkedFrom:
+      - ValleyRAT via GameBox.exe
+      - Host-to-Module Load
+  - Name: CERT-UA report 6288271
+    Tier: primary
+    URL: https://cert.gov.ua/article/6288271
+    Description: Grounds the executable-to-companion-library AGINGFLY side-loading relationship.
+    LinkedFrom:
+      - AGINGFLY via BACHU archive executable
+      - Host-to-Module Load
+  - Name: Unit 42 HazyBeacon research
+    Tier: primary
+    URL: https://unit42.paloaltonetworks.com/windows-backdoor-for-novel-c2-communication/
+    Description: Grounds the mscorsvw.exe and mscorsvc.dll host/module relationship.
+    LinkedFrom:
+      - HazyBeacon via mscorsvw.exe
+      - Host-to-Module Load
+  - Name: SigmaHQ non-system-location DLL side-loading rule
+    Tier: supporting
+    URL: https://github.com/SigmaHQ/sigma/blob/master/rules/windows/image_load/image_load_side_load_from_non_system_location.yml
+    Description: Grounds Windows image_load field usage and environment-specific filtering for side-loading hunts.
+  - Name: Splunk Windows unsigned DLL side-loading in same process path
+    Tier: supporting
+    URL: https://github.com/splunk/security_content/blob/develop/detections/endpoint/windows_unsigned_dll_side_loading_in_same_process_path.yml
+    Description: Grounds Sysmon Event ID 7 Signed and SignatureStatus context and same-directory correlation strategy.
+  - Name: Elastic unsigned DLL loaded by a trusted process
+    Tier: supporting
+    URL: https://github.com/elastic/detection-rules/blob/main/rules_building_block/defense_evasion_dll_hijack.toml
+    Description: Grounds trusted-process, recent/untrusted-module, and same-directory hunt context.
+  - Name: Atomic Red Team T1574.001 tests
+    Tier: supporting
+    URL: https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1574.001/T1574.001.yaml
+    Description: Supplies the signed AppData test shape used in snapshot-bracketed image-load validation.
+  - Name: Nimbus Manticore side-loading context
+    Tier: supporting
+    URL: https://www.nextron-systems.com/2026/06/01/detecting-nimbus-manticore-and-their-sideloading-infection-chains/
+    Description: >
+      Related context only. The linked handoff grounds AppDomainManager behavior but
+      does not reproduce an exact conventional T1574.001 host/DLL pair, so Nimbus is
+      intentionally excluded from the four counted variations.
+
+OsintSources:
+  - Platform: VirusTotal Intelligence
+    Query: 'attack_technique:T1574.001 have:behavior'
+    URL: https://www.virustotal.com/gui/search/attack_technique%3AT1574.001%20have%3Abehavior
+    Notes: >
+      Finds behaviorally enriched samples mapped to DLL search-order hijacking. Review
+      process trees and filesystem activity together to extract new executable/DLL
+      relationships; an ATT&CK mapping alone is not sufficient evidence for a variation.
+  - Platform: VirusTotal Intelligence
+    Query: '(behavior_processes:"fltMC.exe" behavior_files:"FLTLIB.dll") OR (behavior_processes:"GameBox.exe" behavior_files:"utility.dll") OR (behavior_processes:"mscorsvw.exe" behavior_files:"mscorsvc.dll")'
+    URL: https://www.virustotal.com/gui/search/%28behavior_processes%3A%22fltMC.exe%22%20behavior_files%3A%22FLTLIB.dll%22%29%20OR%20%28behavior_processes%3A%22GameBox.exe%22%20behavior_files%3A%22utility.dll%22%29%20OR%20%28behavior_processes%3A%22mscorsvw.exe%22%20behavior_files%3A%22mscorsvc.dll%22%29
+    Notes: >
+      Expands the three filename-grounded seed relationships into related samples and
+      submissions. Pivot from matching samples to parents, bundled files, behavior
+      similarity, and first-seen metadata to identify campaign or packaging changes.
+  - Platform: HijackLibs
+    Query: 'CSV dataset; filter Type = DLL Sideloading'
+    URL: https://hijacklibs.net/api/hijacklibs.csv
+    Notes: >
+      Download the maintained executable-to-library mapping and filter it to DLL
+      Sideloading entries. Treat candidates as hunt seeds and require independent
+      in-the-wild or sandbox evidence before promoting one as a threat variation.
+  - Platform: GitHub Code Search
+    Query: '"T1574.001" ("DLL side-loading" OR "DLL sideloading") language:Markdown'
+    URL: https://github.com/search?q=%22T1574.001%22+%28%22DLL+side-loading%22+OR+%22DLL+sideloading%22%29+language%3AMarkdown&type=code
+    Notes: >
+      Finds newly published threat reports, research notes, and detection repositories
+      that name the ATT&CK technique. Extract a variation only when the source grounds
+      both the legitimate host and the attacker-controlled module relationship.
+
+RelatedChokepoints: []
+
+References:
+  - https://attack.mitre.org/techniques/T1574/001/
+  - https://www.pwc.com/gx/en/issues/cybersecurity/cyber-threat-intelligence/red-lamassu-open-season.html
+  - https://labs.k7computing.com/index.php/fake-microsoft-teams-campaign-delivers-valleyrat-via-nsis-installer-and-dll-sideloading/
+  - https://cert.gov.ua/article/6288271
+  - https://unit42.paloaltonetworks.com/windows-backdoor-for-novel-c2-communication/

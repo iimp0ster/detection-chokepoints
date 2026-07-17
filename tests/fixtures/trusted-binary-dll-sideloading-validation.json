@@ -1,0 +1,85 @@
+{
+  "schema_version": "ValidationResult/v1",
+  "tid": "T1574.001",
+  "mode": "telemetry",
+  "validated_at": "2026-07-16",
+  "range": "ludus",
+  "sensor": "Microsoft-Windows-Sysmon/Operational",
+  "event_count": 29,
+  "telemetry_observed": true,
+  "tiers": [
+    { "file": "analyst.yml", "sigma_sha256": "8d3a0da7c280b381f5dcc998c63f30416d2b777a5992d988087f2c098f620727", "fire": true },
+    { "file": "hunt.yml", "sigma_sha256": "9a06774f622a61d049db22c4e58cf1e34e849d92989554e4c0dd74a216ca89a6", "fire": true },
+    { "file": "research.yml", "sigma_sha256": "ee611051d0b209f35b3589cf088d9b0490287410ac8cb1dc76388b81c1d0a22d", "fire": true }
+  ],
+  "validation_case_schema": "ValidationCase/v1",
+  "cases": [
+    {
+      "case_id": "system-fltmc-negative-control",
+      "api_variant": "native-system-binary",
+      "event_count": 16,
+      "tiers": [
+        { "file": "analyst.yml", "sigma_sha256": "8d3a0da7c280b381f5dcc998c63f30416d2b777a5992d988087f2c098f620727", "expected": false, "actual": false, "pass": true },
+        { "file": "hunt.yml", "sigma_sha256": "9a06774f622a61d049db22c4e58cf1e34e849d92989554e4c0dd74a216ca89a6", "expected": false, "actual": false, "pass": true },
+        { "file": "research.yml", "sigma_sha256": "ee611051d0b209f35b3589cf088d9b0490287410ac8cb1dc76388b81c1d0a22d", "expected": true, "actual": true, "pass": true }
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "jfm-temp-host-module-shape",
+      "api_variant": "controlled-rundll-fixture",
+      "event_count": 4,
+      "tiers": [
+        { "file": "analyst.yml", "sigma_sha256": "8d3a0da7c280b381f5dcc998c63f30416d2b777a5992d988087f2c098f620727", "expected": true, "actual": true, "pass": true },
+        { "file": "hunt.yml", "sigma_sha256": "9a06774f622a61d049db22c4e58cf1e34e849d92989554e4c0dd74a216ca89a6", "expected": true, "actual": true, "pass": true },
+        { "file": "research.yml", "sigma_sha256": "ee611051d0b209f35b3589cf088d9b0490287410ac8cb1dc76388b81c1d0a22d", "expected": true, "actual": true, "pass": true }
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "valleyrat-programdata-host-module-shape",
+      "api_variant": "controlled-rundll-fixture",
+      "event_count": 2,
+      "tiers": [
+        { "file": "analyst.yml", "sigma_sha256": "8d3a0da7c280b381f5dcc998c63f30416d2b777a5992d988087f2c098f620727", "expected": true, "actual": true, "pass": true },
+        { "file": "hunt.yml", "sigma_sha256": "9a06774f622a61d049db22c4e58cf1e34e849d92989554e4c0dd74a216ca89a6", "expected": true, "actual": true, "pass": true },
+        { "file": "research.yml", "sigma_sha256": "ee611051d0b209f35b3589cf088d9b0490287410ac8cb1dc76388b81c1d0a22d", "expected": true, "actual": true, "pass": true }
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "agingfly-name-agnostic-temp-shape",
+      "api_variant": "controlled-rundll-fixture",
+      "event_count": 2,
+      "tiers": [
+        { "file": "analyst.yml", "sigma_sha256": "8d3a0da7c280b381f5dcc998c63f30416d2b777a5992d988087f2c098f620727", "expected": false, "actual": false, "pass": true },
+        { "file": "hunt.yml", "sigma_sha256": "9a06774f622a61d049db22c4e58cf1e34e849d92989554e4c0dd74a216ca89a6", "expected": true, "actual": true, "pass": true },
+        { "file": "research.yml", "sigma_sha256": "ee611051d0b209f35b3589cf088d9b0490287410ac8cb1dc76388b81c1d0a22d", "expected": true, "actual": true, "pass": true }
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "art-signed-appdata-shape",
+      "api_variant": "atomic-red-team-8549ad4b",
+      "event_count": 3,
+      "tiers": [
+        { "file": "analyst.yml", "sigma_sha256": "8d3a0da7c280b381f5dcc998c63f30416d2b777a5992d988087f2c098f620727", "expected": false, "actual": false, "pass": true },
+        { "file": "hunt.yml", "sigma_sha256": "9a06774f622a61d049db22c4e58cf1e34e849d92989554e4c0dd74a216ca89a6", "expected": true, "actual": true, "pass": true },
+        { "file": "research.yml", "sigma_sha256": "ee611051d0b209f35b3589cf088d9b0490287410ac8cb1dc76388b81c1d0a22d", "expected": true, "actual": true, "pass": true }
+      ],
+      "passed": true
+    },
+    {
+      "case_id": "neutral-root-path-negative-control",
+      "api_variant": "controlled-rundll-fixture",
+      "event_count": 2,
+      "tiers": [
+        { "file": "analyst.yml", "sigma_sha256": "8d3a0da7c280b381f5dcc998c63f30416d2b777a5992d988087f2c098f620727", "expected": false, "actual": false, "pass": true },
+        { "file": "hunt.yml", "sigma_sha256": "9a06774f622a61d049db22c4e58cf1e34e849d92989554e4c0dd74a216ca89a6", "expected": false, "actual": false, "pass": true },
+        { "file": "research.yml", "sigma_sha256": "ee611051d0b209f35b3589cf088d9b0490287410ac8cb1dc76388b81c1d0a22d", "expected": true, "actual": true, "pass": true }
+      ],
+      "passed": true
+    }
+  ],
+  "sweep_passed": true
+}

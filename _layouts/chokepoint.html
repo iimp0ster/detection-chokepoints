@@ -1390,8 +1390,14 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
 
         {%- comment -%} Stage 1 only gets EarlyDetections (ETW/IOK) - no sigma rules here {%- endcomment -%}
 
+        {%- comment -%} A single chokepoint stage owns every maturity tier. {%- endcomment -%}
+        {% if cp.Chokepoints.size == 1 %}
+        {% assign show_rule = true %}
+        {% assign sigma_key = "_sigma_" | append: det_lower %}
+        {% assign badge_class = "det-badge-" | append: det_lower %}
+
         {%- comment -%} Stage 2 (Hunt tier) gets hunt AND analyst detections {%- endcomment -%}
-        {% if forloop.parentloop.index == 2 and tier_lower == "hunt" and det_lower == "hunt" %}
+        {% elsif forloop.parentloop.index == 2 and tier_lower == "hunt" and det_lower == "hunt" %}
         {% assign show_rule = true %}
         {% assign sigma_key = "_sigma_hunt" %}
         {% assign badge_class = "det-badge-hunt" %}

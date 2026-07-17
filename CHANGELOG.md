@@ -21,6 +21,21 @@ Source: Defused Cyber honeypot telemetry, two manual console exports. A May 20 -
 - Provenance enrichment (`enrich_asns.py`, `hll.py`, `bulletproof_asns.yml`) is gitignored / local-only (it touches raw IPs + an optional key, decision #009), so its merge fix lives on the operator's machine, not in the repo; only the IP-free `_data/edge_exploits_provenance.yml` aggregate is committed. Team Cymru keyless resolution only; the IPinfo cross-check was skipped.
 - Verified: transform output cross-checked against an independent MAX-wins re-derivation (live total 73,298, CitrixBleed 2 54,093 live, Citrix decoy 54,625 live, combined 88,299, unique IPs 2,988 all matched); provenance per-month totals reconciled to the event page (May/Jun/Jul exact); page built clean under Jekyll and all charts screenshot-verified (May 26 tower, Jun 10 gap, provenance stacked chart with May dominant).
 
+## [2026-07-16] - Trusted Binary DLL Side-Loading Chokepoint
+
+### Added
+
+- `chokepoints/defense-evasion/trusted-binary-dll-sideloading.yml` — a T1574.001 host-to-module-load invariant spanning JFMBackdoor, ValleyRAT, AGINGFLY, and HazyBeacon.
+- `sigma-rules/trusted-binary-dll-sideloading/research.yml` — broad executable-to-DLL image-load baseline.
+- `sigma-rules/trusted-binary-dll-sideloading/hunt.yml` — writable and source-grounded staging-path candidate generation that retains signed DLLs.
+- `sigma-rules/trusted-binary-dll-sideloading/analyst.yml` — exact JFMBackdoor and ValleyRAT host/module/path relationships.
+
+### Validation
+
+- Passed a six-case, snapshot-bracketed Windows validation sweep using Sysmon Event ID 7: two Analyst positives, two Hunt-only positives (including a signed Atomic Red Team-derived shape), and two legitimate controls.
+- Added a deterministic regression gate that enforces the multi-variation data contract, pins the sanitized 18-outcome receipt to the exact Sigma hashes, rejects stale or mutated results, and verifies the built Jekyll page renders all tiers, variations, and OSINT pivots.
+- HazyBeacon remains a source-grounded variation at Research/Hunt scope pending representative original-host telemetry; no production-validation claim is made.
+
 ## [2026-07-03] - Edge-exploits trend refresh (Jun 10 - Jul 3, 2026 export)
 
 Source: Defused Cyber honeypot telemetry, manual console export (`export_shared_20260703_183931.csv`)
