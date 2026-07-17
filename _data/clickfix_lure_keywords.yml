@@ -2,133 +2,133 @@
 # keywords from MHaggis crawls, for chokepoint OSINT pivots + IOK matchers (#012).
 
 meta:
-  generated: '2026-06-15'
+  generated: '2026-07-17'
   source: MHaggis ClickGrab nightly crawls (SuspiciousKeywords)
-  sites_analyzed: 2700
+  sites_analyzed: 4662
 lure_keywords:
 - phrase: robot
-  sites: 1140
+  sites: 1953
 - phrase: captcha
-  sites: 656
+  sites: 1095
 - phrase: verification
-  sites: 494
+  sites: 761
 - phrase: i am not a robot
-  sites: 388
-- phrase: to better prove you are not a robot
-  sites: 388
+  sites: 599
 - phrase: captcha verification
-  sites: 388
+  sites: 582
 - phrase: verification-id
-  sites: 388
+  sites: 582
 - phrase: you will observe
-  sites: 388
-- phrase: verify you are human
-  sites: 342
+  sites: 582
+- phrase: to better prove you are not a robot
+  sites: 582
 - phrase: verification id
-  sites: 342
+  sites: 513
+- phrase: verify you are human
+  sites: 513
 - phrase: ray id
-  sites: 317
+  sites: 468
 - phrase: checking if you are human
-  sites: 317
+  sites: 451
 - phrase: captcha-verificatie-id
-  sites: 290
+  sites: 405
 - phrase: captchaloading
-  sites: 71
+  sites: 131
 - phrase: captcha-logo
-  sites: 71
-- phrase: captchalisteners
-  sites: 71
+  sites: 131
 - phrase: captchacheckbox
-  sites: 71
-- phrase: captcha-badge
-  sites: 52
-- phrase: invoke
-  sites: 51
+  sites: 131
+- phrase: captchalisteners
+  sites: 131
 - phrase: captcha-js
-  sites: 51
+  sites: 89
+- phrase: captcha-badge
+  sites: 86
 - phrase: verification hash
-  sites: 46
-- phrase: captcha-js-before
-  sites: 26
-- phrase: amos
-  sites: 26
+  sites: 86
+- phrase: invoke
+  sites: 83
 - phrase: captcha-box
-  sites: 25
+  sites: 45
+- phrase: captcha-js-before
+  sites: 45
 - phrase: captcha-frontend-css
-  sites: 25
-- phrase: bitmap
-  sites: 24
-- phrase: virtualalloc
-  sites: 24
-- phrase: captcha-styles-css
-  sites: 22
+  sites: 44
+- phrase: amos
+  sites: 44
 - phrase: captcha-verified
-  sites: 22
+  sites: 42
 - phrase: captcha-overlay
-  sites: 22
+  sites: 42
 - phrase: captchaimages
-  sites: 22
-- phrase: captcha-styles
-  sites: 22
-- phrase: captcha-loader
-  sites: 22
-- phrase: captcha-container
-  sites: 22
-- phrase: captcha-loader-js
-  sites: 22
+  sites: 42
 - phrase: captcha-modal
-  sites: 22
+  sites: 42
+- phrase: captcha-styles
+  sites: 42
+- phrase: captcha-container
+  sites: 42
+- phrase: captcha-loader
+  sites: 42
+- phrase: captcha-loader-js
+  sites: 42
+- phrase: captcha-styles-css
+  sites: 42
+- phrase: virtualalloc
+  sites: 37
+- phrase: bitmap
+  sites: 37
 - phrase: odyssey
-  sites: 21
+  sites: 37
 - phrase: captchaerror
-  sites: 14
+  sites: 33
 - phrase: captchasitekey
-  sites: 14
+  sites: 33
 - phrase: press enter
-  sites: 13
+  sites: 29
 lure_families:
 - name: CaptchaElements
-  sites: 459
+  sites: 706
 - name: FakeCloudflare
-  sites: 455
+  sites: 664
 - name: FakeGlitchLures
-  sites: 229
+  sites: 417
 - name: BotDetection
-  sites: 61
+  sites: 129
 - name: ClickFixInstructions
-  sites: 27
+  sites: 79
 - name: FakeWindowsUpdate
-  sites: 24
+  sites: 37
 urlscan_pivots:
 - phrase: i am not a robot
-  sites: 388
+  sites: 599
   query: page.body:navigator.clipboard AND page.body:"i am not a robot"
   url: https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22i%20am%20not%20a%20robot%22
-- phrase: to better prove you are not a robot
-  sites: 388
-  query: page.body:navigator.clipboard AND page.body:"to better prove you are not a robot"
-  url: https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22to%20better%20prove%20you%20are%20not%20a%20robot%22
 - phrase: captcha verification
-  sites: 388
+  sites: 582
   query: page.body:navigator.clipboard AND page.body:"captcha verification"
   url: https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22captcha%20verification%22
 - phrase: verification-id
-  sites: 388
+  sites: 582
   query: page.body:navigator.clipboard AND page.body:"verification-id"
   url: https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22verification-id%22
 - phrase: you will observe
-  sites: 388
+  sites: 582
   query: page.body:navigator.clipboard AND page.body:"you will observe"
   url: https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22you%20will%20observe%22
-- phrase: verify you are human
-  sites: 342
-  query: page.body:navigator.clipboard AND page.body:"verify you are human"
-  url: https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22verify%20you%20are%20human%22
+- phrase: to better prove you are not a robot
+  sites: 582
+  query: page.body:navigator.clipboard AND page.body:"to better prove you are not a robot"
+  url: https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22to%20better%20prove%20you%20are%20not%20a%20robot%22
 - phrase: verification id
-  sites: 342
+  sites: 513
   query: page.body:navigator.clipboard AND page.body:"verification id"
   url: https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22verification%20id%22
+- phrase: verify you are human
+  sites: 513
+  query: page.body:navigator.clipboard AND page.body:"verify you are human"
+  url: https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22verify%20you%20are%20human%22
 - phrase: checking if you are human
-  sites: 317
+  sites: 451
   query: page.body:navigator.clipboard AND page.body:"checking if you are human"
   url: https://urlscan.io/search/#page.body%3Anavigator.clipboard%20AND%20page.body%3A%22checking%20if%20you%20are%20human%22

