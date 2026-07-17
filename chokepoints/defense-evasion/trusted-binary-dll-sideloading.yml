@@ -16,6 +16,7 @@ Description: >
   the trusted host process. Host names, DLL names, directories, and delivery chains
   vary, but successful DLL side-loading always produces a host-to-loaded-module
   relationship that can be observed with image-load telemetry.
+TheConstant: A trusted host must map the attacker-controlled DLL before its code can execute.
 LastUpdated: '2026-07-16'
 Author: '@iimp0ster'
 

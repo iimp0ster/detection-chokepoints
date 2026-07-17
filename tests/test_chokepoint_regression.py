@@ -47,6 +47,12 @@ class TrustedBinaryDllSideloadingRegressionTests(unittest.TestCase):
         with self.assertRaisesRegex(RegressionError, "at least two variations"):
             validate_contract_data(mutated, REPO)
 
+    def test_missing_top_level_constant_is_rejected(self) -> None:
+        mutated = copy.deepcopy(self.data)
+        mutated.pop("TheConstant")
+        with self.assertRaisesRegex(RegressionError, "top-level TheConstant"):
+            validate_contract_data(mutated, REPO)
+
     def test_unknown_placeholder_is_rejected(self) -> None:
         mutated = copy.deepcopy(self.data)
         mutated["Chokepoints"][0]["WhyCantBypass"] = "<UNKNOWN -- needs evidence>"
@@ -93,6 +99,9 @@ class TrustedBinaryDllSideloadingRegressionTests(unittest.TestCase):
     def test_built_site_renders_variations_tiers_and_osint(self) -> None:
         page = validate_rendered_page(REPO, SLUG, self.data)
         self.assertTrue(page.is_file())
+        home = (REPO / "_site" / "index.html").read_text(encoding="utf-8")
+        self.assertIn("THE CONSTANT", home)
+        self.assertIn(self.data["TheConstant"], home)
 
 
 if __name__ == "__main__":
