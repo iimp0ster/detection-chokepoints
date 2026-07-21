@@ -2,6 +2,16 @@
 
 All notable changes to this detection chokepoints repository will be documented in this file.
 
+## [2026-07-20] - macOS Endpoint Security telemetry resource
+
+### Added
+
+- `intel/macos-endpoint-security-telemetry.md` - a practical Mac Monitor and `eslogger` lab for validating ESF process and filesystem visibility on macOS.
+
+### Updated
+
+- `chokepoints/credential-access/browser-credential-theft.yml` - linked the ESF lab as a supporting resource for validating macOS telemetry coverage.
+
 ## [2026-07-16] - Edge-exploits backfill (May 20 - Jun 9) + refresh to Jul 16
 
 Source: Defused Cyber honeypot telemetry, two manual console exports. A May 20 - Jun 9 export (`export_shared_20260609_000000.csv`, 46,209 rows) fills the gap the 2026-07-03 refresh left open, and a Jul 16 export (`export_shared_20260716_214508.csv`) extends coverage to Jul 16.
