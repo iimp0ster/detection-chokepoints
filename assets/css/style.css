@@ -242,6 +242,7 @@ pre, table {
   .m-item + .m-item, .m-acc + .m-item { border-top: 1px solid var(--border); }
   .m-ic { width: 22px; height: 22px; flex: 0 0 22px; display: grid; place-items: center; color: var(--accent); opacity: .85; }
   .m-ic svg { width: 20px; height: 20px; }
+  .m-ic img { width: 20px; height: 20px; image-rendering: pixelated; }
   .m-chev { margin-left: auto; display: grid; place-items: center; color: var(--text-dim); transition: transform .2s; }
   .m-trends[aria-expanded="true"] .m-chev { transform: rotate(90deg); }
   .m-ext { margin-left: auto; color: var(--text-dim); font-size: 1rem; }

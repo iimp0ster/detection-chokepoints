@@ -2,6 +2,66 @@
 
 All notable changes to this detection chokepoints repository will be documented in this file.
 
+## [2026-07-20] - macOS Endpoint Security telemetry resource
+
+### Added
+
+- `intel/macos-endpoint-security-telemetry.md` - a practical Mac Monitor and `eslogger` lab for validating ESF process and filesystem visibility on macOS.
+
+### Updated
+
+- `chokepoints/credential-access/browser-credential-theft.yml` - linked the ESF lab as a supporting resource for validating macOS telemetry coverage.
+
+## [2026-07-16] - Edge-exploits backfill (May 20 - Jun 9) + refresh to Jul 16
+
+Source: Defused Cyber honeypot telemetry, two manual console exports. A May 20 - Jun 9 export (`export_shared_20260609_000000.csv`, 46,209 rows) fills the gap the 2026-07-03 refresh left open, and a Jul 16 export (`export_shared_20260716_214508.csv`) extends coverage to Jul 16.
+
+### Changed
+
+- `_data/edge_exploits.yml` — total events 75,420 -> 88,299. Filled the May 20 - Jun 9 gap. CitrixBleed 2 (CVE-2025-5777) 56,338 -> 62,205 hits, now 70% of all traffic; a late-May surge is the largest day on record: May 26 alone is 29,520 hits, 29,274 of them CitrixBleed 2 from a single source (`193.202.84.145`). Live window extended to Jul 16. Next.js RCE (CVE-2025-55182) 7,146 and cPanel WHM (CVE-2026-41940) 2,049.
+- `trends/edge-exploits/index.html` — refreshed the volume callout, target-distribution intro, and the CitrixBleed 2 / Next.js / cPanel sections to the new totals and the May 26 single-source surge; extended the CitrixBleed 2 daily chart through Jul 16 (it stopped at the Apr 13 baseline before). Removed the now-dormant `partial`-day chart styling, superseded by the gap treatment below.
+- `scripts/transform_defused_csv.py` — four changes: (1) day merge is now per-day MAX-wins instead of newest-wins, so a newer export's partial window-start day can no longer overwrite an older export's complete count (fixed a Jun 16 undercount, 10 vs the true 139); (2) a row-capped export's truncated oldest day now renders as a GAP rather than a flagged partial bar (supersedes the 2026-07-03 partial approach; Jun 10 is the first such gap), fillable later by a narrow uncapped export that wins the max; (3) strips the source `:port` that newer exports append to the Attacker IP field, so unique-IP counts stay consistent across the two export formats; (4) the CitrixBleed 2 daily series now includes the live window, not just the frozen baseline.
+- `_data/edge_exploits_provenance.yml` — regenerated to the Apr - Jul 2026 window (was Jul 3), 2,998 cumulative unique source IPs. The local (gitignored) `enrich_asns.py` got the same per-day MAX-wins merge + Jun 10 gap + `:port` strip: it had been raw-summing overlapping exports, inflating June 6.6x (105,888 vs the correct 16,113) and floating one ASN (datacampus, the truncated Jun 10 spike's host) into the top purely as a double-counting artifact. Deduped per-month ASN totals now match the event page exactly (May 50,016 / Jun 16,113 / Jul 3,537).
+- `scripts/transform_provenance.py` — `short()` now falls back to the AS handle when the org description would overflow the label, instead of a mid-word cut (top provider reads `GreatFlower`, not `Emil Vitukhnovskii trading a`). Other labels unchanged.
+
+### Notes
+
+- Jun 10, 2026: both the Jul 3 and Jul 10 exports hit the 50,000-row cap and truncate Jun 10 (at least 36,528 hits, true count unknown). Rendered as a gap rather than published as a truncated floor. A narrow Jun 10 re-export would close it automatically.
+- The May 20 - Jun 9 gap noted in the 2026-07-03 entry is now filled with a complete (uncapped) export.
+- Provenance enrichment (`enrich_asns.py`, `hll.py`, `bulletproof_asns.yml`) is gitignored / local-only (it touches raw IPs + an optional key, decision #009), so its merge fix lives on the operator's machine, not in the repo; only the IP-free `_data/edge_exploits_provenance.yml` aggregate is committed. Team Cymru keyless resolution only; the IPinfo cross-check was skipped.
+- Verified: transform output cross-checked against an independent MAX-wins re-derivation (live total 73,298, CitrixBleed 2 54,093 live, Citrix decoy 54,625 live, combined 88,299, unique IPs 2,988 all matched); provenance per-month totals reconciled to the event page (May/Jun/Jul exact); page built clean under Jekyll and all charts screenshot-verified (May 26 tower, Jun 10 gap, provenance stacked chart with May dominant).
+
+## [2026-07-16] - Trusted Binary DLL Side-Loading Chokepoint
+
+### Added
+
+- `chokepoints/defense-evasion/trusted-binary-dll-sideloading.yml` — a T1574.001 host-to-module-load invariant spanning JFMBackdoor, ValleyRAT, AGINGFLY, and HazyBeacon.
+- `sigma-rules/trusted-binary-dll-sideloading/research.yml` — broad executable-to-DLL image-load baseline.
+- `sigma-rules/trusted-binary-dll-sideloading/hunt.yml` — writable and source-grounded staging-path candidate generation that retains signed DLLs.
+- `sigma-rules/trusted-binary-dll-sideloading/analyst.yml` — exact JFMBackdoor and ValleyRAT host/module/path relationships.
+
+### Validation
+
+- Passed a six-case, snapshot-bracketed Windows validation sweep using Sysmon Event ID 7: two Analyst positives, two Hunt-only positives (including a signed Atomic Red Team-derived shape), and two legitimate controls.
+- Added a deterministic regression gate that enforces the multi-variation data contract, pins the sanitized 18-outcome receipt to the exact Sigma hashes, rejects stale or mutated results, and verifies the built Jekyll page renders all tiers, variations, and OSINT pivots.
+- HazyBeacon remains a source-grounded variation at Research/Hunt scope pending representative original-host telemetry; no production-validation claim is made.
+
+## [2026-07-03] - Edge-exploits trend refresh (Jun 10 - Jul 3, 2026 export)
+
+Source: Defused Cyber honeypot telemetry, manual console export (`export_shared_20260703_183931.csv`)
+
+### Changed
+
+- `_data/edge_exploits.yml`, `_data/edge_exploits_provenance.yml` — merged the new export; total events 25,420 → 75,420. CitrixBleed 2 (CVE-2025-5777) exploitation jumped 11,145 → 56,338 hits, Citrix NetScaler now >90% of decoy traffic.
+- `trends/edge-exploits/index.html` — chart caption and volume blurb now pull `meta.date_range_note` / `meta.live_decoy_count` via Liquid instead of hardcoded text, so they stay in sync on future refreshes. Daily chart flags row-cap-truncated days (new `partial` styling, distinct from the existing export-cutoff `artifact` styling).
+- `scripts/transform_defused_csv.py` — generalized gap detection (previously hardcoded to the one-time Apr 14-18 baseline seam) to scan the full live window every run, and added detection for row-capped exports (Defused's console appears to cap at 50,000 rows; `unverified:` no documented limit found, inferred from this export's clean mid-record cutoff).
+
+### Notes
+
+- Confirmed gap: May 20 - Jun 9, 2026 (21 days) — no export was taken, no data recoverable.
+- Confirmed partial day: Jun 10, 2026 — the new export hit the suspected 50,000-row cap sorted newest-first, cutting off before covering the full day. Flagged on the page rather than excluded or silently trusted.
+- `--check-seed` regression-tested clean against the original May-only seed before merging the new export.
+
 ## [2026-05-29] - AiTM / Tycoon 2FA Chokepoints (4 new entries)
 
 Source: Elastic Security Labs — Tycoon 2FA AiTM Detection Engineering (2026-05-27)

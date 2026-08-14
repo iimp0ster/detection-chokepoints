@@ -1,0 +1,52 @@
+title: DownloadFix — Browser-Downloaded File with Mark-of-the-Web and Fix/Repair Lure
+id: 64c5bcf3-e9f6-4f68-b0e1-71762b3f739c
+status: experimental
+description: >
+  Detects the DownloadFix variant of the ClickFix family: the user is lured into downloading and
+  running a file (e.g. repair.cmd) rather than pasting a command. Any file saved from a browser
+  gets a :Zone.Identifier alternate data stream (Mark-of-the-Web), so pairing that ADS write with
+  a "fix / repair / troubleshoot / error" lure filename catches the dropped payload at download
+  time, before execution. DownloadFix is a download-and-run twist on mr.d0x's FileFix (which abuses
+  the File Explorer address bar and involves no download); jfmaes published a public PoC as
+  adversaries began weaponizing the FileFix idea. Process-independent file-event variant
+  supplementing the process-creation tiers.
+references:
+  - https://iimp0ster.github.io/detection-chokepoints/chokepoints/clickfix-techniques/
+  - https://huntress.com/blog/dont-sweat-clickfix-techniques
+  - https://github.com/jfmaes/downloadfix
+  - https://mhaggis.github.io/ClickGrab/
+  - https://attack.mitre.org/techniques/T1204/002/
+author: "@iimp0ster"
+date: 2026/07/13
+tags:
+  - attack.initial_access
+  - attack.t1204.002
+  - detection.maturity.hunt
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection_ads:
+    TargetFilename|endswith: ':Zone.Identifier'
+    TargetFilename|contains:
+      - 'fix'
+      - 'repair'
+      - 'troubleshoot'
+      - 'error'
+  selection_browser:
+    Image|endswith:
+      - '\firefox.exe'
+      - '\msedge.exe'
+      - '\chrome.exe'
+      - '\iexplore.exe'
+      - '\opera.exe'
+      - '\brave.exe'
+  filter_legit_software:
+    # Tune for your environment — add legitimate downloads that match the fix/repair theme
+    TargetFilename|contains:
+      - 'placeholder_tune_for_your_env'
+  condition: selection_ads and selection_browser and not filter_legit_software
+falsepositives:
+  - Legitimate troubleshooting utilities or vendor repair tools downloaded via a browser
+  - Support bundles named "repair" or "fix" from known-good vendors
+level: medium

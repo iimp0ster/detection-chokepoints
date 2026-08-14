@@ -1390,8 +1390,14 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
 
         {%- comment -%} Stage 1 only gets EarlyDetections (ETW/IOK) - no sigma rules here {%- endcomment -%}
 
+        {%- comment -%} A single chokepoint stage owns every maturity tier. {%- endcomment -%}
+        {% if cp.Chokepoints.size == 1 %}
+        {% assign show_rule = true %}
+        {% assign sigma_key = "_sigma_" | append: det_lower %}
+        {% assign badge_class = "det-badge-" | append: det_lower %}
+
         {%- comment -%} Stage 2 (Hunt tier) gets hunt AND analyst detections {%- endcomment -%}
-        {% if forloop.parentloop.index == 2 and tier_lower == "hunt" and det_lower == "hunt" %}
+        {% elsif forloop.parentloop.index == 2 and tier_lower == "hunt" and det_lower == "hunt" %}
         {% assign show_rule = true %}
         {% assign sigma_key = "_sigma_hunt" %}
         {% assign badge_class = "det-badge-hunt" %}
@@ -1532,6 +1538,48 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
       </div>
     </div>
     {% endfor %}
+
+    {%- comment -%} Supplementary detection variants — render any present for this chokepoint {%- endcomment -%}
+    {% assign supp_keys = "_sigma_hunt-registry,_sigma_hunt-downloadfix,_sigma_hunt-signer,_sigma_hunt-process" | split: "," %}
+    {% assign supp_paths = "sigma-rules/clickfix/hunt-registry.yml,sigma-rules/clickfix/hunt-downloadfix.yml,sigma-rules/renamed-rmm/hunt-signer.yml,sigma-rules/ransomware-service/hunt-process.yml" | split: "," %}
+    {% assign supp_titles = "Clipboard Command in Explorer RunMRU/TypedPaths (Registry),DownloadFix: Downloaded File with Mark-of-the-Web,Renamed RMM by Authenticode Company/Signer,Direct EDR Process Kill via taskkill" | split: "," %}
+    {% assign has_supp = false %}
+    {% for k in supp_keys %}{% if cp[k] %}{% assign has_supp = true %}{% endif %}{% endfor %}
+    {% if has_supp %}
+    <div class="det-supp-block">
+      <div class="cp-section-label" style="margin-top:1.5rem">Supplementary Variants</div>
+      <p class="section-intro mb-4">Additional behavioral variants beyond the three core tiers. Experimental / unvalidated &mdash; tune before production use.</p>
+      {% for k in supp_keys %}
+      {% assign supp_content = cp[k] %}
+      {% if supp_content %}
+      {% assign idx = forloop.index0 %}
+      <details class="det-rule-item">
+        <summary class="det-rule-header">
+          <span class="det-rule-title">{{ supp_titles[idx] }}</span>
+          <div class="det-rule-badges">
+            <span class="det-rule-badge det-badge-hunt"><img src="{{ '/assets/img/pixel/hunt.png' | relative_url }}" alt="" width="14" height="14" class="tier-pixel-icon" />Hunt</span>
+            <span class="det-rule-badge det-badge-new">New</span>
+          </div>
+          <span class="det-rule-chevron">&#9654;</span>
+        </summary>
+        <div class="det-rule-body">
+          <div class="sigma-block">
+            <div class="sigma-header">
+              <span class="sigma-label">Sigma Rule &mdash; Supplementary (experimental)</span>
+              <div class="sigma-actions">
+                <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ supp_paths[idx] }}" target="_blank" rel="noopener">GitHub &#8594;</a>
+                <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ supp_paths[idx] }}" download>Download</a>
+                <button class="sigma-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+            </div>
+            <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="language-yaml">{{ supp_content | xml_escape }}</code></pre>
+          </div>
+        </div>
+      </details>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
 
     {% else %}
     {%- comment -%} ── Legacy tab layout (pages without stages) ── {%- endcomment -%}
@@ -1831,10 +1879,10 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
 
 </div><!-- /.cp-page-wrap -->
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/atom-one-dark.min.css" integrity="sha384-oaMLBGEzBOJx3UHwac0cVndtX5fxGQIfnAeFZ35RTgqPcYlbprH9o9PUV/F8Le07" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js" integrity="sha384-GdEWAbCjn+ghjX0gLx7/N1hyTVmPAjdC2OvoAA0RyNcAOhqwtT8qnbCxWle2+uJX" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/yaml.min.js" integrity="sha384-bMkvdnz+wPu1ro0fqO3BaDWztc7RzSvw05MQFP6bhJKDcwpkrFYTfTFI9ndkP11l" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/powershell.min.js" integrity="sha384-0u0NM3ve01ej9h9zRzZ/ztDGe1h07d6TStpNoJ4f/50I/vtoCsDHI2PfzDZSYz8q" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/atom-one-dark.min.css" integrity="sha384-oaMLBGEzBOJx3UHwac0cVndtX5fxGQIfnAeFZ35RTgqPcYlbprH9o9PUV/F8Le07" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js" integrity="sha384-RH2xi4eIQ/gjtbs9fUXM68sLSi99C7ZWBRX1vDrVv6GQXRibxXLbwO2NGZB74MbU" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/yaml.min.js" integrity="sha384-A/iMReLA0Bo3tLydBIoOQXQzYnrwL90jkHYUubrtERUGCbIuU7U0EHge0Xd2s5sr" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/powershell.min.js" integrity="sha384-q/8iVbv95DiFN+l7qeoBwJ0Wju7gozJemMfG3DdxiOR8CfA/2dKvKA3W5t4l/n9t" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   hljs.highlightAll();

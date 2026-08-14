@@ -1,0 +1,83 @@
+title: ClickFix Clipboard Command Staged in Explorer RunMRU or TypedPaths
+id: 1a71665b-969d-4160-a124-638fb47f927f
+status: experimental
+description: >
+  Detects the ClickFix registry artifact: a browser or Explorer writing an HTTP(S) URL or a
+  LOLBin invocation into the Explorer RunMRU or TypedPaths key, alongside the social-engineering
+  keywords ClickFix lures use ("verify", "captcha", "I am not a robot"). RunMRU records what the
+  user typed into the Win+R Run dialog, so a paste-and-run lure leaves its command here before
+  the interpreter ever spawns. Registry-based variant supplementing the process-creation tiers.
+references:
+  - https://iimp0ster.github.io/detection-chokepoints/chokepoints/clickfix-techniques/
+  - https://huntress.com/blog/dont-sweat-clickfix-techniques
+  - https://mhaggis.github.io/ClickGrab/
+  - https://attack.mitre.org/techniques/T1204/004/
+  - https://attack.mitre.org/techniques/T1112/
+author: "@iimp0ster"
+date: 2026/07/13
+tags:
+  - attack.initial_access
+  - attack.t1204.004
+  - attack.defense_evasion
+  - attack.t1112
+  - detection.maturity.hunt
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_registry:
+    TargetObject|contains:
+      - '\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU\'
+      - '\Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths\url1'
+    Image|endswith:
+      - '\brave.exe'
+      - '\chrome.exe'
+      - '\firefox.exe'
+      - '\msedge.exe'
+      - '\opera.exe'
+      - '\iexplore.exe'
+      - '\explorer.exe'
+  selection_url:
+    Details|contains:
+      - 'http://'
+      - 'https://'
+  selection_lure_or_lolbin:
+    # Social-engineering keywords the lure pastes, OR a LOLBin download/exec token
+    Details|contains:
+      - 'account'
+      - 'anti-bot'
+      - 'botcheck'
+      - 'captcha'
+      - 'challenge'
+      - 'confirmation'
+      - 'fraud'
+      - 'human'
+      - 'identificator'
+      - 'identity'
+      - 'robot'
+      - 'validation'
+      - 'verification'
+      - 'verify'
+      - '%comspec%'
+      - 'bitsadmin'
+      - 'certutil'
+      - 'cmd'
+      - 'cscript'
+      - 'curl'
+      - 'mshta'
+      - 'powershell'
+      - 'pwsh'
+      - 'regsvr32'
+      - 'rundll32'
+      - 'schtasks'
+      - 'wget'
+      - 'wscript'
+  filter_legit_software:
+    # Tune for your environment — add legitimate software that writes URLs to RunMRU/TypedPaths
+    Details|contains:
+      - 'placeholder_tune_for_your_env'
+  condition: selection_registry and selection_url and selection_lure_or_lolbin and not filter_legit_software
+falsepositives:
+  - Power users who paste URLs or admin one-liners into the Run dialog
+  - Remote-support tooling that seeds the Run dialog
+level: medium
