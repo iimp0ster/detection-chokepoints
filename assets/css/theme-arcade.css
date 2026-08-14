@@ -1,72 +1,317 @@
-/* ============================================================
-   Tacklebox-anchored arcade theme — PREVIEW OVERLAY
-   Loaded AFTER style.css in _layouts/default.html so it overrides.
-   To revert completely: delete this file and remove its <link>
-   line in _layouts/default.html. (Fonts are pulled from Google
-   Fonts for the preview; self-host before any production use.)
-   ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+/* Detection Chokepoints' production retro layer.
+   It translates the Cross-OS Detection Graph visual system to the existing
+   Jekyll information architecture: dark navy, readable mono prose, pixel
+   hierarchy, sharp panels, and restrained CRT texture. */
 
-/* Keep the site's existing ORANGE accent (#f0883e) — it harmonizes with the
-   red/orange/yellow severity scale (teal fought them). The retro feel rides on
-   pixel fonts + pixel art in the warm palette instead of an accent swap. */
-
-/* Pixel chrome only — logo / nav / hero / section + card headings.
-   Body copy, descriptions, rule tables, Sigma and code stay in the
-   original readable fonts. */
-.nav-logo span{ font-family:'Press Start 2P',monospace !important; font-size:.7rem !important; color:var(--accent) !important; letter-spacing:.02em; }
-.nav-logo svg{ color:var(--accent) !important; }
-.nav-links a{ font-family:'VT323',monospace !important; font-size:1.18rem !important; letter-spacing:.03em; }
-
-.hero-title,
-.cp-hero-title{ font-family:'Press Start 2P',monospace !important; line-height:1.55 !important; color:var(--accent) !important;
-  text-shadow:0 2px 0 #3a1c08, 0 0 18px rgba(240,136,62,.4); letter-spacing:.02em; }
-.hero-title{ font-size:clamp(1.1rem,3vw,1.9rem) !important; }
-.hero-tagline{ font-family:'VT323',monospace !important; font-size:1.55rem !important; color:var(--accent) !important; }
-.hero-sub{ font-family:'VT323',monospace !important; font-size:1.25rem !important; }
-
-.cp-section-heading{ font-family:'VT323',monospace !important; letter-spacing:.02em; }
-.chokepoint-card h3, .chokepoint-card-title, #chokepoints-grid h3{ font-family:'VT323',monospace !important; font-size:1.3rem !important; letter-spacing:.02em; }
-.filter-label, .badge-legend-toggle{ font-family:'VT323',monospace !important; font-size:1.05rem !important; }
-
-/* ── Extend pixel chrome to Attack Chains / Trends / Framework / trend pages ── */
-.ac-index-hero h1, .ac-detail-title, .tr-hero h1, .hero-inner h1,
-.cg-page h1, .edge-page h1, .mi-page h1 {
-  font-family:'Press Start 2P',monospace !important;
-  line-height:1.55 !important; color:var(--accent) !important;
-  text-shadow:0 2px 0 #3a1c08, 0 0 18px rgba(240,136,62,.4); letter-spacing:.02em;
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/press-start-2p.woff2') format('woff2');
 }
-.ac-index-hero h1, .ac-detail-title, .tr-hero h1, .hero-inner h1 { font-size:clamp(1.2rem,3vw,1.9rem) !important; }
-.cg-page h1, .edge-page h1, .mi-page h1 { font-size:clamp(1.05rem,2.2vw,1.5rem) !important; }
-/* section / card / pillar headings in the readable pixel font */
-.ac-why-section h2, .ac-section-heading, .ac-stage-card-label, .ac-card-title,
-.tr-pillar-title, .tr-card-title, .tr-section-header h2,
-.cg-page h2, .cg-page h3, .edge-page h2, .edge-page h3, .mi-page h2, .mi-page h3,
-.fw-section h2, .step-card h3, .maturity-card h3, .compare-card h3 {
-  font-family:'VT323',monospace !important; letter-spacing:.02em;
+@font-face {
+  font-family: 'VT323';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/vt323.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/jetbrains-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/jetbrains-mono-700.woff2') format('woff2');
 }
 
-/* pixel logo + section-heading icons (replace the old SVGs) */
-.nav-logo-pixel{ width:24px; height:24px; image-rendering:pixelated; vertical-align:middle; }
-.cp-section-pixel, .tr-pillar-pixel, .ac-section-pixel{ width:24px; height:24px; image-rendering:pixelated; }
-/* cross-chain ecosystem: box icons + chain-link flow connectors */
-.ac-flow-pixel{ width:28px; height:28px; image-rendering:pixelated; }
-.ac-flow-chain{ width:22px; height:22px; image-rendering:pixelated; vertical-align:middle; }
-/* mobile: make the cross-chain flow a clean centered vertical spine */
-@media (max-width:640px){
-  .ac-ecosystem-flow .ac-flow-row{ align-items:center !important; gap:.5rem; }
-  .ac-ecosystem-flow .ac-flow-box{ width:100%; justify-content:center; text-align:center; }
-  .ac-ecosystem-flow .ac-flow-label{ text-align:center; width:100%; }
-  .ac-ecosystem-flow .ac-flow-arrow{ align-self:center; }
+:root {
+  --bg: #0b0d10;
+  --bg-card: #10141a;
+  --bg-card-hover: #171d25;
+  --bg-input: #10141a;
+  --bg-nav: rgb(11 13 16 / 94%);
+  --bg-stripe: rgb(16 20 26 / 74%);
+  --bg-code: #0e1116;
+  --border: #262c36;
+  --border-strong: #39414e;
+  --border-focus: #ffd23a;
+  --text: #d9dfe7;
+  --text-muted: #8b949e;
+  --text-dim: #6e7681;
+  --accent: #f0883e;
+  --accent-dark: #3a1c08;
+  --link: #f0883e;
+  --critical: #e5534b;
+  --high: #ffd23a;
+  --medium: #b6df5a;
+  --low: #58a6ff;
+  --font-sans: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+  --font-pixel: 'Press Start 2P', 'Courier New', monospace;
+  --font-crt: 'VT323', 'Courier New', monospace;
+  --radius: 0;
+  --radius-lg: 0;
+  --hard-shadow: 0 5px 0 #06070a;
 }
-/* framework: tier icons in maturity labels + the Research->Hunt->Analyst climb */
-.maturity-label img.tier-mini{ width:15px; height:15px; image-rendering:pixelated; vertical-align:-2px; margin-right:5px; }
-.tier-flow-icon{ width:30px; height:30px; image-rendering:pixelated; vertical-align:middle; }
-/* testing-your-chokepoint pixel icons */
-.test-icon img.test-pixel{ width:26px; height:26px; image-rendering:pixelated; }
-/* let the orange pixel marks pop in the section frames instead of orange-on-orange */
-.cp-section-icon, .tr-pillar-icon, .ac-section-icon{ background:rgba(13,17,23,.55) !important; border:1px solid rgba(240,136,62,.30) !important; }
 
-/* subtle CRT scanlines */
-body::after{ content:''; position:fixed; inset:0; pointer-events:none; z-index:9998;
-  background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,.05) 3px); }
+/* Light mode remains supported, but the navy mode is the visual reference. */
+[data-theme="light"] {
+  --bg: #eef1f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f7fa;
+  --bg-input: #ffffff;
+  --bg-nav: rgb(238 241 245 / 95%);
+  --bg-stripe: #f5f7fa;
+  --bg-code: #edf0f4;
+  --border: #b7c0ca;
+  --border-strong: #788493;
+  --text: #18212c;
+  --text-muted: #52606d;
+  --text-dim: #6b7785;
+  --accent-dark: #9c4b16;
+  --hard-shadow: 0 4px 0 #c4cbd3;
+}
+
+html { background: var(--bg); font-size: 14px; }
+body {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 5%) 3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+a { color: var(--link); text-decoration: none; border-bottom: 1px dotted rgb(240 136 62 / 55%); }
+a:hover { color: var(--high); border-bottom-color: var(--high); border-bottom-style: solid; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--high) !important; outline-offset: 3px; }
+
+/* Compact fallback for Markdown and older templates that do not use a page-specific
+   heading class. This keeps the type scale consistent beyond chokepoint details. */
+main h1 {
+  color: var(--accent) !important;
+  font-family: var(--font-pixel) !important;
+  font-size: clamp(1.05rem, 2.7vw, 1.8rem) !important;
+  font-weight: 400 !important;
+  line-height: 1.55 !important;
+}
+main h2 {
+  color: var(--high) !important;
+  font-family: var(--font-crt) !important;
+  font-size: clamp(1.5rem, 2.45vw, 1.9rem) !important;
+  font-weight: 400 !important;
+  line-height: 1.05 !important;
+}
+main h3 {
+  color: var(--text) !important;
+  font-family: var(--font-crt) !important;
+  font-size: clamp(1.18rem, 1.95vw, 1.45rem) !important;
+  font-weight: 400 !important;
+  line-height: 1.05 !important;
+}
+main h4 {
+  font-size: 1rem !important;
+  line-height: 1.3 !important;
+}
+
+/* Headings reserve the high-character pixel font for true hierarchy. */
+.hero-title, .cp-hero-title, .ac-detail-title, .ac-index-hero h1,
+.tr-hero h1, .hero-inner h1, .cg-page h1, .edge-page h1, .mi-page h1,
+.fw-content > .fw-section:first-child h2 {
+  color: var(--accent) !important;
+  font-family: var(--font-pixel) !important;
+  font-weight: 400 !important;
+  font-size: clamp(1.05rem, 2.7vw, 1.8rem) !important;
+  letter-spacing: .02em;
+  line-height: 1.55 !important;
+  text-shadow: 0 2px 0 var(--accent-dark), 0 0 16px rgb(240 136 62 / 35%);
+}
+.hero-title::after, .cp-hero-title::after, .ac-detail-title::after, .ac-index-hero h1::after,
+.tr-hero h1::after, .hero-inner h1::after, .cg-page h1::after, .edge-page h1::after, .mi-page h1::after {
+  content: '_';
+  color: var(--high);
+  display: inline-block;
+  margin-inline-start: .18em;
+  animation: dc-retro-cursor .9s steps(2, jump-none) infinite;
+}
+@keyframes dc-retro-cursor { 50% { opacity: .15; } }
+@media (prefers-reduced-motion: reduce) {
+  .hero-title::after, .cp-hero-title::after, .ac-detail-title::after, .ac-index-hero h1::after,
+  .tr-hero h1::after, .hero-inner h1::after, .cg-page h1::after, .edge-page h1::after, .mi-page h1::after { animation: none; }
+}
+.cp-section-heading, .ac-section-heading, .ac-section-title, .ac-why-section h2,
+.ac-ecosystem h2, .tr-section-header h2, .tr-pillar-title, .fw-section h2,
+.cg-page h2, .edge-page h2, .mi-page h2, .cp-section-label, .section-subheading {
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--high) !important;
+  font-family: var(--font-crt) !important;
+  font-size: clamp(1.5rem, 2.45vw, 1.9rem) !important;
+  font-weight: 400 !important;
+  letter-spacing: .015em;
+  line-height: 1.05 !important;
+  padding-bottom: .28rem;
+}
+.chokepoint-card h3, .chokepoint-card-title, #chokepoints-grid h3,
+.ac-card-title, .ac-stage-card-label, .tr-card-title, .step-card h3,
+.maturity-card h3, .compare-card h3, .cg-page h3, .edge-page h3, .mi-page h3 {
+  color: var(--text) !important;
+  font-family: var(--font-crt) !important;
+  font-size: clamp(1.18rem, 1.95vw, 1.45rem) !important;
+  font-weight: 400 !important;
+  line-height: 1.05 !important;
+}
+
+/* The framework's first section is intentionally denser than the rest of the
+   guide: six cards must scan as a single process, not six display panels. */
+.fw-content > .fw-section.six-step-section:first-child > h2 {
+  font-size: clamp(1rem, 2.2vw, 1.5rem) !important;
+  line-height: 1.4 !important;
+}
+.six-step-section .step-card h3 {
+  font-size: clamp(1.05rem, 1.7vw, 1.25rem) !important;
+  line-height: 1.1 !important;
+}
+
+/* Shared chrome: the guide's framed-console language, translated to top nav. */
+.site-nav, .page-anchors {
+  background: var(--bg-nav) !important;
+  border-bottom-color: var(--border-strong) !important;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 2%);
+}
+.nav-logo span, .mobile-menu-brand > span {
+  color: var(--accent) !important;
+  font-family: var(--font-pixel) !important;
+  text-shadow: 0 2px 0 var(--accent-dark);
+}
+.nav-links a, .nav-trends-menu a, .m-item, .m-sub, .page-anchors a {
+  border-bottom: 0;
+  border-left: 3px solid transparent;
+  color: var(--text-muted) !important;
+  font-family: var(--font-mono) !important;
+}
+.nav-links a:hover, .nav-links a.active, .nav-trends-menu a:hover, .nav-trends-menu a.active,
+.m-item:hover, .m-item.active, .m-sub:hover, .m-sub.active, .page-anchors a:hover {
+  background: linear-gradient(to right, rgb(240 136 62 / 12%), transparent 75%) !important;
+  border-left-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+.nav-trends-menu, .mobile-menu, .search-box, .filter-chip, .theme-toggle, .nav-hamburger,
+.mobile-menu-close, .m-util, .m-util-ms {
+  border-color: var(--border-strong) !important;
+  border-radius: 0 !important;
+}
+.nav-trends-menu, .mobile-menu, .search-box { background: var(--bg-card) !important; }
+.theme-toggle:hover, .nav-hamburger:hover, .mobile-menu-close:hover, .m-util:hover,
+.search-box:focus { border-color: var(--accent) !important; color: var(--accent) !important; }
+.site-footer { background: var(--bg-card) !important; border-top: 2px solid var(--border-strong) !important; }
+.site-footer a { border-bottom: 0; }
+
+/* The square framed-panel primitive is reused across the site. */
+.chokepoint-card, .cp-section-card, .ac-section-card, .ac-stage-card, .ac-index-card,
+.ac-flow-box, .fw-section, .fw-step, .fw-col, .maturity-card, .compare-card,
+.tr-card, .tr-pillar, .mi-callout, .mi-campaign-card, .mi-chain-stage,
+.badge-legend, .cp-why-unavoidable, .cp-invariant, .cp-true-positive,
+.ac-insight, .ac-guide, .osint-card, .related-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-strong) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--hard-shadow) !important;
+}
+.chokepoint-card:hover, .cp-section-card:hover, .ac-section-card:hover, .ac-stage-card:hover,
+.ac-index-card:hover, .ac-flow-box:hover, .fw-step:hover, .tr-card:hover,
+.mi-campaign-card:hover, .related-card:hover, .osint-card:hover {
+  border-color: var(--accent) !important;
+  box-shadow: 0 3px 0 #06070a !important;
+  transform: translateY(2px);
+}
+
+/* Code, tables, signals and badges are diagnostic surfaces rather than decoration. */
+pre, .sigma-block, .sigma-rule-block, .mi-payload-example, .ac-flowviz-wrap pre.mermaid,
+.ac-prose pre, .cg-page pre, .edge-page pre, .mi-page pre {
+  background: var(--bg-code) !important;
+  border: 2px solid var(--border-strong) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--hard-shadow);
+}
+code, :not(pre) > code {
+  background: var(--bg-code) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  color: var(--high) !important;
+  font-family: var(--font-mono) !important;
+}
+.sigma-header, .sigma-rule-header, .sigma-btn, .det-rule-badge, .badge, .mi-tier-badge,
+.ac-card-badge, .ac-section-badge, .ac-detail-meta-pill, .cp-back-pill {
+  border-radius: 0 !important;
+  font-family: var(--font-mono) !important;
+}
+.sigma-btn, .cp-back-pill, .filter-chip, .ac-cp-link, .ac-stage-pill {
+  background: var(--bg-card) !important;
+  border-color: var(--border-strong) !important;
+  box-shadow: 0 3px 0 #06070a;
+}
+.sigma-btn:hover, .cp-back-pill:hover, .filter-chip:hover, .ac-cp-link:hover, .ac-stage-pill:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 #06070a;
+}
+.sigma-block--research { border-left: 4px solid var(--low) !important; }
+.sigma-block--hunt { border-left: 4px solid var(--high) !important; }
+.sigma-block--analyst { border-left: 4px solid var(--medium) !important; }
+.table-wrapper, .ac-matrix-wrapper, .ac-heatmap-wrap { border: 1px solid var(--border-strong); box-shadow: var(--hard-shadow); }
+table th, .ac-matrix thead th, .ac-heatmap th, .mi-table th, .cg-table th {
+  background: var(--bg-card) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--accent) !important;
+  font-family: var(--font-crt) !important;
+  font-size: 1.18rem !important;
+  font-weight: 400 !important;
+}
+table td, .ac-matrix td, .ac-heatmap td, .mi-table td, .cg-table td { border-color: var(--border) !important; }
+table tbody tr:hover td, .ac-matrix tbody tr:hover, .ac-heatmap tbody tr:hover { background: rgb(240 136 62 / 6%) !important; }
+
+/* Icons are generated on a shared grid. CSS must never smooth them. */
+.nav-logo-pixel, .nav-pixel-icon, .cp-section-pixel, .ac-section-pixel, .tr-pillar-pixel,
+.tier-pixel-icon, .tier-mini, .tier-flow-icon, .test-pixel, .ac-flow-pixel, .ac-flow-chain,
+.cp-section-icon img, .ac-section-icon img, .tr-pillar-icon img {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.cp-section-icon, .ac-section-icon, .tr-pillar-icon {
+  background: var(--bg-code) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 0 !important;
+}
+
+@media (max-width: 640px) {
+  main h1 { font-size: clamp(.75rem, 3.7vw, .95rem) !important; }
+  main h2 { font-size: 1.45rem !important; }
+  main h3 { font-size: 1.25rem !important; }
+  .hero-title, .cp-hero-title, .ac-detail-title, .ac-index-hero h1,
+  .tr-hero h1, .hero-inner h1, .cg-page h1, .edge-page h1, .mi-page h1 { font-size: clamp(.75rem, 3.7vw, .95rem) !important; }
+  .fw-content > .fw-section.six-step-section:first-child > h2 { font-size: 1.15rem !important; }
+  .cp-section-heading, .ac-section-heading, .ac-section-title, .ac-why-section h2,
+  .ac-ecosystem h2, .tr-section-header h2, .tr-pillar-title, .fw-section h2,
+  .cg-page h2, .edge-page h2, .mi-page h2 { font-size: 1.45rem !important; }
+  .chokepoint-card, .cp-section-card, .ac-section-card, .ac-stage-card, .ac-index-card,
+  .tr-card, .tr-pillar, .mi-campaign-card { box-shadow: 0 3px 0 #06070a !important; }
+}
