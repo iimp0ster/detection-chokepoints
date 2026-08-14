@@ -104,6 +104,12 @@ a { color: var(--link); text-decoration: none; border-bottom: 1px dotted rgb(240
 a:hover { color: var(--high); border-bottom-color: var(--high); border-bottom-style: solid; text-decoration: none; }
 :focus-visible { outline: 2px solid var(--high) !important; outline-offset: 3px; }
 
+/* Inline prose benefits from a visible link affordance; controls do not. */
+.nav-logo, .nav-github, .card-link, .related-card, .sigma-btn, .cp-back-pill,
+.ac-cp-link, .ac-stage-pill, .btn-primary, .btn-secondary {
+  border-bottom: 0 !important;
+}
+
 /* Compact fallback for Markdown and older templates that do not use a page-specific
    heading class. This keeps the type scale consistent beyond chokepoint details. */
 main h1 {
@@ -179,6 +185,9 @@ main h4 {
   line-height: 1.05 !important;
 }
 
+/* Research/new badges keep their blue semantic signal even though prose links are orange. */
+.det-badge-research, .det-badge-new { color: var(--low) !important; }
+
 /* The framework's first section is intentionally denser than the rest of the
    guide: six cards must scan as a single process, not six display panels. */
 .fw-content > .fw-section.six-step-section:first-child > h2 {
@@ -226,7 +235,7 @@ main h4 {
 
 /* The square framed-panel primitive is reused across the site. */
 .chokepoint-card, .cp-section-card, .ac-section-card, .ac-stage-card, .ac-index-card,
-.ac-flow-box, .fw-section, .fw-step, .fw-col, .maturity-card, .compare-card,
+.ac-flow-box, .fw-step, .fw-col, .maturity-card, .compare-card,
 .tr-card, .tr-pillar, .mi-callout, .mi-campaign-card, .mi-chain-stage,
 .badge-legend, .cp-why-unavoidable, .cp-invariant, .cp-true-positive,
 .ac-insight, .ac-guide, .osint-card, .related-card {
@@ -251,24 +260,29 @@ pre, .sigma-block, .sigma-rule-block, .mi-payload-example, .ac-flowviz-wrap pre.
   border-radius: 0 !important;
   box-shadow: var(--hard-shadow);
 }
-code, :not(pre) > code {
+:not(pre) > code:not(.compare-code) {
   background: var(--bg-code) !important;
   border: 1px solid var(--border) !important;
   border-radius: 0 !important;
   color: var(--high) !important;
   font-family: var(--font-mono) !important;
 }
+.maturity-card > code {
+  background: var(--bg-code) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-muted) !important;
+}
 .sigma-header, .sigma-rule-header, .sigma-btn, .det-rule-badge, .badge, .mi-tier-badge,
 .ac-card-badge, .ac-section-badge, .ac-detail-meta-pill, .cp-back-pill {
   border-radius: 0 !important;
   font-family: var(--font-mono) !important;
 }
-.sigma-btn, .cp-back-pill, .filter-chip, .ac-cp-link, .ac-stage-pill {
+.sigma-btn, .cp-back-pill, .filter-chip:not(.active), .ac-cp-link, .ac-stage-pill {
   background: var(--bg-card) !important;
   border-color: var(--border-strong) !important;
   box-shadow: 0 3px 0 #06070a;
 }
-.sigma-btn:hover, .cp-back-pill:hover, .filter-chip:hover, .ac-cp-link:hover, .ac-stage-pill:hover {
+.sigma-btn:hover, .cp-back-pill:hover, .filter-chip:not(.active):hover, .ac-cp-link:hover, .ac-stage-pill:hover {
   border-color: var(--accent) !important;
   color: var(--accent) !important;
   transform: translateY(1px);
