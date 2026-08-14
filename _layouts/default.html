@@ -6,10 +6,11 @@
   <meta name="description" content="{{ page.description | default: site.description | strip_html | normalize_whitespace | truncate: 160 }}" />
   <title>{% if page.title and page.title != site.title %}{{ page.title }} | {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
   {% seo %}
-  <link rel="preload" href="{{ '/assets/fonts/pressstart2p-latin.woff2' | relative_url }}" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="{{ '/assets/fonts/vt323-latin.woff2' | relative_url }}" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="{{ '/assets/fonts/press-start-2p.woff2' | relative_url }}" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="{{ '/assets/fonts/vt323.woff2' | relative_url }}" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="{{ '/assets/fonts/jetbrains-mono-400.woff2' | relative_url }}" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}" />
-  <link rel="stylesheet" href="{{ '/assets/css/theme-arcade.css' | relative_url }}" />
+  <link rel="stylesheet" href="{{ '/assets/css/theme-arcade.css' | relative_url }}?v=20260814-3" />
   <link rel="icon" type="image/svg+xml" href="{{ '/assets/img/favicon.svg' | relative_url }}" />
   <!-- SECURITY: cdn.tailwindcss.com is the JIT dev build — it is a mutable,
        non-versioned script and CANNOT carry a Subresource Integrity hash, so a

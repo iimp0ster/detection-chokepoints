@@ -29,6 +29,13 @@ description: A practical methodology for identifying durable detection chokepoin
 }
 .hero-inner { max-width: 680px; margin: 0 auto; position: relative; }
 .hero h1 { font-size: 2.75rem; font-weight: 800; letter-spacing: -.02em; margin-bottom: 0.75rem; }
+.framework-hero-title::after { display: none !important; }
+.framework-hero-tail { white-space: nowrap; }
+.framework-hero-cursor {
+  color: var(--high); display: inline-block; margin-left: .04em;
+  animation: dc-retro-cursor .9s steps(2, jump-none) infinite;
+}
+@media (prefers-reduced-motion: reduce) { .framework-hero-cursor { animation: none; } }
 .hero .subtitle { font-size: 1rem; color: var(--text-muted); max-width: 580px; line-height: 1.8; margin: 0 auto; }
 
 /* ── Section containers ── */
@@ -45,13 +52,13 @@ description: A practical methodology for identifying durable detection chokepoin
 /* ── Step cards ── */
 .steps-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   grid-auto-rows: 1fr;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 .step-card {
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 1.5rem; position: relative;
+  border-radius: var(--radius-lg); padding: 1.15rem; position: relative;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s, transform 0.2s;
   cursor: pointer;
   display: flex; flex-direction: column;
@@ -61,18 +68,18 @@ description: A practical methodology for identifying durable detection chokepoin
 .step-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(0,0,0,0.25); background: var(--bg-card-hover); }
 .step-num {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 50%;
+  width: 28px; height: 28px; border-radius: 50%;
   background: rgba(240,136,62,0.15); color: var(--accent);
-  font-weight: 700; font-size: 0.9rem; margin-bottom: 0.75rem;
+  font-weight: 700; font-size: 0.8rem; margin-bottom: 0.55rem;
 }
-.step-card h3 { color: var(--text); margin-bottom: 0.5rem; font-size: 1.05rem; font-weight: 600; }
-.step-card p { color: var(--text-muted); font-size: 0.9rem; }
+.step-card h3 { color: var(--text); margin-bottom: 0.4rem; font-size: 0.95rem; font-weight: 600; }
+.step-card p { color: var(--text-muted); font-size: 0.82rem; }
 .step-card .chokepoint-tag {
-  display: inline-block; margin-top: 0.75rem; padding: 0.2rem 0.6rem;
+  display: inline-block; margin-top: 0.55rem; padding: 0.16rem 0.5rem;
   background: rgba(218,54,51,0.15); color: var(--critical); border-radius: 4px;
-  font-size: 0.8rem; font-weight: 600;
+  font-size: 0.72rem; font-weight: 600;
 }
-.expand-hint { font-size: 0.75rem; color: var(--text-dim); margin-top: auto; padding-top: 0.75rem; }
+.expand-hint { font-size: 0.68rem; color: var(--text-dim); margin-top: auto; padding-top: 0.55rem; }
 .step-card.active .expand-hint { color: var(--accent); }
 
 /* Detail panel:shared by all cards, updated on click */
@@ -115,6 +122,10 @@ description: A practical methodology for identifying durable detection chokepoin
 .maturity-card.research::before { background: var(--medium); }
 .maturity-card.hunt::before { background: var(--high); }
 .maturity-card.analyst::before { background: var(--critical); }
+.maturity-icon {
+  display: block; width: 40px; height: 40px; margin: 0 auto 0.6rem;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
 .maturity-label {
   display: inline-block; padding: 0.15rem 0.55rem; border-radius: 4px;
   font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
@@ -246,7 +257,7 @@ svg text { font-family: var(--font-sans); }
 <!-- ── Hero ── -->
 <section class="hero">
   <div class="hero-inner">
-    <h1>Chokepoint Identification Framework</h1>
+    <h1 class="framework-hero-title">Chokepoint Identification <span class="framework-hero-tail">Framework<span class="framework-hero-cursor" aria-hidden="true">_</span></span></h1>
     <p class="subtitle">
       For every technique: what must be true, and what can't the attacker control? Those invariants are chokepoints - detect them, catch every variant.
     </p>
@@ -259,7 +270,7 @@ svg text { font-family: var(--font-sans); }
 <div class="fw-content">
 
   <!-- ══════ SECTION 1: THE 6 STEPS ══════ -->
-  <div class="fw-section">
+  <div class="fw-section six-step-section">
     <h2>The 6-Step Process</h2>
     <p style="color: var(--text-muted); margin-bottom: 1.5rem; max-width: 680px;">
       Steps 1–3 scope the technique. Step 4 finds the chokepoint. Steps 5–6 make it a detection.
@@ -429,13 +440,14 @@ svg text { font-family: var(--font-sans); }
   <div class="fw-section">
     <h2>Detection Maturity Model</h2>
     <p style="color: var(--text-muted); margin-bottom: 1.5rem; max-width: 680px;">
-      Start broad, refine to production. Don't skip levels - the research rule is the baseline you tune from.
+      Start broad, refine with local validation. Don't skip levels - the research rule is the baseline you tune from.
     </p>
 
     <div class="maturity-track">
 
       <div class="maturity-card research">
-        <span class="maturity-label"><img class="tier-mini" src="{{ '/assets/img/pixel/research.png' | relative_url }}" alt="" />Research</span>
+        <img class="maturity-icon" src="{{ '/assets/img/pixel/research.png' | relative_url }}" alt="" />
+        <span class="maturity-label">Research</span>
         <h3>Establish visibility</h3>
         <p>Baseline understanding of the chokepoint in your environment. High false positive rate expected. Not for alerting.</p>
         <code>process_creation
@@ -449,7 +461,8 @@ svg text { font-family: var(--font-sans); }
       </div>
 
       <div class="maturity-card hunt">
-        <span class="maturity-label"><img class="tier-mini" src="{{ '/assets/img/pixel/hunt.png' | relative_url }}" alt="" />Hunt</span>
+        <img class="maturity-icon" src="{{ '/assets/img/pixel/hunt.png' | relative_url }}" alt="" />
+        <span class="maturity-label">Hunt</span>
         <h3>Reduce noise, keep coverage</h3>
         <p>Add context: parent process constraints, user filtering, timing windows. Noise drops. Coverage holds.</p>
         <code>process_creation
@@ -466,9 +479,10 @@ svg text { font-family: var(--font-sans); }
       </div>
 
       <div class="maturity-card analyst">
-        <span class="maturity-label"><img class="tier-mini" src="{{ '/assets/img/pixel/analyst.png' | relative_url }}" alt="" />Analyst</span>
-        <h3>Production SOC alerting</h3>
-        <p>High-fidelity, correlated events. Minimal false positives. Your SOC acts on these without second-guessing.</p>
+        <img class="maturity-icon" src="{{ '/assets/img/pixel/analyst.png' | relative_url }}" alt="" />
+        <span class="maturity-label">Analyst</span>
+        <h3>Validated SOC candidate</h3>
+        <p>High-fidelity, correlated events after environment-specific testing and tuning. Promote only with recorded validation evidence.</p>
         <code>process_creation
   where ParentImage endswith
     'services.exe'
@@ -482,19 +496,12 @@ svg text { font-family: var(--font-sans); }
     EID 4624 Type 3 within 5s</code>
         <div style="margin-top: 0.75rem;">
           <span style="font-size: 0.78rem; color: var(--low);">FP Rate: LOW</span>
-          <span style="font-size: 0.78rem; color: var(--text-dim); margin-left: 0.75rem;">Use: SOC alerting, automated IR</span>
+          <span style="font-size: 0.78rem; color: var(--text-dim); margin-left: 0.75rem;">Use: local validation, then SOC alerting</span>
         </div>
       </div>
 
     </div>
 
-    <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1.5rem; color: var(--text-dim); font-size: 0.85rem;">
-      <img class="tier-flow-icon" src="{{ '/assets/img/pixel/research.png' | relative_url }}" alt="Research" title="Research" />
-      <span>&#8594;</span>
-      <img class="tier-flow-icon" src="{{ '/assets/img/pixel/hunt.png' | relative_url }}" alt="Hunt" title="Hunt" />
-      <span>&#8594;</span>
-      <img class="tier-flow-icon" src="{{ '/assets/img/pixel/analyst.png' | relative_url }}" alt="Analyst" title="Analyst" />
-    </div>
   </div>
 
   <!-- ══════ SECTION 3: CHOKEPOINT vs TOOL DETECTION ══════ -->
