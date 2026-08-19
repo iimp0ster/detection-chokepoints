@@ -1,0 +1,114 @@
+title: AWS Credential Permission Probing — Denial Breadth Across Service Namespaces
+id: 8d4b21e6-70af-4c19-b3a6-9f5c2e6188a4
+status: experimental
+description: >
+  Detects one principal generating authorization failures across five or more distinct
+  service namespaces in a rolling window, with an authorization-failure ratio of at least
+  0.5 against all events by that principal in the window. That is the shape of an operator
+  mapping a credential whose scope they do not know.
+  Breadth is a heuristic rather than an invariant: an operator with useful context, a readable
+  identity policy, or a correct first guess can settle capability in a handful of calls, so
+  this tier targets the generic, undirected case. Within it the distinct-namespace count
+  discriminates better than raw denial volume, since a principal denied 200 times on one API
+  is almost always misconfigured while one denied five times across five namespaces is mapping
+  its own permissions.
+  Choosing the principal key: aggregate on the identity that issued the session, using
+  COALESCE(useridentity.sessioncontext.sessionissuer.arn, useridentity.arn,
+  useridentity.principalid, useridentity.accesskeyid) as the Research and Analyst tiers do, so
+  Research-tier allowlists apply unchanged. A temporary ASIA* key rotates per session and an
+  assumed-role ARN repeats only when its RoleSessionName is reused, so grouping on either can
+  split one operator's probing into single-event groups that never reach the threshold of 5.
+  Populate filter_chronic_principals with session issuer ARNs for the same reason.
+  Only authorization and authentication failures count toward the namespace breadth and the
+  ratio numerator — AccessDenied, AccessDeniedException, UnauthorizedOperation,
+  Client.UnauthorizedOperation, AuthorizationError, AuthFailure. Throttling, validation, and
+  missing-resource errors also populate errorCode and carry no permission information, so
+  counting every non-empty errorCode inflates both measures with application noise. The
+  denominator stays every event by the principal in the window, successful or not. Services
+  that report authorization failures inside responseElements rather than the top-level
+  errorcode column are a blind spot. CloudTrail visibility also depends on support for the
+  service and operation, the selected event category, and whether that integration records
+  denied requests.
+  Distinct-namespace counts and ratios cannot be expressed in Sigma, so the detection block
+  below is a partial stub firing on any single authorization failure; deploy the query for
+  production. It needs a CloudTrail trail delivering management events to S3 and an Athena
+  table over that data — management events are selected by default when a trail is created,
+  but the S3 delivery and the table are not. No data-event logging is needed at this tier.
+  Athena:
+    WITH ct AS (
+      SELECT COALESCE(useridentity.sessioncontext.sessionissuer.arn,
+                      useridentity.arn,
+                      useridentity.principalid,
+                      useridentity.accesskeyid)             AS principal,
+             eventsource,
+             COALESCE(errorcode, '') IN (
+               'AccessDenied', 'AccessDeniedException', 'UnauthorizedOperation',
+               'Client.UnauthorizedOperation', 'AuthorizationError', 'AuthFailure'
+             )                                              AS auth_denied
+      FROM cloudtrail_logs
+      WHERE from_iso8601_timestamp(eventtime) > now() - INTERVAL '15' MINUTE
+        AND useridentity.type <> 'AWSService'   -- matches filter_service_principals below
+    )
+    SELECT principal,
+           count(*)                                                   AS total_events,
+           count_if(auth_denied)                                      AS auth_denials,
+           count(DISTINCT CASE WHEN auth_denied THEN eventsource END) AS denied_namespaces
+    FROM ct
+    GROUP BY 1
+    HAVING count(DISTINCT CASE WHEN auth_denied THEN eventsource END) >= 5
+       AND count_if(auth_denied) * 1.0 / count(*) >= 0.5
+  Before production: re-derive both thresholds from the Research tier, build the chronic-denial
+  allowlist, and add those principal exclusions to the Athena WHERE clause by hand, since
+  filter_chronic_principals below constrains only the Sigma stub. Config rules, drift
+  detection, and backup agents are the dominant false positives and they are stable and
+  enumerable.
+  Pacing defeats a 15-minute window; widening it to 24 hours catches slower operators at
+  query cost. The Analyst tier's novelty scoring helps against a low call rate inside its own
+  window, but that window is one day, so multi-day pacing evades it too.
+references:
+  - https://unit42.paloaltonetworks.com/large-scale-cloud-extortion-operation/
+  - https://sysdig.com/blog/scarleteel-2-0/
+  - https://github.com/andresriancho/enumerate-iam
+  - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html
+  - https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-event-reference-record-contents.html
+  - https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-unsupported-aws-services.html
+  - https://docs.aws.amazon.com/athena/latest/ug/cloudtrail-logs.html
+author: '@NovaSky0x1'
+date: 2026-08-09
+tags:
+  - attack.discovery
+  - attack.t1580
+  - attack.t1526
+  - detection.maturity.hunt
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  # Distinct-namespace and ratio aggregation cannot be expressed in Sigma.
+  # Use the Athena query above for production. This stub is a partial signal only.
+  selection:
+    errorCode:
+      - 'AccessDenied'
+      - 'AccessDeniedException'
+      - 'UnauthorizedOperation'
+      - 'Client.UnauthorizedOperation'
+      - 'AuthorizationError'
+      - 'AuthFailure'
+  filter_chronic_principals:
+    # PENDING: populate from the Research-tier baseline before production, and mirror the
+    # same exclusions into the Athena CTE. Use session issuer ARNs (the role), not session
+    # ARNs or ASIA* keys.
+    # userIdentity.sessionContext.sessionIssuer.arn|contains:
+    #   - 'role/aws-config-role'
+    #   - 'role/backup-inventory-agent'
+    userIdentity.arn: ''  # placeholder — remove and populate before production
+  filter_service_principals:
+    userIdentity.type: 'AWSService'
+  condition: selection and not filter_chronic_principals and not filter_service_principals
+falsepositives:
+  - AWS Config rules and drift detection probing resources they cannot read — chronic, stable, allowlistable
+  - Backup and inventory agents sweeping services outside their grant
+  - Terraform or CloudFormation against a partially-provisioned role, especially on first apply
+  - Newly deployed service accounts before policies are finalised — expect a burst, then silence
+  - CSPM and security scanners operating with intentionally reduced permissions
+level: medium
