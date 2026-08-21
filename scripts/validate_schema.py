@@ -4,6 +4,8 @@ generated trends data files (_data/*.yml) against the structure their page
 templates depend on.
 
 Run locally or in CI: `python scripts/validate_schema.py`
+To validate one review draft without checking unrelated generated data:
+`python scripts/validate_schema.py drafts/<tactic>/<slug>/<entry>.yml`
 Exits non-zero if any entry has errors, so it can gate a pull request.
 
 Why a standalone validator rather than a JSON-Schema file: the chokepoint
@@ -84,6 +86,7 @@ def leading_token(value: str) -> str:
 def validate_entry(path: Path) -> list[str]:
     errors: list[str] = []
     rel = path.relative_to(REPO).as_posix()
+    rel_parts = Path(rel).parts
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
@@ -145,8 +148,37 @@ def validate_entry(path: Path) -> list[str]:
         if isinstance(i, dict):
             check_enum(errors, f"{rel}: Intel.Tier", i.get("Tier"), INTEL_TIER)
 
+    # A draft research/hunt page needs more than a single source-specific
+    # example before review. Two independently sourced variations are a modest
+    # floor: they show the stated invariant survives a tool or campaign boundary
+    # without turning the page into a claim of universal or actor-level
+    # attribution. Keep this draft-only until the existing published corpus has
+    # been remediated to the same standard.
+    is_draft = rel_parts and rel_parts[0] == "drafts"
+    if is_draft:
+        source_variations = [
+            variation for variation in (data.get("Variations", []) or [])
+            if isinstance(variation, dict) and variation.get("Name") and variation.get("SourceURL")
+        ]
+        if len(source_variations) < 2:
+            errors.append(
+                f"{rel}: requires at least two variations with Name and SourceURL "
+                "to support a publishable research/hunt chokepoint"
+            )
+        for index, variation in enumerate(data.get("Variations", []) or [], start=1):
+            if not isinstance(variation, dict):
+                errors.append(f"{rel}: Variations[{index}] is not a mapping")
+                continue
+            for field in ("Name", "FirstSeen", "Status", "SourceURL", "NotesShort", "Notes",
+                          "VariantId", "ChokepointMapping"):
+                if not variation.get(field):
+                    errors.append(f"{rel}: Variations[{index}] missing draft-required field {field!r}")
+
     # directory <-> tactic consistency (the file's folder must be a declared tactic)
-    tactic_dir = path.parent.name
+    # Drafts use drafts/<tactic>/<slug>/<entry>.yml while published entries use
+    # chokepoints/<tactic>/<entry>.yml.  Resolve the tactic from the path rather
+    # than assuming the file's parent is always the tactic directory.
+    tactic_dir = rel_parts[1] if is_draft and len(rel_parts) >= 4 else path.parent.name
     expected = DIR_TO_TACTIC.get(tactic_dir)
     if expected is None:
         errors.append(f"{rel}: parent dir {tactic_dir!r} is not a known tactic directory")
@@ -154,6 +186,40 @@ def validate_entry(path: Path) -> list[str]:
         errors.append(f"{rel}: folder implies tactic {expected!r} but Tactics={data.get('Tactics')}")
 
     return errors
+
+
+def entry_paths(scope_arg: str | None) -> list[Path]:
+    """Return YAML entries within an optional repository-relative scope.
+
+    The default intentionally validates only published entries.  An explicit
+    path is used by the draft/review workflow and must stay inside this repo so
+    CI output remains reproducible.
+    """
+    if scope_arg is None:
+        return sorted(CHOKEPOINTS_DIR.glob("*/*.yml"))
+
+    scope = Path(scope_arg)
+    if not scope.is_absolute():
+        scope = REPO / scope
+    scope = scope.resolve()
+    try:
+        scope.relative_to(REPO)
+    except ValueError as exc:
+        raise ValueError("scope must be inside the repository") from exc
+
+    if scope.is_file():
+        if scope.suffix.lower() not in {".yml", ".yaml"}:
+            raise ValueError("scope file must be YAML")
+        return [scope]
+    if scope.is_dir():
+        paths = sorted(
+            path for pattern in ("*.yml", "*.yaml")
+            for path in scope.rglob(pattern)
+        )
+        if paths:
+            return paths
+        raise ValueError("scope directory contains no YAML files")
+    raise ValueError("scope does not exist")
 
 
 # ── trends data validation ───────────────────────────────────────────────────
@@ -250,17 +316,33 @@ def validate_trends(rel: str, spec: dict) -> list[str]:
 
 
 def main() -> int:
-    chokepoints = sorted(CHOKEPOINTS_DIR.glob("*/*.yml"))
+    if len(sys.argv) > 2:
+        print("usage: validate_schema.py [path-to-entry-or-directory]", file=sys.stderr)
+        return 2
+
+    scope_arg = sys.argv[1] if len(sys.argv) == 2 else None
+    try:
+        chokepoints = entry_paths(scope_arg)
+    except ValueError as exc:
+        print(f"[FAIL] invalid validation scope: {exc}", file=sys.stderr)
+        return 2
+
     all_errors: list[str] = []
     for path in chokepoints:
         all_errors.extend(validate_entry(path))
 
-    # trends data files are validated only once a page has gone data-driven
-    trends = [rel for rel in TRENDS_SPECS if (REPO / rel).exists()]
-    for rel in trends:
-        all_errors.extend(validate_trends(rel, TRENDS_SPECS[rel]))
+    # Trends are global generated assets, so only validate them for the default
+    # full-site run.  A scoped draft validation should not fail on unrelated
+    # generated data or misleadingly report it as part of the draft.
+    trends: list[str] = []
+    if scope_arg is None:
+        trends = [rel for rel in TRENDS_SPECS if (REPO / rel).exists()]
+        for rel in trends:
+            all_errors.extend(validate_trends(rel, TRENDS_SPECS[rel]))
 
-    scope = f"{len(chokepoints)} chokepoint file(s) and {len(trends)} trends data file(s)"
+    scope = f"{len(chokepoints)} chokepoint file(s)"
+    if scope_arg is None:
+        scope += f" and {len(trends)} trends data file(s)"
     if all_errors:
         print(f"\n  {len(all_errors)} error(s) across {scope}:\n")
         for e in all_errors:
