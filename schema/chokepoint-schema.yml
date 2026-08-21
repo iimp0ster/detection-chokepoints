@@ -129,6 +129,20 @@ KnownBypasses:
   - Bypass: string          # How attackers evade detection or harden against mitigation
     Mitigation: string      # One sentence — how to prevent or harden against this bypass
 
+# When a faithful detection needs multiple time-bound sources or an independent
+# relationship, document why a standalone single-event Sigma rule would weaken
+# the chokepoint boundary. The page will render this in place of a generic
+# missing-rule prompt. Pair it with an offline validation contract.
+NoStandaloneSigmaRationale: string
+
+# Optional public validation contract for an evidence-bound correlation use case.
+# The File path is repository-relative and should contain only safe synthetic
+# fixtures, expected outcomes, and coverage boundaries — never live indicators,
+# raw logs, provider responses, credentials, or active-query material.
+ValidationContract:
+  File: string
+  Description: string
+
 # YARA rules for memory/file-based detection (in addition to Sigma)
 YaraRules:
   - string  # Relative path: "yara-rules/clickfix-patterns.yar"

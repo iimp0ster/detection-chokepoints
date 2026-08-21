@@ -1480,6 +1480,8 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
               {% assign sigma_content = cp[sigma_key] %}
               {% if sigma_content %}
               <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="language-yaml">{{ sigma_content | xml_escape }}</code></pre>
+              {% elsif cp.NoStandaloneSigmaRationale %}
+              <p class="no-sigma" style="padding:.75rem 1rem">{{ cp.NoStandaloneSigmaRationale | escape }}</p>
               {% else %}
               <p class="no-sigma" style="padding:.75rem 1rem">Sigma rule not yet available.
                 <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute one</a>.
@@ -1681,6 +1683,8 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
           {% assign sigma_content = cp[sigma_key] %}
           {% if sigma_content %}
           <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="language-yaml">{{ sigma_content | xml_escape }}</code></pre>
+          {% elsif cp.NoStandaloneSigmaRationale %}
+          <p class="no-sigma" style="padding:.75rem 1rem">{{ cp.NoStandaloneSigmaRationale | escape }}</p>
           {% else %}
           <p class="no-sigma" style="padding:.75rem 1rem">Sigma rule not yet available for this level.
             <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute one</a>.
@@ -1854,6 +1858,24 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
         {% endif %}
       {% endfor %}
     </div>
+  </section>
+  {% endif %}
+
+  <!-- ── Validation Contract ───────────────────────────────────── -->
+  {% if cp.ValidationContract %}
+  <section class="cp-section-card">
+    <div class="cp-section-heading-row">
+      <div class="cp-section-icon" aria-hidden="true">
+        <img class="cp-section-pixel" src="{{ '/assets/img/pixel/analyst.png' | relative_url }}" alt="" width="22" height="22" />
+      </div>
+      <h2 class="cp-section-heading">Validation Contract</h2>
+    </div>
+    {% if cp.ValidationContract.Description %}
+    <p class="section-intro">{{ cp.ValidationContract.Description | escape }}</p>
+    {% endif %}
+    {% if cp.ValidationContract.File %}
+    <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ cp.ValidationContract.File | escape }}" target="_blank" rel="noopener">Open validation contract &#8594;</a>
+    {% endif %}
   </section>
   {% endif %}
 

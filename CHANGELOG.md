@@ -2,6 +2,15 @@
 
 All notable changes to this detection chokepoints repository will be documented in this file.
 
+## [2026-08-21] - C2 Service Relationship Correlation
+
+### Added
+
+- `chokepoints/command-and-control/c2-service-relationship-correlation.yml` — research/hunt infrastructure chokepoint that anchors on the time-bounded, role-compatible endpoint-to-service C2 relationship. Reusable TLS/HTTP deployment identity is conditional corroboration only; single certificate, header, port, provider, or fingerprint matches cannot establish maliciousness, campaign membership, or ownership.
+- `docs/c2-service-relationship-correlation-validation.md` — safe synthetic pass/reject contract for the relationship, time, role, shared-service, and conditional-identity boundaries.
+- `NoStandaloneSigmaRationale` support in the chokepoint schema and page layout for evidence-bound, multi-source correlations where a single event rule would weaken time, direction, role, and shared-service boundaries.
+- Scoped draft validation in `scripts/validate_schema.py`, including a two-source variation gate for review drafts.
+
 ## [2026-07-20] - macOS Endpoint Security telemetry resource
 
 ### Added

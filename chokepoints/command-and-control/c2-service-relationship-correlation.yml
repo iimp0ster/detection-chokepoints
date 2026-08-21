@@ -1,0 +1,315 @@
+Name: C2 Service Relationship Correlation
+Id: d8e7fa77-c94c-42eb-9b01-8a5ffe5394ad
+MitreIds:
+  - T1071.001
+Tactics:
+  - Command and Control
+Techniques:
+  - Application Layer Protocol: Web Protocols
+DetectionPriority: LOW
+ThreatPrevalence: EMERGING
+DetectionDifficulty: HIGH
+Description: >
+  Research and hunt use case for establishing a time-bounded, role-compatible
+  endpoint-to-service relationship for remote command and control. A complete,
+  source-defined TLS or HTTP deployment identity can nominate a service for
+  review, but is only conditional corroboration: it cannot establish
+  maliciousness, campaign membership, operator ownership, or current activity.
+  T1071.001 applies to the HTTP-oriented relationship in the CountLoader
+  variation; a TLS identity observation alone is not asserted to be Web Protocol
+  C2. This entry requires an outbound relationship, explicit time and role
+  semantics, shared-service assessment, and independent validation.
+LastUpdated: 2026-08-21
+Author: '@iimp0ster'
+
+TheConstant: >
+  A remote C2 exchange requires a time-bounded client-to-service relationship
+  in a traffic direction compatible with the claimed role. A service's
+  pre-authentication deployment identity may conditionally nominate that
+  service for review, but cannot establish maliciousness, campaign membership,
+  or operator ownership.
+
+Prerequisites:
+  - A remote implant, relay, or controller must exchange tasking, results, or state through a client-to-service communication path.
+  - Endpoint, DNS, proxy, flow, or equivalent network telemetry must record the client-to-service relationship with usable time semantics.
+  - A source-defined service-role claim or independently extracted configuration is needed before interpreting the relationship as a C2 candidate.
+  - A reusable TLS or HTTP deployment identity is optional corroboration, not a prerequisite for C2 operation.
+
+AttackerControls:
+  - Builder source and certificate-generation configuration.
+  - HTTP response behavior, TLS presentation, templates, ports, listener roles, and source-facing deployment identity.
+  - Per-deployment service identity, hosting provider, address, domain, relay, proxy, and transport choice.
+  - Whether a C2 service is Internet-reachable, proxied, authenticated, customized, or moved behind a non-Internet-visible transport.
+
+AttackerCannotControl:
+  - A remote C2 exchange must create a client-to-service communication relationship in a direction compatible with its controller, relay, or listener role.
+  - Rotating an address, certificate, HTTP response, provider, proxy, or listener implementation changes the relationship's attributes but does not remove the need for a remote communication path.
+
+NoStandaloneSigmaRationale: >
+  This use case is a time-bounded correlation across endpoint or egress
+  telemetry, source or configuration provenance, shared-service exclusions,
+  and optional passive service identity. A single event cannot preserve the
+  required role, direction, and campaign/ownership boundaries, so the page
+  documents a validation contract instead of a standalone Sigma rule.
+
+ValidationContract:
+  File: docs/c2-service-relationship-correlation-validation.md
+  Description: >
+    Safe offline pass/reject assertions for relationship, time, role,
+    shared-service, and conditional identity corroboration boundaries.
+
+Chokepoints:
+  - Stage: Time-Bounded Client-to-Service Capture
+    Input: >
+      Endpoint, DNS, proxy, flow, or equivalent network telemetry captures a
+      suspected remote communication path.
+    Invariant: >
+      A remote C2 exchange creates an outbound client-to-service relationship
+      whose time, destination, transport, and traffic direction can be assessed
+      against the claimed service role.
+    Observable: >
+      Normalized telemetry must retain event time and its source semantics,
+      client identity, destination host or address, destination port, transport
+      or application protocol, traffic direction, and process or proxy context
+      where available. Preserve DNS/SNI/Host context without equating any one
+      field to the service identity.
+    WhyCantBypass: >
+      An operator can rotate infrastructure or move the service behind a relay,
+      but a remote controller still needs a client-to-service path to exchange
+      C2 data. Missing telemetry is coverage_limited, never a benign result.
+    LogSources:
+      - Endpoint network connection telemetry
+      - DNS telemetry
+      - Enterprise proxy or TLS-inspection telemetry
+      - Network flow telemetry
+    DetectionTier: Research
+    SigmaRef: ''
+    BypassNote: >
+      Non-Internet-visible transports, relays, CDNs, encrypted DNS, and
+      uninstrumented endpoints can limit coverage or obscure the controller;
+      they do not justify an absence-is-benign conclusion.
+
+  - Stage: Conditional Service-Identity Corroboration
+    Input: >
+      A source-defined candidate service or a time-bounded endpoint-to-service
+      relationship is available for review.
+    Invariant: >
+      A claimed deployment-identity match is accepted only when at least two
+      compatible, source-defined artifact classes resolve to the same service
+      tuple and source-relevant observation window. This is a correlation
+      quality requirement, not an attacker-unavoidable C2 prerequisite.
+    Observable: >
+      Bind host or address, port, protocol, observation time, and SNI/Host
+      context where applicable to two exact TLS, HTTP, or response artifact
+      classes with artifact provenance. Record CDN, shared-cloud, proxy,
+      authorized-deployment, generic-framework/default, and role-confusion
+      assessments alongside the tuple.
+    WhyCantBypass: >
+      An operator can customize or remove a deployment identity and continue
+      C2; doing so ends this optional corroboration signal, not the Stage 1
+      relationship requirement. A single artifact is rejected rather than
+      promoted to a maliciousness or ownership conclusion.
+    LogSources:
+      - Passive TLS and HTTP service observations
+      - Enterprise proxy response telemetry where decryption is approved
+      - Source-defined passive infrastructure records
+    DetectionTier: Hunt
+    SigmaRef: ''
+    BypassNote: >
+      Reject certificate-only, header-only, title-only, favicon-only, port-only,
+      provider-only, copied-source, public-demonstration, authorized-engagement,
+      and shared-framework matches.
+
+  - Stage: Role-Compatible Relationship Validation
+    Input: >
+      A client-to-service relationship is present and any optional service
+      identity corroboration has been assessed.
+    Invariant: >
+      An analyst concludes only that a C2 candidate is role-compatible when an
+      independent endpoint-to-service, extracted-configuration, malware-sample,
+      or second-source relationship agrees with the time-bounded service tuple.
+    Observable: >
+      An independently sourced outbound relationship, configuration-to-service
+      binding, or second report joined to the client identity, service tuple,
+      time window, declared role, and traffic direction.
+    WhyCantBypass: >
+      This is an evidence-promotion boundary, not an attacker prerequisite:
+      without independent agreement, a candidate remains research triage and
+      cannot be represented as campaign expansion or operator ownership.
+    LogSources:
+      - Endpoint network connection telemetry
+      - Malware configuration or sample metadata
+      - Independently sourced threat intelligence
+    DetectionTier: Analyst
+    SigmaRef: ''
+    BypassNote: >
+      Keep controller, delivery, resolver, proxy, exfiltration, and test roles
+      distinct; a role conflict or absent time semantics blocks promotion.
+
+Variations:
+  - Name: AsyncRAT-Lineage Inherited TLS Identity (Partial Candidate Signal)
+    FirstSeen: 2026-06
+    Status: Active
+    SourceURL: https://censys.com/blog/asyncrat-family-threat-overview/
+    NotesShort: Source-observed TLS lineage identity is a partial candidate signal, not a C2 verdict.
+    VariantId: asyncrat-inherited-tls-identity
+    Notes: >
+      A Censys family survey describes inherited certificate distinguished-name
+      structure across AsyncRAT descendants and reports a live-service snapshot
+      in June 2026; the status records that source observation, not a current
+      lifecycle assessment.
+      This is one source-defined artifact class only, so it cannot satisfy the
+      composite-identity condition alone. It may nominate a source-period
+      service for relationship review but does not establish Web Protocol C2,
+      campaign membership, actor identity, or certificate-only maliciousness.
+    ChokepointMapping: >
+      Source-period TLS identity (partial candidate signal) -> time-bounded
+      endpoint-to-service relationship -> independent role-compatible
+      configuration, sample, endpoint, or second-source validation.
+
+  - Name: CountLoader Composite C2 Service Identity
+    FirstSeen: 2025-08
+    Status: Active
+    SourceURL: https://www.silentpush.com/blog/countloader/
+    NotesShort: Composite HTTP/TLS identity is a candidate signal requiring relationship validation.
+    VariantId: countloader-composite-c2-identity
+    Notes: >
+      Silent Push describes a loader C2 cluster with a composite passive
+      fingerprint spanning HTTP, TLS, response, and certificate-derived artifact
+      classes, and relates the cluster to source-observed malware communication
+      in August 2025; the status records that source observation, not a current
+      lifecycle assessment.
+      The composite identity can satisfy the conditional corroboration stage;
+      independent enterprise or second-lineage evidence remains necessary for
+      campaign/service expansion and it is not an attribution shortcut to every
+      ransomware group or payload discussed in the report.
+    ChokepointMapping: >
+      Source-defined HTTP C2 role and August 2025 observation period ->
+      compatible multi-artifact service tuple -> time-bounded client-to-service
+      relationship -> independent role-compatible validation.
+
+Detections:
+  - Level: Research
+    Description: >
+      Preserve normalized, provenance-bearing endpoint-to-service relationships
+      and source-defined candidate service tuples without assigning a
+      maliciousness label.
+    LogSources:
+      - Endpoint network connection telemetry
+      - DNS, proxy, and network flow telemetry
+      - Passive TLS and HTTP service observations
+    Logic: >
+      Record normalized event time, client identity, destination, port,
+      transport/application protocol, direction, process or proxy context,
+      source lineage, service role claim, and coverage state. A certificate,
+      header, port, provider, address, or publication date alone is context
+      only, never a candidate relationship.
+    ExpectedFPRate: High
+    UseCase: >
+      Infrastructure research, source-quality measurement, and discovery-ledger
+      creation; not autonomous alerting or blocking.
+    SigmaRule: ''
+    Validation:
+      RuleStatus: Evidence-bound research workflow
+      State: Synthetic contract validation
+      TestedOn: 2026-08-21
+      Backends:
+        - Offline normalized endpoint and service-observation fixtures
+      Notes: >
+        The contract intentionally contains no live indicators, provider
+        responses, raw logs, or maliciousness label.
+
+  - Level: Hunt
+    Description: >
+      Prioritize a time-bounded, role-compatible endpoint-to-service
+      relationship only when source/configuration provenance and shared-service
+      exclusions are resolved; use deployment identity only as conditional
+      corroboration.
+    LogSources:
+      - Endpoint network connection telemetry
+      - Proxy response telemetry
+      - Passive DNS and service observations
+      - Extracted configuration metadata
+    Logic: >
+      Require the normalized Stage 1 relationship and a source-defined service
+      role or configuration binding. If deployment identity is used, require two
+      compatible artifact classes in one source-time-compatible service tuple.
+      Preserve unresolved shared services, role conflicts, absent relationship
+      telemetry, and out-of-window observations as coverage_limited or rejected,
+      never benign.
+    ExpectedFPRate: Medium
+    UseCase: >
+      Analyst-led egress investigation enrichment. An independent relationship
+      is still mandatory before any campaign, service, or ownership conclusion.
+    SigmaRule: ''
+    Validation:
+      RuleStatus: Evidence-bound correlation workflow
+      State: Synthetic contract validation
+      TestedOn: 2026-08-21
+      Backends:
+        - Offline normalized endpoint and service-observation fixtures
+      Notes: >
+        Single-event Sigma is intentionally not claimed as sufficient for this
+        multi-source, time-bounded infrastructure correlation.
+
+  - Level: Analyst
+    Description: >
+      Resolve a candidate only when an independent relationship confirms a
+      role-compatible, time-bounded client-to-service C2 path.
+    LogSources:
+      - Endpoint network connection telemetry
+      - Extracted malware configuration metadata
+      - Independent threat intelligence source
+    Logic: >
+      Join a complete Stage 1 relationship with a compatible endpoint,
+      configuration, sample, or independent-source relation. Retain time,
+      direction, role, source provenance, and exclusion results. A source-only
+      or service-identity-only result remains research triage.
+    ExpectedFPRate: Low
+    UseCase: >
+      High-confidence investigation correlation, not a standalone passive
+      infrastructure alert.
+    SigmaRule: ''
+    Validation:
+      RuleStatus: Correlation requirement, not a deployable single-event rule
+      State: Not yet recorded
+      TestedOn: ''
+      Backends: []
+      Notes: >
+        Requires environment-specific endpoint and network field mappings plus
+        an independently sourced C2 relationship before any production claim.
+
+EvolutionTimeline:
+  - Date: 2026-08
+    Event: Infrastructure correlation research reframes deployment identity
+    Change: >
+      Public research documented both inherited TLS identity and a composite
+      HTTP/TLS/response identity. Review established that these are
+      attacker-controlled candidate signals, while the durable condition is the
+      role-compatible client-to-service relationship.
+    DetectionImpact: >
+      Defenders can use deployment identity to narrow research and hunts without
+      presenting a certificate, header, port, provider, or fingerprint as a
+      standalone malicious indicator or a universal C2 chokepoint.
+    TheConstant: >
+      A remote C2 exchange requires a time-bounded client-to-service
+      relationship in a direction compatible with the claimed role.
+
+Intel:
+  - Name: Censys — AsyncRAT Family Threat Overview
+    Tier: primary
+    URL: https://censys.com/blog/asyncrat-family-threat-overview/
+    Description: >
+      Primary source for the partial inherited AsyncRAT-lineage TLS candidate
+      signal.
+  - Name: Silent Push — CountLoader
+    Tier: primary
+    URL: https://www.silentpush.com/blog/countloader/
+    Description: >
+      Primary source for the composite CountLoader C2 service-identity
+      corroboration variation.
+
+References:
+  - https://attack.mitre.org/techniques/T1071/001/
+  - https://censys.com/blog/asyncrat-family-threat-overview/
+  - https://www.silentpush.com/blog/countloader/

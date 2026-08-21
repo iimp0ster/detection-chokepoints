@@ -28,7 +28,12 @@ A new technique or attack requirement not yet documented in the repo.
 **Requirements:**
 - Complete YAML entry (all required fields per `schema/chokepoint-schema.yml`)
 - `AttackerControls` and `AttackerCannotControl` lists filled in — these must be written before chokepoint stages
-- At least Research and Hunt level sigma rules
+- At least Research and Hunt level Sigma rules, **or** a documented
+  `NoStandaloneSigmaRationale` where the use case is inherently a multi-source,
+  time-bounded correlation (for example passive infrastructure inventory plus an
+  independent endpoint-to-service relationship). The rationale must explain why
+  a single event would weaken the stated attribution and false-positive
+  boundaries, and must include a reproducible validation contract.
 - Analyst level sigma rule (or documented rationale for why one isn't feasible)
 - At least one source reference (MITRE, research blog, threat report)
 
