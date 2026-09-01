@@ -220,15 +220,11 @@ def build(paths):
     # --- exploit-vs-recon split + per-CVE recon->exploit lead time ----------
     # Live window only: the baseline window kept no per-alert verbs to classify.
     cls_total = Counter()
-    exploit_recon_daily = []
     cve_first = {}            # cve -> {cls: earliest iso date}
     cve_exploit = Counter()   # cve -> weaponized hit count
     for iso in sorted(live_days):
         rec = live_days[iso]
         cls_total.update(rec["cls"])
-        exploit_recon_daily.append({"date": iso, "label": label_for(iso),
-                                    "exploit": rec["cls"].get("exploit", 0),
-                                    "recon": rec["cls"].get("recon", 0)})
         for (cve, cls), n in rec["cve_cls"].items():
             if n:
                 cve_first.setdefault(cve, {}).setdefault(cls, iso)  # ascending = earliest
@@ -281,6 +277,20 @@ def build(paths):
         print(f"  WARN: {len(gap_days)} day(s) in the live window render as a gap "
               f"({gap_days[0]} to {gap_days[-1]}).")
 
+    # Keep every calendar day in the recon/exploit series. Without explicit null
+    # rows, Chart.js renders an uncovered interval as if the preceding and following
+    # days were adjacent (for example, Jul 16 directly beside Aug 24).
+    exploit_recon_daily = []
+    for iso in full_range:
+        if iso not in live_days:
+            exploit_recon_daily.append({"date": iso, "label": "",
+                                        "exploit": None, "recon": None})
+            continue
+        rec = live_days[iso]
+        exploit_recon_daily.append({"date": iso, "label": label_for(iso),
+                                    "exploit": rec["cls"].get("exploit", 0),
+                                    "recon": rec["cls"].get("recon", 0)})
+
     daily = []
     for row in baseline["daily"]:
         daily.append({"date": row["date"], "label": label_for(row["date"]),
@@ -314,19 +324,36 @@ def build(paths):
     notes += _gap_note(capped_gap_days, "export row-capped; complete count unavailable")
     date_range_note = "; ".join(notes)
 
-    # CitrixBleed 2 (CVE-2025-5777) daily series = frozen baseline days + live-window
-    # per-day counts, so the section chart shows the full arc through the late-May surge
-    # instead of ending at the baseline window. Only live days with CB2 activity are
-    # appended, keeping the categorical series as sparse as the baseline half. Jun 10
-    # was deleted from live_days above, so its truncated CB2 count never enters here.
-    cb2_labels = list(baseline["cb2_daily"]["labels"])
-    cb2_data = list(baseline["cb2_daily"]["data"])
-    for iso in sorted(live_days):
-        n = live_days[iso]["cve"].get("CVE-2025-5777", 0)
-        if n:
-            cb2_labels.append(label_for(iso))
-            cb2_data.append(n)
-    cb2_daily = {"labels": cb2_labels, "data": cb2_data}
+    # CitrixBleed 2 (CVE-2025-5777) needs the same calendar semantics as the
+    # all-traffic chart. The frozen baseline records only non-zero Citrix days, but
+    # its daily window lets us fill the remaining dates as zero. Live-window gaps stay
+    # null, not zero: they represent absent/truncated telemetry, not measured silence.
+    month_numbers = {name: number for number, name in MONTHS.items()}
+    baseline_cb2 = {}
+    for label, count in zip(baseline["cb2_daily"]["labels"],
+                            baseline["cb2_daily"]["data"]):
+        month, day = label.split()
+        baseline_cb2[f"2026-{month_numbers[month]:02d}-{int(day):02d}"] = count
+
+    cb2_dates, cb2_labels, cb2_data = [], [], []
+    for row in baseline["daily"]:
+        iso = row["date"]
+        cb2_dates.append(iso)
+        cb2_labels.append(label_for(iso))
+        cb2_data.append(baseline_cb2.get(iso, 0))
+    for iso in GAP_DAYS:
+        cb2_dates.append(iso)
+        cb2_labels.append("")
+        cb2_data.append(None)
+    for iso in full_range:
+        cb2_dates.append(iso)
+        if iso not in live_days:
+            cb2_labels.append("")
+            cb2_data.append(None)
+            continue
+        cb2_labels.append(label_for(iso))
+        cb2_data.append(live_days[iso]["cve"].get("CVE-2025-5777", 0))
+    cb2_daily = {"dates": cb2_dates, "labels": cb2_labels, "data": cb2_data}
 
     out = {
         "meta": {
