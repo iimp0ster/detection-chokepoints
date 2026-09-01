@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 import yaml
@@ -282,6 +283,96 @@ def check_field(errors: list[str], label: str, value, typ) -> None:
             errors.append(f"{label}: {value!r} is not a non-empty string")
 
 
+def validate_calendar_series(errors: list[str], label: str, rows: list[dict]) -> None:
+    """Require a calendar chart to expose every date, including null-gap days.
+
+    A missing date makes Chart.js place the preceding and following observations
+    next to one another, concealing an acquisition gap. Date validation above is
+    intentionally lightweight; this enforces the stronger time-series contract
+    needed by the Edge Exploits charts.
+    """
+    previous: date | None = None
+    for index, row in enumerate(rows):
+        value = row.get("date") if isinstance(row, dict) else None
+        try:
+            current = date.fromisoformat(str(value))
+        except ValueError:
+            errors.append(f"{label}[{index}].date: {value!r} is not ISO YYYY-MM-DD")
+            previous = None
+            continue
+        if previous is not None and current != previous + timedelta(days=1):
+            errors.append(
+                f"{label}[{index}].date: expected {(previous + timedelta(days=1)).isoformat()} "
+                f"after {previous.isoformat()}, got {current.isoformat()}"
+            )
+        previous = current
+
+
+def validate_edge_exploit_charts(data: dict, rel: str) -> list[str]:
+    """Validate the time-series shape the three Edge Exploits charts require."""
+    errors: list[str] = []
+
+    daily = data.get("daily")
+    if isinstance(daily, list):
+        validate_calendar_series(errors, f"{rel}: daily", daily)
+
+    recon = data.get("exploit_recon")
+    recon_daily = recon.get("daily") if isinstance(recon, dict) else None
+    if not isinstance(recon_daily, list):
+        errors.append(f"{rel}: exploit_recon.daily must be a list")
+    else:
+        validate_calendar_series(errors, f"{rel}: exploit_recon.daily", recon_daily)
+        for index, row in enumerate(recon_daily):
+            for field in ("exploit", "recon"):
+                value = row.get(field) if isinstance(row, dict) else None
+                if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
+                    errors.append(f"{rel}: exploit_recon.daily[{index}].{field} must be an integer or null")
+
+    cb2 = data.get("cb2_daily")
+    if not isinstance(cb2, dict):
+        errors.append(f"{rel}: cb2_daily must be a mapping")
+        return errors
+    dates = cb2.get("dates")
+    labels = cb2.get("labels")
+    values = cb2.get("data")
+    if not all(isinstance(item, list) for item in (dates, labels, values)):
+        errors.append(f"{rel}: cb2_daily dates, labels, and data must be lists")
+        return errors
+    if not (len(dates) == len(labels) == len(values)):
+        errors.append(f"{rel}: cb2_daily dates, labels, and data must have matching lengths")
+        return errors
+    validate_calendar_series(errors, f"{rel}: cb2_daily", [{"date": value} for value in dates])
+    for index, value in enumerate(values):
+        if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
+            errors.append(f"{rel}: cb2_daily.data[{index}] must be an integer or null")
+    return errors
+
+
+def validate_edge_exploit_provenance(data: dict, rel: str) -> list[str]:
+    """Require every plotted provider series to align with the month labels."""
+    errors: list[str] = []
+    labels = data.get("month_labels")
+    providers = data.get("providers")
+    if not isinstance(labels, list) or not labels or not all(isinstance(label, str) and label for label in labels):
+        errors.append(f"{rel}: month_labels must be a non-empty list of strings")
+        return errors
+    if not isinstance(providers, list):
+        return errors
+    for index, provider in enumerate(providers):
+        series = provider.get("series") if isinstance(provider, dict) else None
+        if not isinstance(series, list):
+            errors.append(f"{rel}: providers[{index}].series must be a list")
+            continue
+        if len(series) != len(labels):
+            errors.append(
+                f"{rel}: providers[{index}].series has {len(series)} values for {len(labels)} month labels"
+            )
+        for value_index, value in enumerate(series):
+            if not isinstance(value, int) or isinstance(value, bool):
+                errors.append(f"{rel}: providers[{index}].series[{value_index}] must be an integer")
+    return errors
+
+
 def validate_trends(rel: str, spec: dict) -> list[str]:
     errors: list[str] = []
     try:
@@ -312,6 +403,11 @@ def validate_trends(rel: str, spec: dict) -> list[str]:
                 for key, typ in elem.items():
                     check_field(errors, f"{rel}: {section}[{i}].{key}",
                                 item.get(key, _MISSING), typ)
+
+    if rel == "_data/edge_exploits.yml":
+        errors.extend(validate_edge_exploit_charts(data, rel))
+    elif rel == "_data/edge_exploits_provenance.yml":
+        errors.extend(validate_edge_exploit_provenance(data, rel))
     return errors
 
 
