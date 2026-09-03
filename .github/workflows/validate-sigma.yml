@@ -1,0 +1,40 @@
+name: Validate Sigma
+
+# Same trigger shape as validate-data.yml: pull_request only, plus manual.
+# Deliberately no `push:`, because none of the existing gates use one, and adding it
+# would double runs on your own branches.
+on:
+  pull_request:
+    paths:
+      - "sigma-rules/**"
+      - "scripts/check_sigma.py"
+      - "requirements-ci.txt"
+      - ".github/workflows/validate-sigma.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-sigma:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+
+      # Pins live in requirements-ci.txt at the repo root rather than inline
+      # here, because your dependabot pip entry is `directory: "/"` and reads
+      # requirements files. Pins written inside a `run:` step would never be
+      # proposed for a bump and would rot silently.
+      - name: Install sigma-cli and backends
+        run: pip install -r requirements-ci.txt
+
+      # ~50 seconds over 48 rules on a workstation, dominated by process start-up
+      # rather than CPU. A hosted runner will be slower, plus the install step.
+      - name: Validate Sigma rules
+        run: python scripts/check_sigma.py --rules-dir sigma-rules
