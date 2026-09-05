@@ -1,0 +1,161 @@
+title: AWS Capability Confirmation — Novel Denial Breadth Followed by Success in a Denied Namespace
+id: b6e09f34-25cd-4a71-8c02-71d4a3e5f9b8
+status: experimental
+description: >
+  Fires when a principal is denied on (eventSource, eventName) pairs it has never been observed
+  calling in 30 days, across three or more namespaces, and then succeeds in a namespace that
+  just denied it — the clearest available evidence that an operator located an exploitable path.
+  Both signals are heuristics rather than invariants. Permission enumeration does not require
+  cross-namespace breadth when context or a readable policy narrows the search, and it does not
+  require a denied-then-allowed transition, since an operator can stop after the denials or
+  succeed on the first call attempted. What holds is that any capability not already known from
+  context or a readable policy has to be tested through the relevant AWS API, and the AWS
+  service returns an authorization outcome. CloudTrail sees the request only when the service
+  and operation are supported, the relevant event category is selected, and that integration
+  records denied requests.
+  The baseline holds every (principal, eventSource, eventName) tuple observed in the preceding
+  30 days, successful or failed. Restricting it to successes would make a routinely denied
+  tuple — a Config rule probing a resource it can never read — look novel every day.
+  Two keys, deliberately. The 30-day baseline uses a stable principal (session issuer ARN
+  first, then caller ARN, principal ID, access key) so a role's history survives session
+  turnover, while the denial-to-success correlation additionally joins on an actor key (access
+  key first, since a temporary credential's ASIA* key is unique to one session, then caller ARN
+  or principal ID, then the stable principal) so a denial in one session under a shared role
+  cannot join a different session's success. Neither an ASIA* key nor an assumed-role ARN is a
+  dependable long-term baseline identity: the key rotates per session, and the ARN embeds a
+  RoleSessionName that repeats only when the caller reuses it.
+  A novel denial means an authorization or authentication failure — AccessDenied,
+  AccessDeniedException, UnauthorizedOperation, Client.UnauthorizedOperation,
+  AuthorizationError, AuthFailure. Throttling, validation, and missing-resource errors carry no
+  permission information and do not count toward the three-namespace breadth. Success is the
+  absence of any error code, and errorcode is NULL on success in the AWS sample CloudTrail
+  table, so it must be tested with IS NULL rather than = ''. Services reporting authorization
+  failures inside responseElements rather than the top-level errorcode column are a blind spot
+  for the novel-denial half and can also be misread as successes by that test, so normalize
+  them into errorcode first.
+  Fidelity rises sharply when the successful call is itself sensitive — CreateAccessKey,
+  AttachUserPolicy, UpdateAssumeRolePolicy, GetSecretValue, or CreateSnapshot, all management
+  events. s3:GetObject against a bucket this principal has never read is a strong signal too,
+  but it is an object-level data event, present only where a data-event selector covers that
+  bucket, so treat it as optional coverage and otherwise leave it out of the selection below.
+  Baseline comparison and cross-event correlation cannot be expressed in Sigma, so the stub
+  below covers only the sensitive-success half; deploy the query for production. It needs a
+  CloudTrail trail delivering management events to S3 and an Athena table over that data —
+  management events are selected by default when a trail is created; the S3 delivery and the
+  table are not. Athena:
+    WITH ct AS (                             -- both keys and the denial test applied once
+      SELECT COALESCE(useridentity.sessioncontext.sessionissuer.arn,
+                      useridentity.arn,
+                      useridentity.principalid,
+                      useridentity.accesskeyid)             AS principal,
+             COALESCE(useridentity.accesskeyid,
+                      useridentity.arn,
+                      useridentity.principalid,
+                      useridentity.sessioncontext.sessionissuer.arn) AS actor_key,
+             useridentity.arn AS identity_arn, eventsource, eventname,
+             sourceipaddress, errorcode,
+             from_iso8601_timestamp(eventtime)              AS ts,
+             COALESCE(errorcode, '') IN (
+               'AccessDenied', 'AccessDeniedException', 'UnauthorizedOperation',
+               'Client.UnauthorizedOperation', 'AuthorizationError', 'AuthFailure'
+             )                                              AS auth_denied
+      FROM cloudtrail_logs
+      WHERE from_iso8601_timestamp(eventtime) > now() - INTERVAL '31' DAY
+        AND useridentity.type <> 'AWSService'  -- matches filter_service_principals below
+    ),
+    baseline AS (            -- every tuple seen for this principal, successful or denied
+      SELECT DISTINCT principal, eventsource, eventname, 1 AS seen
+      FROM ct
+      WHERE ts BETWEEN now() - INTERVAL '31' DAY AND now() - INTERVAL '1' DAY
+    ),
+    novel_denials AS (                       -- auth failures on never-before-seen tuples
+      SELECT c.principal, c.actor_key, c.eventsource, min(c.ts) AS first_denial
+      FROM ct c
+      LEFT JOIN baseline b
+        ON  b.principal = c.principal AND b.eventsource = c.eventsource
+        AND b.eventname = c.eventname
+      WHERE c.ts > now() - INTERVAL '1' DAY AND c.auth_denied AND b.seen IS NULL
+      GROUP BY 1, 2, 3
+    ),
+    probing AS (                             -- actors novel-denied in >= 3 namespaces
+      SELECT principal, actor_key FROM novel_denials
+      GROUP BY 1, 2
+      HAVING count(DISTINCT eventsource) >= 3
+    )
+    SELECT s.ts, s.identity_arn, s.principal, s.actor_key, s.eventsource, s.eventname,
+           s.sourceipaddress, d.first_denial
+    FROM ct s
+    JOIN novel_denials d          -- same actor, same namespace that denied it
+      ON  d.principal = s.principal AND d.actor_key = s.actor_key
+      AND d.eventsource = s.eventsource
+    JOIN probing p
+      ON  p.principal = s.principal AND p.actor_key = s.actor_key
+    WHERE s.ts > now() - INTERVAL '1' DAY
+      AND s.ts > d.first_denial              -- success after the denial
+      AND (s.errorcode IS NULL OR s.errorcode = '')
+    ORDER BY s.ts
+  Requires a stable 30-day CloudTrail history; expect elevated false positives in younger
+  environments or right after a large deployment change. Novelty helps against a low call rate
+  inside the observation window, but that window is one day here, so multi-day pacing evades it
+  unless the window is widened at query cost. Apply the environment's chronic and
+  legitimate-principal allowlist inside the Athena CTE before production, since
+  filter_legit_software below constrains only the Sigma stub. Avoid keying on userAgent.
+references:
+  - https://unit42.paloaltonetworks.com/large-scale-cloud-extortion-operation/
+  - https://sysdig.com/blog/scarleteel-2-0/
+  - https://github.com/RhinoSecurityLabs/pacu
+  - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html
+  - https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-event-reference-record-contents.html
+  - https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-unsupported-aws-services.html
+  - https://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-data-events-with-cloudtrail.html
+  - https://docs.aws.amazon.com/athena/latest/ug/cloudtrail-logs.html
+author: '@NovaSky0x1'
+date: 2026-08-09
+tags:
+  - attack.discovery
+  - attack.t1580
+  - attack.t1526
+  - detection.maturity.analyst
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  # Baseline anti-join and denied-to-allowed correlation cannot be expressed in Sigma.
+  # Use the Athena query above for production. This stub covers the sensitive-success
+  # half only and must be correlated with the novel-denial condition to reach the
+  # stated fidelity. Every eventName below is a management event; adding data-event
+  # names such as GetObject requires an S3 object-level data-event selector.
+  selection_sensitive_success:
+    eventName:
+      - 'CreateAccessKey'
+      - 'AttachUserPolicy'
+      - 'AttachRolePolicy'
+      - 'PutUserPolicy'
+      - 'UpdateAssumeRolePolicy'
+      - 'CreateLoginProfile'
+      - 'UpdateLoginProfile'
+      - 'GetSecretValue'
+      - 'CreateSnapshot'
+      - 'ModifySnapshotAttribute'
+  filter_failed:
+    errorCode|exists: true
+  filter_service_principals:
+    userIdentity.type: 'AWSService'
+  filter_legit_software:
+    # PENDING: populate with the approved administrative and automation principals that
+    # legitimately call these APIs — IaC deployment roles, break-glass roles, IAM
+    # provisioning pipelines, backup services taking snapshots — and mirror the same
+    # exclusions into the Athena CTE. Key on the session issuer ARN (the role), not on
+    # session ARNs or ASIA* access keys.
+    # userIdentity.sessionContext.sessionIssuer.arn|contains:
+    #   - 'role/terraform-deploy'
+    #   - 'role/iam-provisioning-pipeline'
+    userIdentity.arn: ''  # placeholder — remove and populate before production
+  condition: selection_sensitive_success and not filter_failed and not filter_service_principals and not filter_legit_software
+falsepositives:
+  - Break-glass or IR administrators exploring an unfamiliar account under legitimate authority
+  - Newly onboarded engineers whose principal has no 30-day baseline yet
+  - Migration and refactoring work legitimately calling APIs a principal has never called
+  - Penetration tests and red-team engagements — check the engagement window before escalating
+  - Environments with less than 30 days of CloudTrail history
+level: high
