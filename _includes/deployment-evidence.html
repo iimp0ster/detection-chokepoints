@@ -1,0 +1,31 @@
+{% assign validation = include.detection.Validation %}
+<aside class="deployment-evidence" aria-label="Deployment evidence">
+  <div class="deployment-evidence-label">Deployment evidence</div>
+  <dl class="deployment-evidence-grid">
+    <div>
+      <dt>Rule lifecycle</dt>
+      <dd>{{ validation.RuleStatus | default: "Experimental candidate" | escape }}</dd>
+    </div>
+    <div>
+      <dt>Validation state</dt>
+      <dd>{{ validation.State | default: "Not yet recorded" | escape }}</dd>
+    </div>
+    {% if validation.TestedOn %}
+    <div>
+      <dt>Last tested</dt>
+      <dd>{{ validation.TestedOn | escape }}</dd>
+    </div>
+    {% endif %}
+    {% if validation.Backends %}
+    <div>
+      <dt>Tested backend{% if validation.Backends.size != 1 %}s{% endif %}</dt>
+      <dd>{{ validation.Backends | join: ", " | escape }}</dd>
+    </div>
+    {% endif %}
+  </dl>
+  {% if validation.Notes %}
+  <p class="deployment-evidence-note">{{ validation.Notes | escape }}</p>
+  {% else %}
+  <p class="deployment-evidence-note">Before promotion, verify field mappings, baseline expected noise, and record the environment and test date.</p>
+  {% endif %}
+</aside>

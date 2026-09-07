@@ -714,6 +714,38 @@ details.det-rule-item[open] .det-rule-chevron { transform: rotate(90deg); }
 }
 .det-meta-value { font-size: .8rem; color: var(--text); line-height: 1.4; }
 
+.deployment-evidence {
+  background: rgba(240,136,62,.055);
+  border: 1px solid rgba(240,136,62,.28);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  margin: .75rem 0;
+  padding: .7rem .9rem;
+}
+.deployment-evidence-label {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.deployment-evidence-grid {
+  display: grid;
+  gap: .55rem .9rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: .55rem 0;
+}
+.deployment-evidence-grid dt {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: .58rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.deployment-evidence-grid dd { color: var(--text); font-size: .75rem; line-height: 1.35; margin: .12rem 0 0; }
+.deployment-evidence-note { color: var(--text-muted); font-size: .75rem; line-height: 1.45; margin: 0; }
+
 .logsource-list { list-style: none; display: flex; flex-direction: column; gap: .2rem; }
 .logsource-list li { font-size: .78rem; color: var(--text-muted); padding-left: .85rem; position: relative; }
 .logsource-list li::before { content: '·'; position: absolute; left: 0; color: var(--border); }
@@ -816,6 +848,7 @@ details.log-item[open] {
 .rb-research { background: rgba(88,166,255,.1);  color: var(--link); }
 .rb-hunt     { background: rgba(227,179,65,.1);  color: var(--high); }
 .rb-analyst  { background: rgba(63,185,80,.1);   color: var(--medium); }
+.rb-gap      { background: rgba(248,81,73,.1);   color: var(--critical); }
 
 .log-chevron { color: var(--text-muted); font-size: .68rem; transition: transform .2s; flex-shrink: 0; }
 details.log-item[open] .log-chevron { transform: rotate(90deg); }
@@ -831,6 +864,19 @@ details.log-item[open] .log-chevron { transform: rotate(90deg); }
   white-space: pre;
   overflow-x: auto;
 }
+.log-provenance {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  flex-wrap: wrap;
+  padding: .65rem 1rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: .72rem;
+}
+.log-provenance strong { color: var(--text); }
+.log-provenance a { margin-left: auto; font-family: var(--font-mono); font-size: .68rem; }
 
 /* ── Emulation ───────────────────────────────────────────────────── */
 .emulation-wrapper {
@@ -1026,13 +1072,13 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
     <a href="#variations" class="sidebar-link">Variations</a>
     {% endif %}
     <a href="#detection-strategy" class="sidebar-link">Detection</a>
-    {% if cp.PreventionSummary or cp.PreventionOpportunities %}
-    <a href="#prevention" class="sidebar-link">Prevention</a>
+    {% if cp.PreventionSummary or cp.PreventionOpportunities or cp.DeceptionSummary or cp.DeceptionOpportunities %}
+    <a href="#prevention" class="sidebar-link">Prevention &amp; deception</a>
     {% endif %}
     {% if cp.RawLogs %}
     <a href="#raw-logs" class="sidebar-link">Logs</a>
     {% endif %}
-    {% if cp.EmulationScript and cp._emulation_content %}
+    {% if cp.EmulationScript %}
     <a href="#emulation" class="sidebar-link">Emulation</a>
     {% endif %}
     {% if cp.OsintSources %}
@@ -1268,6 +1314,10 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
           {% if v.Command.Invocation %}
           <pre class="variant-payload"><code>{{ v.Command.Invocation | xml_escape }}</code></pre>
           {% endif %}
+          {% if v.Command.DecodedPayload %}
+          <div class="variant-section-label variant-section-label-command">Decoded encoded-command body</div>
+          <pre class="variant-payload"><code>{{ v.Command.DecodedPayload | xml_escape }}</code></pre>
+          {% endif %}
           {% if v.Command.Artifacts %}
           <ul class="variant-artifacts">
             {% for a in v.Command.Artifacts %}<li>{{ a | escape }}</li>{% endfor %}
@@ -1348,6 +1398,7 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
                 </ul>
               </div>
             </div>
+            {% include deployment-evidence.html detection=ed %}
             {% if ed.Logic %}
             <div class="cp-section-label">Detection Logic</div>
             <pre class="logic-block rounded-lg p-4 overflow-x-auto text-[.8rem]"><code>{{ ed.Logic | strip | escape }}</code></pre>
@@ -1381,37 +1432,15 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
         {% endfor %}
         {% endif %}
 
-        {%- comment -%} Map stages to detection levels by DetectionTier {%- endcomment -%}
+        {%- comment -%} Map each stage to the rule at its declared maturity tier. {%- endcomment -%}
         {% assign tier_lower = stage.DetectionTier | downcase %}
 
-        {%- comment -%} Show the stage's primary detection (matching tier) {%- endcomment -%}
         {% for det in cp.Detections %}
         {% assign det_lower = det.Level | downcase %}
-
-        {%- comment -%} Stage 1 only gets EarlyDetections (ETW/IOK) - no sigma rules here {%- endcomment -%}
-
-        {%- comment -%} A single chokepoint stage owns every maturity tier. {%- endcomment -%}
-        {% if cp.Chokepoints.size == 1 %}
+        {% if tier_lower == det_lower %}
         {% assign show_rule = true %}
         {% assign sigma_key = "_sigma_" | append: det_lower %}
         {% assign badge_class = "det-badge-" | append: det_lower %}
-
-        {%- comment -%} Stage 2 (Hunt tier) gets hunt AND analyst detections {%- endcomment -%}
-        {% elsif forloop.parentloop.index == 2 and tier_lower == "hunt" and det_lower == "hunt" %}
-        {% assign show_rule = true %}
-        {% assign sigma_key = "_sigma_hunt" %}
-        {% assign badge_class = "det-badge-hunt" %}
-        {% elsif forloop.parentloop.index == 2 and tier_lower == "hunt" and det_lower == "analyst" %}
-        {% assign show_rule = true %}
-        {% assign sigma_key = "_sigma_analyst" %}
-        {% assign badge_class = "det-badge-analyst" %}
-
-        {%- comment -%} Stage 3 (Analyst tier) gets research (baseline) {%- endcomment -%}
-        {% elsif forloop.parentloop.index == 3 and tier_lower == "analyst" and det_lower == "research" %}
-        {% assign show_rule = true %}
-        {% assign sigma_key = "_sigma_research" %}
-        {% assign badge_class = "det-badge-research" %}
-
         {% else %}
         {% assign show_rule = false %}
         {% endif %}
@@ -1437,7 +1466,7 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
             <div class="det-meta-row">
               <div class="det-meta-card">
                 <div class="det-meta-label">Goal</div>
-                <div class="det-meta-value">{{ det.Description }}</div>
+                <div class="det-meta-value">{{ det.Description | escape }}</div>
               </div>
               <div class="det-meta-card">
                 <div class="det-meta-label">Log Sources</div>
@@ -1449,16 +1478,17 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
             <div class="det-meta-row">
               <div class="det-meta-card">
                 <div class="det-meta-label">FP Rate</div>
-                <div class="det-meta-value">{{ det.ExpectedFPRate }}</div>
+                <div class="det-meta-value">{{ det.ExpectedFPRate | escape }}</div>
               </div>
               <div class="det-meta-card">
                 <div class="det-meta-label">Use Case</div>
-                <div class="det-meta-value">{{ det.UseCase }}</div>
+                <div class="det-meta-value">{{ det.UseCase | escape }}</div>
               </div>
             </div>
+            {% include deployment-evidence.html detection=det %}
             {% if det.Logic %}
             <div class="cp-section-label">Detection Logic</div>
-            <pre class="logic-block rounded-lg p-4 overflow-x-auto text-[.8rem]"><code>{{ det.Logic | strip }}</code></pre>
+            <pre class="logic-block rounded-lg p-4 overflow-x-auto text-[.8rem]"><code>{{ det.Logic | strip | escape }}</code></pre>
             {% endif %}
             {% if det.Description contains "correlate" or det.Description contains "Correlate" %}
             <div class="det-correlation-note">
@@ -1480,8 +1510,6 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
               {% assign sigma_content = cp[sigma_key] %}
               {% if sigma_content %}
               <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="language-yaml">{{ sigma_content | xml_escape }}</code></pre>
-              {% elsif cp.NoStandaloneSigmaRationale %}
-              <p class="no-sigma" style="padding:.75rem 1rem">{{ cp.NoStandaloneSigmaRationale | escape }}</p>
               {% else %}
               <p class="no-sigma" style="padding:.75rem 1rem">Sigma rule not yet available.
                 <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute one</a>.
@@ -1541,52 +1569,10 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
     </div>
     {% endfor %}
 
-    {%- comment -%} Supplementary detection variants — render any present for this chokepoint {%- endcomment -%}
-    {% assign supp_keys = "_sigma_hunt-registry,_sigma_hunt-downloadfix,_sigma_hunt-signer,_sigma_hunt-process" | split: "," %}
-    {% assign supp_paths = "sigma-rules/clickfix/hunt-registry.yml,sigma-rules/clickfix/hunt-downloadfix.yml,sigma-rules/renamed-rmm/hunt-signer.yml,sigma-rules/ransomware-service/hunt-process.yml" | split: "," %}
-    {% assign supp_titles = "Clipboard Command in Explorer RunMRU/TypedPaths (Registry),DownloadFix: Downloaded File with Mark-of-the-Web,Renamed RMM by Authenticode Company/Signer,Direct EDR Process Kill via taskkill" | split: "," %}
-    {% assign has_supp = false %}
-    {% for k in supp_keys %}{% if cp[k] %}{% assign has_supp = true %}{% endif %}{% endfor %}
-    {% if has_supp %}
-    <div class="det-supp-block">
-      <div class="cp-section-label" style="margin-top:1.5rem">Supplementary Variants</div>
-      <p class="section-intro mb-4">Additional behavioral variants beyond the three core tiers. Experimental / unvalidated &mdash; tune before production use.</p>
-      {% for k in supp_keys %}
-      {% assign supp_content = cp[k] %}
-      {% if supp_content %}
-      {% assign idx = forloop.index0 %}
-      <details class="det-rule-item">
-        <summary class="det-rule-header">
-          <span class="det-rule-title">{{ supp_titles[idx] }}</span>
-          <div class="det-rule-badges">
-            <span class="det-rule-badge det-badge-hunt"><img src="{{ '/assets/img/pixel/hunt.png' | relative_url }}" alt="" width="14" height="14" class="tier-pixel-icon" />Hunt</span>
-            <span class="det-rule-badge det-badge-new">New</span>
-          </div>
-          <span class="det-rule-chevron">&#9654;</span>
-        </summary>
-        <div class="det-rule-body">
-          <div class="sigma-block">
-            <div class="sigma-header">
-              <span class="sigma-label">Sigma Rule &mdash; Supplementary (experimental)</span>
-              <div class="sigma-actions">
-                <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ supp_paths[idx] }}" target="_blank" rel="noopener">GitHub &#8594;</a>
-                <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ supp_paths[idx] }}" download>Download</a>
-                <button class="sigma-btn" onclick="copyCode(this)">Copy</button>
-              </div>
-            </div>
-            <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="language-yaml">{{ supp_content | xml_escape }}</code></pre>
-          </div>
-        </div>
-      </details>
-      {% endif %}
-      {% endfor %}
-    </div>
-    {% endif %}
-
     {% else %}
     {%- comment -%} ── Legacy tab layout (pages without stages) ── {%- endcomment -%}
     <p class="section-intro mb-5">Build detections iteratively. Start broad to understand your
-       baseline, then tighten to production-ready alerting.</p>
+       baseline, then tighten and validate before promoting an alert.</p>
 
     <div class="detection-tabs">
       <button class="det-tab active" onclick="switchTab(this,'tab-preexec')">Pre-Execution <span class="fp-pill fp-medium">ETW</span></button>
@@ -1664,6 +1650,7 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
             </ul>
           </div>
         </div>
+        {% include deployment-evidence.html detection=detection %}
         {% if detection.Logic %}
         <div class="cp-section-label">Detection Logic</div>
         <pre class="logic-block rounded-lg p-4 overflow-x-auto text-[.8rem]"><code>{{ detection.Logic | strip | escape }}</code></pre>
@@ -1683,8 +1670,6 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
           {% assign sigma_content = cp[sigma_key] %}
           {% if sigma_content %}
           <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="language-yaml">{{ sigma_content | xml_escape }}</code></pre>
-          {% elsif cp.NoStandaloneSigmaRationale %}
-          <p class="no-sigma" style="padding:.75rem 1rem">{{ cp.NoStandaloneSigmaRationale | escape }}</p>
           {% else %}
           <p class="no-sigma" style="padding:.75rem 1rem">Sigma rule not yet available for this level.
             <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute one</a>.
@@ -1699,13 +1684,13 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
 
   <!-- ── 5. Raw Log Samples ─────────────────────────────────────── -->
   <!-- ── Prevention Opportunities ──────────────────────────────────────────── -->
-  {% if cp.PreventionSummary or cp.PreventionOpportunities %}
+  {% if cp.PreventionSummary or cp.PreventionOpportunities or cp.DeceptionSummary or cp.DeceptionOpportunities %}
   <section class="cp-section-card" id="prevention">
     <div class="cp-section-heading-row">
       <div class="cp-section-icon" aria-hidden="true">
         <img class="cp-section-pixel" src="{{ '/assets/img/pixel/sec-prevention.png' | relative_url }}" alt="" width="22" height="22" />
       </div>
-      <h2 class="cp-section-heading">Prevention Opportunities</h2>
+      <h2 class="cp-section-heading">Prevention &amp; Deception Opportunities</h2>
     </div>
     {% if cp.PreventionSummary %}
     <p class="section-intro mb-4">{{ cp.PreventionSummary | escape }}</p>
@@ -1732,6 +1717,25 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
     </div>
     {% assign ms_opps = "" %}{% for opp in cp.PreventionOpportunities %}{% if opp.MagicSwordFit %}{% assign ms_opps = "yes" %}{% endif %}{% endfor %}
     {% endif %}
+    {% if cp.DeceptionSummary %}
+    <p class="section-intro mt-5 mb-4">{{ cp.DeceptionSummary | escape }}</p>
+    {% endif %}
+    {% if cp.DeceptionOpportunities %}
+    <h3 class="section-subheading">Deception opportunities</h3>
+    <p class="section-intro mb-4">These are design opportunities only. Confirm ownership, scope, and safe validation before deployment.</p>
+    <div class="prevention-grid">
+      {% for opp in cp.DeceptionOpportunities %}
+      <article class="prev-card">
+        <div class="prev-label">{{ opp.Category }}</div>
+        <h4 class="prev-title">{{ opp.Objective }}</h4>
+        <p class="prev-body"><strong>Placement:</strong> {{ opp.Placement }}</p>
+        <p class="prev-body"><strong>Signal:</strong> {{ opp.Signal }}</p>
+        <p class="prev-body"><strong>Safety boundary:</strong> {{ opp.SafetyBoundary }}</p>
+        <p class="prev-body"><strong>Validation:</strong> {{ opp.Validation }}</p>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
   </section>
   {% endif %}
 
@@ -1746,7 +1750,7 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
         <span class="section-sub">{{ cp.RawLogs.size }} sample{% if cp.RawLogs.size != 1 %}s{% endif %}</span>
       </h2>
     </div>
-    <p class="section-intro mb-4">Real-world log events produced by this technique and which Sigma rules they trigger.</p>
+    <p class="section-intro mb-4">Detection-relevant event examples. Each card identifies its evidence basis and the Sigma tiers it exercises.</p>
     <div class="log-samples">
       {% for log in cp.RawLogs %}
       <details class="log-item">
@@ -1754,8 +1758,21 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
           {% if log.EventId %}<span class="log-eid">EID {{ log.EventId | escape }}</span>{% endif %}
           <span class="log-source">{{ log.Type | escape }}</span>
           <span class="log-desc">{{ log.Description | escape }}</span>
+          {% if log.MatchedRules %}
+          <span class="rule-badges">
+            {% for rule in log.MatchedRules %}<span class="rule-badge rb-{{ rule | downcase | escape }}">{{ rule | escape }}</span>{% endfor %}
+          </span>
+          {% endif %}
+          {% if log.CoverageGap %}<span class="rule-badge rb-gap">Coverage gap</span>{% endif %}
           <span class="log-chevron">&#9654;</span>
         </summary>
+        {% if log.EvidenceBasis or log.SourceURL %}
+        <div class="log-provenance">
+          {% if log.EvidenceBasis %}<span><strong>Evidence:</strong> {{ log.EvidenceBasis | escape }}</span>{% endif %}
+          {% if log.SourceURL %}<a href="{{ log.SourceURL | escape }}" target="_blank" rel="noopener">Open source report &#8599;</a>{% endif %}
+        </div>
+        {% endif %}
+        {% if log.CoverageGap %}<div class="log-provenance"><span><strong>Detection gap:</strong> {{ log.CoverageGap | escape }}</span></div>{% endif %}
         <div class="log-body">{{ log.Sample | xml_escape }}</div>
       </details>
       {% endfor %}
@@ -1764,7 +1781,7 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
   {% endif %}
 
   <!-- ── 6. Emulation ──────────────────────────────────────────── -->
-  {% if cp.EmulationScript and cp._emulation_content %}
+  {% if cp.EmulationScript %}
   <section class="cp-section-card" id="emulation">
     {% assign emu = cp.EmulationScript %}
     <div class="cp-section-heading-row">
@@ -1786,7 +1803,7 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
           <span><strong>Lab use only.</strong> {{ emu.SafetyNotes }}</span>
         </div>
         {% endif %}
-        <div class="sigma-block">
+        {% if cp._emulation_content %}<div class="sigma-block">
           <div class="sigma-header">
             <span class="sigma-label">{{ emu.Language | upcase | default: "Script" }}</span>
             <div class="sigma-actions">
@@ -1804,7 +1821,7 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
           {% assign emu_lang_raw = emu.Language | downcase | default: "plaintext" %}
           {% assign emu_lang = "language-" | append: emu_lang_raw %}
           <pre class="sigma-code rounded-lg p-4 overflow-x-auto text-[.8rem]"><code class="{{ emu_lang }}">{{ cp._emulation_content | xml_escape }}</code></pre>
-        </div>
+        </div>{% endif %}
       </div>
     </details>
   </section>
@@ -1861,24 +1878,6 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
   </section>
   {% endif %}
 
-  <!-- ── Validation Contract ───────────────────────────────────── -->
-  {% if cp.ValidationContract %}
-  <section class="cp-section-card">
-    <div class="cp-section-heading-row">
-      <div class="cp-section-icon" aria-hidden="true">
-        <img class="cp-section-pixel" src="{{ '/assets/img/pixel/analyst.png' | relative_url }}" alt="" width="22" height="22" />
-      </div>
-      <h2 class="cp-section-heading">Validation Contract</h2>
-    </div>
-    {% if cp.ValidationContract.Description %}
-    <p class="section-intro">{{ cp.ValidationContract.Description | escape }}</p>
-    {% endif %}
-    {% if cp.ValidationContract.File %}
-    <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ cp.ValidationContract.File | escape }}" target="_blank" rel="noopener">Open validation contract &#8594;</a>
-    {% endif %}
-  </section>
-  {% endif %}
-
   <!-- ── References ────────────────────────────────────────────── -->
   {% if cp.References %}
   <section class="cp-section-card">
@@ -1901,10 +1900,10 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
 
 </div><!-- /.cp-page-wrap -->
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/atom-one-dark.min.css" integrity="sha384-oaMLBGEzBOJx3UHwac0cVndtX5fxGQIfnAeFZ35RTgqPcYlbprH9o9PUV/F8Le07" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js" integrity="sha384-RH2xi4eIQ/gjtbs9fUXM68sLSi99C7ZWBRX1vDrVv6GQXRibxXLbwO2NGZB74MbU" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/yaml.min.js" integrity="sha384-A/iMReLA0Bo3tLydBIoOQXQzYnrwL90jkHYUubrtERUGCbIuU7U0EHge0Xd2s5sr" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/powershell.min.js" integrity="sha384-q/8iVbv95DiFN+l7qeoBwJ0Wju7gozJemMfG3DdxiOR8CfA/2dKvKA3W5t4l/n9t" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/atom-one-dark.min.css" integrity="sha384-oaMLBGEzBOJx3UHwac0cVndtX5fxGQIfnAeFZ35RTgqPcYlbprH9o9PUV/F8Le07" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js" integrity="sha384-GdEWAbCjn+ghjX0gLx7/N1hyTVmPAjdC2OvoAA0RyNcAOhqwtT8qnbCxWle2+uJX" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/yaml.min.js" integrity="sha384-bMkvdnz+wPu1ro0fqO3BaDWztc7RzSvw05MQFP6bhJKDcwpkrFYTfTFI9ndkP11l" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/powershell.min.js" integrity="sha384-0u0NM3ve01ej9h9zRzZ/ztDGe1h07d6TStpNoJ4f/50I/vtoCsDHI2PfzDZSYz8q" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   hljs.highlightAll();

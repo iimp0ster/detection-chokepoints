@@ -4,8 +4,6 @@ generated trends data files (_data/*.yml) against the structure their page
 templates depend on.
 
 Run locally or in CI: `python scripts/validate_schema.py`
-To validate one review draft without checking unrelated generated data:
-`python scripts/validate_schema.py drafts/<tactic>/<slug>/<entry>.yml`
 Exits non-zero if any entry has errors, so it can gate a pull request.
 
 Why a standalone validator rather than a JSON-Schema file: the chokepoint
@@ -16,9 +14,9 @@ at the exact file and field a contributor needs to fix.
 """
 from __future__ import annotations
 
+import argparse
 import re
 import sys
-from datetime import date, timedelta
 from pathlib import Path
 
 import yaml
@@ -52,10 +50,21 @@ REQUIRED = [
     "ThreatPrevalence", "DetectionDifficulty", "Description", "LastUpdated", "Author",
 ]
 LIST_FIELDS = ["MitreIds", "Tactics", "Techniques"]
+OPPORTUNITY_FIELDS = ("Category", "Objective", "Placement", "Signal", "SafetyBoundary", "Validation")
 
 UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 MITRE_RE = re.compile(r"^T\d{4}(\.\d{3})?$")
+# Draft entries mark a field that cannot be grounded from cited intel as
+# "<UNKNOWN -- verify against lab data>" (the cp-drafter anti-fabrication rule). That is a
+# legitimate DRAFT state, not a schema error — enum/format checks skip it, and it is counted
+# instead so a human sees the entry is not promotion-ready (a promoted chokepoints/ entry
+# should carry zero placeholders; the count surfaces any that slip through).
+UNKNOWN_RE = re.compile(r"^\s*<UNKNOWN", re.I)
+
+
+def _is_unknown(value) -> bool:
+    return isinstance(value, str) and bool(UNKNOWN_RE.match(value))
 
 # directory name -> the tactic the entry is expected to declare
 DIR_TO_TACTIC = {
@@ -75,7 +84,7 @@ DIR_TO_TACTIC = {
 
 
 def check_enum(errors, label, value, allowed):
-    if value is not None and value not in allowed:
+    if value is not None and not _is_unknown(value) and value not in allowed:
         errors.append(f"{label}: {value!r} is not one of {sorted(allowed)}")
 
 
@@ -84,16 +93,163 @@ def leading_token(value: str) -> str:
     return re.split(r"[\s(/-]", value.strip(), maxsplit=1)[0] if isinstance(value, str) else value
 
 
+def _under_repo(path: Path) -> bool:
+    try:
+        path.relative_to(REPO)
+        return True
+    except ValueError:
+        return False
+
+
+def _resolve_tactic_dir(path: Path) -> str:
+    """The directory that names the entry's tactic.
+
+    Canonical entries live at `chokepoints/<tactic>/<file>.yml` — the parent dir IS
+    the tactic. Draft entries add a slug level: `drafts/<tactic>/<slug>/<file>.yml`,
+    so the tactic is the segment directly under `drafts/`, not the immediate parent.
+    """
+    try:
+        parts = path.relative_to(REPO).parts
+    except ValueError:
+        parts = path.parts
+    if len(parts) >= 3 and parts[0] == "drafts":
+        return parts[1]
+    return path.parent.name
+
+
+def _looks_like_sigma(data: dict) -> bool:
+    """A Sigma rule file (title/detection/logsource) is not a chokepoint entry.
+    A directory scan of a draft picks up its sigma/*.yml alongside the chokepoint
+    YAML; skip those here (they're validated by Sigma tooling, not this schema)."""
+    return ("detection" in data and "logsource" in data
+            and "MitreIds" not in data and "Name" not in data)
+
+
+def validate_clickfix_page_standard(errors: list[str], rel: str, data: dict) -> None:
+    """Gate future drafts against the complete live ClickFix page contract.
+
+    This is intentionally stricter than basic YAML validation.  A new public
+    chokepoint must be reviewable end-to-end: the renderer should never hide a
+    missing prevention, validation, emulation, OSINT, or relationship section
+    just because a draft supplied only stages and Sigma stubs.
+    """
+    description = data.get("Description")
+    if not isinstance(description, str) or len(description.strip()) < 120:
+        errors.append(f"{rel}: ClickFix page standard Description must concretely explain the attacker behavior and required environmental contact (at least 120 characters)")
+
+    stages = data.get("Chokepoints") or []
+    if not isinstance(stages, list) or len(stages) < 3:
+        errors.append(f"{rel}: ClickFix page standard requires at least 3 Chokepoints stages")
+    else:
+        for idx, stage in enumerate(stages, start=1):
+            if not isinstance(stage, dict):
+                errors.append(f"{rel}: ClickFix page standard Chokepoints[{idx}] must be a mapping")
+                continue
+            for field in ("Stage", "Input", "Invariant", "Observable", "WhyCantBypass", "LogSources", "DetectionTier", "SigmaRef"):
+                if stage.get(field) in (None, "", [], {}):
+                    errors.append(f"{rel}: ClickFix page standard Chokepoints[{idx}].{field} is required")
+
+    variations = data.get("Variations") or []
+    for idx, variation in enumerate(variations, start=1):
+        if not isinstance(variation, dict):
+            continue
+        for field in ("FirstSeen", "Status", "Notes", "Command"):
+            if variation.get(field) in (None, "", [], {}):
+                errors.append(f"{rel}: ClickFix page standard Variations[{idx}].{field} is required")
+        command = variation.get("Command")
+        if isinstance(command, dict) and not any(command.get(field) not in (None, "", [], {}) for field in ("Context", "Invocation", "Artifacts")):
+            errors.append(f"{rel}: ClickFix page standard Variations[{idx}].Command needs Context, Invocation, or Artifacts")
+
+    detections = data.get("Detections") or []
+    by_level = {str(row.get("Level", "")).strip().lower(): row for row in detections if isinstance(row, dict)}
+    for level in ("research", "hunt", "analyst"):
+        row = by_level.get(level)
+        if not row:
+            errors.append(f"{rel}: ClickFix page standard requires a {level.title()} Detection")
+        elif row.get("SigmaRule") in (None, ""):
+            errors.append(f"{rel}: ClickFix page standard {level.title()} Detection requires SigmaRule")
+
+    if not data.get("PreventionSummary"):
+        errors.append(f"{rel}: ClickFix page standard requires PreventionSummary")
+    opportunities = data.get("PreventionOpportunities") or []
+    if not isinstance(opportunities, list) or not opportunities:
+        errors.append(f"{rel}: ClickFix page standard requires at least one PreventionOpportunity")
+    else:
+        for idx, opportunity in enumerate(opportunities, start=1):
+            if not isinstance(opportunity, dict):
+                errors.append(f"{rel}: PreventionOpportunities[{idx}] must be a mapping")
+                continue
+            for field in ("Category", "Control", "Impact"):
+                if opportunity.get(field) in (None, "", [], {}):
+                    errors.append(f"{rel}: ClickFix page standard PreventionOpportunities[{idx}].{field} is required")
+
+    raw_logs = data.get("RawLogs") or []
+    if not isinstance(raw_logs, list) or not raw_logs:
+        errors.append(f"{rel}: ClickFix page standard requires at least one RawLogs sample")
+    else:
+        for idx, raw_log in enumerate(raw_logs, start=1):
+            if not isinstance(raw_log, dict):
+                errors.append(f"{rel}: RawLogs[{idx}] must be a mapping")
+                continue
+            for field in ("Type", "Description", "EvidenceBasis", "SourceURL", "MatchedRules", "Sample"):
+                if raw_log.get(field) in (None, "", [], {}):
+                    errors.append(f"{rel}: ClickFix page standard RawLogs[{idx}].{field} is required")
+            matched = {str(value).strip().casefold() for value in (raw_log.get("MatchedRules") or [])}
+            if not {"research", "hunt", "analyst"}.issubset(matched):
+                errors.append(f"{rel}: RawLogs[{idx}].MatchedRules must identify Research, Hunt, and Analyst coverage")
+
+        raw_log_sources = {
+            str(row.get("SourceURL", "")).strip()
+            for row in raw_logs if isinstance(row, dict) and row.get("SourceURL")
+        }
+        for idx, variation in enumerate(variations, start=1):
+            if isinstance(variation, dict) and str(variation.get("SourceURL", "")).strip() not in raw_log_sources:
+                errors.append(f"{rel}: Variations[{idx}] needs a source-matched RawLogs sample")
+
+    emulation = data.get("EmulationScript")
+    if not isinstance(emulation, dict):
+        errors.append(f"{rel}: ClickFix page standard requires a fixed lab-only EmulationScript")
+    else:
+        for field in ("AtomicRef", "Description", "File", "Language", "SafetyNotes"):
+            if emulation.get(field) in (None, "", [], {}):
+                errors.append(f"{rel}: ClickFix page standard EmulationScript.{field} is required")
+        emulation_file = emulation.get("File")
+        if isinstance(emulation_file, str):
+            resolved = (REPO / emulation_file).resolve()
+            if REPO.resolve() not in resolved.parents or not resolved.is_file():
+                errors.append(f"{rel}: ClickFix page standard EmulationScript.File must resolve to an existing repository file")
+
+    osint = data.get("OsintSources") or []
+    if not isinstance(osint, list) or not osint:
+        errors.append(f"{rel}: ClickFix page standard requires at least one OsintSources pivot")
+    else:
+        for idx, pivot in enumerate(osint, start=1):
+            if not isinstance(pivot, dict):
+                errors.append(f"{rel}: OsintSources[{idx}] must be a mapping")
+                continue
+            for field in ("Platform", "Query", "Notes", "URL"):
+                if pivot.get(field) in (None, "", [], {}):
+                    errors.append(f"{rel}: ClickFix page standard OsintSources[{idx}].{field} is required")
+            url = pivot.get("URL")
+            if url not in (None, "", [], {}) and (not isinstance(url, str) or not re.match(r"^https://[^\s]+$", url)):
+                errors.append(f"{rel}: ClickFix page standard OsintSources[{idx}].URL must be a usable HTTPS destination")
+
+    related = data.get("RelatedChokepoints") or []
+    if not isinstance(related, list) or not any(isinstance(slug, str) and slug.strip() for slug in related):
+        errors.append(f"{rel}: ClickFix page standard requires at least one RelatedChokepoints entry")
+
+
 def validate_entry(path: Path) -> list[str]:
     errors: list[str] = []
-    rel = path.relative_to(REPO).as_posix()
-    rel_parts = Path(rel).parts
+    rel = path.relative_to(REPO).as_posix() if _under_repo(path) else path.as_posix()
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
         return [f"{rel}: YAML parse error: {exc}"]
     if not isinstance(data, dict):
         return [f"{rel}: top-level YAML is not a mapping"]
+    if _looks_like_sigma(data):
+        return []  # a Sigma rule, not a chokepoint entry — not this validator's job
 
     # required fields present + non-empty
     for field in REQUIRED:
@@ -128,58 +284,84 @@ def validate_entry(path: Path) -> list[str]:
         if isinstance(st, dict):
             check_enum(errors, f"{rel}: Chokepoints.DetectionTier", st.get("DetectionTier"), TIER)
             ref = st.get("SigmaRef")
-            if ref and not (REPO / ref).exists():
+            if ref and not isinstance(ref, str):
+                errors.append(f"{rel}: Chokepoints.SigmaRef must be a string path, got {type(ref).__name__}")
+            elif ref and not (REPO / ref).exists():
                 errors.append(f"{rel}: Chokepoints.SigmaRef path does not exist: {ref}")
-    for v in data.get("Variations", []) or []:
+    variations = data.get("Variations", []) or []
+    for v in variations:
         if isinstance(v, dict):
             check_enum(errors, f"{rel}: Variations.Status (leading token)",
                        leading_token(v.get("Status")) if v.get("Status") else None,
                        VARIATION_STATUS)
+
+    # Promotion gate for NEW work. A chokepoint is only persuasive when the same
+    # invariant is demonstrated across at least two distinct implementations.
+    # Keep this draft-scoped so older canonical entries remain readable while
+    # they are brought up to the stronger evidence standard; every future draft
+    # must clear it before it can move out of drafts/.
+    is_draft = rel.startswith("drafts/")
+    if is_draft:
+        if not isinstance(variations, list) or len(variations) < 2:
+            errors.append(
+                f"{rel}: promotion gate requires at least 2 distinct, source-grounded Variations"
+            )
+        for idx, variation in enumerate(variations, start=1):
+            if not isinstance(variation, dict):
+                errors.append(f"{rel}: Variations[{idx}] must be a mapping")
+                continue
+            for field in ("Name", "SourceURL", "ChokepointMapping"):
+                value = variation.get(field)
+                if value in (None, "", [], {}) or _is_unknown(value):
+                    errors.append(
+                        f"{rel}: Variations[{idx}].{field} is required and must be source-grounded for promotion"
+                    )
+        names = [str(v.get("Name", "")).strip().casefold()
+                 for v in variations if isinstance(v, dict) and v.get("Name")]
+        if len(names) != len(set(names)):
+            errors.append(
+                f"{rel}: promotion gate requires distinct Variations; duplicate Name values do not count"
+            )
+        # New public entries use the fully populated ClickFix page as the
+        # operator-facing standard.  Older canonical pages are intentionally
+        # exempt while they are backfilled; every future draft must satisfy it
+        # before promotion can copy it into chokepoints/.
+        validate_clickfix_page_standard(errors, rel, data)
     for d in data.get("Detections", []) or []:
         if isinstance(d, dict):
             check_enum(errors, f"{rel}: Detections.Level", d.get("Level"), TIER)
             fp = d.get("ExpectedFPRate")
-            if fp is not None and not FP_RATE_RE.match(str(fp)):
+            if fp is not None and not _is_unknown(fp) and not FP_RATE_RE.match(str(fp)):
                 errors.append(f"{rel}: Detections.ExpectedFPRate {fp!r} must start with "
                               f"Low/Medium/High (optionally 'Very ' or a range)")
             rule = d.get("SigmaRule")
-            if rule and not (REPO / rule).exists():
+            if rule and not isinstance(rule, str):
+                errors.append(f"{rel}: Detections.SigmaRule must be a string path, got {type(rule).__name__}")
+            elif rule and not (REPO / rule).exists():
                 errors.append(f"{rel}: Detections.SigmaRule path does not exist: {rule}")
     for i in data.get("Intel", []) or []:
         if isinstance(i, dict):
             check_enum(errors, f"{rel}: Intel.Tier", i.get("Tier"), INTEL_TIER)
 
-    # A draft research/hunt page needs more than a single source-specific
-    # example before review. Two independently sourced variations are a modest
-    # floor: they show the stated invariant survives a tool or campaign boundary
-    # without turning the page into a claim of universal or actor-level
-    # attribution. Keep this draft-only until the existing published corpus has
-    # been remediated to the same standard.
-    is_draft = rel_parts and rel_parts[0] == "drafts"
-    if is_draft:
-        source_variations = [
-            variation for variation in (data.get("Variations", []) or [])
-            if isinstance(variation, dict) and variation.get("Name") and variation.get("SourceURL")
-        ]
-        if len(source_variations) < 2:
-            errors.append(
-                f"{rel}: requires at least two variations with Name and SourceURL "
-                "to support a publishable research/hunt chokepoint"
-            )
-        for index, variation in enumerate(data.get("Variations", []) or [], start=1):
-            if not isinstance(variation, dict):
-                errors.append(f"{rel}: Variations[{index}] is not a mapping")
-                continue
-            for field in ("Name", "FirstSeen", "Status", "SourceURL", "NotesShort", "Notes",
-                          "VariantId", "ChokepointMapping"):
-                if not variation.get(field):
-                    errors.append(f"{rel}: Variations[{index}] missing draft-required field {field!r}")
+    # Deception is intentionally optional, but a present entry must be a safe,
+    # reviewable opportunity rather than an implied production deployment.
+    if "DeceptionOpportunities" in data:
+        opportunities = data.get("DeceptionOpportunities")
+        if not isinstance(opportunities, list):
+            errors.append(f"{rel}: DeceptionOpportunities must be a list")
+        else:
+            for idx, opportunity in enumerate(opportunities, start=1):
+                if not isinstance(opportunity, dict):
+                    errors.append(f"{rel}: DeceptionOpportunities[{idx}] must be a mapping")
+                    continue
+                for field in OPPORTUNITY_FIELDS:
+                    value = opportunity.get(field)
+                    if value in (None, "", [], {}) or (not is_draft and _is_unknown(value)):
+                        errors.append(f"{rel}: DeceptionOpportunities[{idx}].{field} must be a grounded non-empty value")
 
-    # directory <-> tactic consistency (the file's folder must be a declared tactic)
-    # Drafts use drafts/<tactic>/<slug>/<entry>.yml while published entries use
-    # chokepoints/<tactic>/<entry>.yml.  Resolve the tactic from the path rather
-    # than assuming the file's parent is always the tactic directory.
-    tactic_dir = rel_parts[1] if is_draft and len(rel_parts) >= 4 else path.parent.name
+    # directory <-> tactic consistency (the file's folder must be a declared tactic).
+    # Resolves both chokepoints/<tactic>/ and drafts/<tactic>/<slug>/ layouts.
+    tactic_dir = _resolve_tactic_dir(path)
     expected = DIR_TO_TACTIC.get(tactic_dir)
     if expected is None:
         errors.append(f"{rel}: parent dir {tactic_dir!r} is not a known tactic directory")
@@ -187,40 +369,6 @@ def validate_entry(path: Path) -> list[str]:
         errors.append(f"{rel}: folder implies tactic {expected!r} but Tactics={data.get('Tactics')}")
 
     return errors
-
-
-def entry_paths(scope_arg: str | None) -> list[Path]:
-    """Return YAML entries within an optional repository-relative scope.
-
-    The default intentionally validates only published entries.  An explicit
-    path is used by the draft/review workflow and must stay inside this repo so
-    CI output remains reproducible.
-    """
-    if scope_arg is None:
-        return sorted(CHOKEPOINTS_DIR.glob("*/*.yml"))
-
-    scope = Path(scope_arg)
-    if not scope.is_absolute():
-        scope = REPO / scope
-    scope = scope.resolve()
-    try:
-        scope.relative_to(REPO)
-    except ValueError as exc:
-        raise ValueError("scope must be inside the repository") from exc
-
-    if scope.is_file():
-        if scope.suffix.lower() not in {".yml", ".yaml"}:
-            raise ValueError("scope file must be YAML")
-        return [scope]
-    if scope.is_dir():
-        paths = sorted(
-            path for pattern in ("*.yml", "*.yaml")
-            for path in scope.rglob(pattern)
-        )
-        if paths:
-            return paths
-        raise ValueError("scope directory contains no YAML files")
-    raise ValueError("scope does not exist")
 
 
 # ── trends data validation ───────────────────────────────────────────────────
@@ -258,6 +406,22 @@ TRENDS_SPECS = {
             "campaigns": {"slug": str, "brand": str},
         },
     },
+    "_data/masq_infra_trends.yml": {
+        "meta": {
+            "generated": TYPE_DATE,
+            "schema_version": str,
+            "observation_count": int,
+            "endpoint_observation_count": int,
+            "validated_cluster_count": int,
+        },
+        "sections": {
+            "trust_surfaces": {"trust_surface": str, "count": int},
+            "delivery_mechanisms": {"delivery_mechanism": str, "count": int},
+            "osint_pivots": {"pivot": str, "count": int},
+            "endpoint_handoffs": {"endpoint_handoff": str, "count": int},
+            "observations": {"id": str, "evidence_tier": str, "source_url": str},
+        },
+    },
     "_data/edge_exploits_provenance.yml": {
         "meta": {"source": str, "generated": TYPE_DATE, "window": str,
                  "cumulative_unique_ips": int, "total_events": int},
@@ -281,96 +445,6 @@ def check_field(errors: list[str], label: str, value, typ) -> None:
     elif typ is str:
         if not isinstance(value, str) or not value:
             errors.append(f"{label}: {value!r} is not a non-empty string")
-
-
-def validate_calendar_series(errors: list[str], label: str, rows: list[dict]) -> None:
-    """Require a calendar chart to expose every date, including null-gap days.
-
-    A missing date makes Chart.js place the preceding and following observations
-    next to one another, concealing an acquisition gap. Date validation above is
-    intentionally lightweight; this enforces the stronger time-series contract
-    needed by the Edge Exploits charts.
-    """
-    previous: date | None = None
-    for index, row in enumerate(rows):
-        value = row.get("date") if isinstance(row, dict) else None
-        try:
-            current = date.fromisoformat(str(value))
-        except ValueError:
-            errors.append(f"{label}[{index}].date: {value!r} is not ISO YYYY-MM-DD")
-            previous = None
-            continue
-        if previous is not None and current != previous + timedelta(days=1):
-            errors.append(
-                f"{label}[{index}].date: expected {(previous + timedelta(days=1)).isoformat()} "
-                f"after {previous.isoformat()}, got {current.isoformat()}"
-            )
-        previous = current
-
-
-def validate_edge_exploit_charts(data: dict, rel: str) -> list[str]:
-    """Validate the time-series shape the three Edge Exploits charts require."""
-    errors: list[str] = []
-
-    daily = data.get("daily")
-    if isinstance(daily, list):
-        validate_calendar_series(errors, f"{rel}: daily", daily)
-
-    recon = data.get("exploit_recon")
-    recon_daily = recon.get("daily") if isinstance(recon, dict) else None
-    if not isinstance(recon_daily, list):
-        errors.append(f"{rel}: exploit_recon.daily must be a list")
-    else:
-        validate_calendar_series(errors, f"{rel}: exploit_recon.daily", recon_daily)
-        for index, row in enumerate(recon_daily):
-            for field in ("exploit", "recon"):
-                value = row.get(field) if isinstance(row, dict) else None
-                if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
-                    errors.append(f"{rel}: exploit_recon.daily[{index}].{field} must be an integer or null")
-
-    cb2 = data.get("cb2_daily")
-    if not isinstance(cb2, dict):
-        errors.append(f"{rel}: cb2_daily must be a mapping")
-        return errors
-    dates = cb2.get("dates")
-    labels = cb2.get("labels")
-    values = cb2.get("data")
-    if not all(isinstance(item, list) for item in (dates, labels, values)):
-        errors.append(f"{rel}: cb2_daily dates, labels, and data must be lists")
-        return errors
-    if not (len(dates) == len(labels) == len(values)):
-        errors.append(f"{rel}: cb2_daily dates, labels, and data must have matching lengths")
-        return errors
-    validate_calendar_series(errors, f"{rel}: cb2_daily", [{"date": value} for value in dates])
-    for index, value in enumerate(values):
-        if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
-            errors.append(f"{rel}: cb2_daily.data[{index}] must be an integer or null")
-    return errors
-
-
-def validate_edge_exploit_provenance(data: dict, rel: str) -> list[str]:
-    """Require every plotted provider series to align with the month labels."""
-    errors: list[str] = []
-    labels = data.get("month_labels")
-    providers = data.get("providers")
-    if not isinstance(labels, list) or not labels or not all(isinstance(label, str) and label for label in labels):
-        errors.append(f"{rel}: month_labels must be a non-empty list of strings")
-        return errors
-    if not isinstance(providers, list):
-        return errors
-    for index, provider in enumerate(providers):
-        series = provider.get("series") if isinstance(provider, dict) else None
-        if not isinstance(series, list):
-            errors.append(f"{rel}: providers[{index}].series must be a list")
-            continue
-        if len(series) != len(labels):
-            errors.append(
-                f"{rel}: providers[{index}].series has {len(series)} values for {len(labels)} month labels"
-            )
-        for value_index, value in enumerate(series):
-            if not isinstance(value, int) or isinstance(value, bool):
-                errors.append(f"{rel}: providers[{index}].series[{value_index}] must be an integer")
-    return errors
 
 
 def validate_trends(rel: str, spec: dict) -> list[str]:
@@ -403,50 +477,89 @@ def validate_trends(rel: str, spec: dict) -> list[str]:
                 for key, typ in elem.items():
                     check_field(errors, f"{rel}: {section}[{i}].{key}",
                                 item.get(key, _MISSING), typ)
-
-    if rel == "_data/edge_exploits.yml":
-        errors.extend(validate_edge_exploit_charts(data, rel))
-    elif rel == "_data/edge_exploits_provenance.yml":
-        errors.extend(validate_edge_exploit_provenance(data, rel))
     return errors
 
 
-def main() -> int:
-    if len(sys.argv) > 2:
-        print("usage: validate_schema.py [path-to-entry-or-directory]", file=sys.stderr)
-        return 2
+def _collect(path_arg: str | None) -> list[Path]:
+    """Files to validate. No arg → all canonical chokepoints (CI default). A file →
+    just it. A directory → every *.yml under it (so `drafts/<tactic>/<slug>/` works)."""
+    if path_arg is None:
+        return sorted(CHOKEPOINTS_DIR.glob("*/*.yml"))
+    p = Path(path_arg)
+    if not p.is_absolute():
+        p = Path.cwd() / p
+    p = p.resolve()
+    if p.is_file():
+        return [p]
+    if p.is_dir():
+        return sorted(p.rglob("*.yml"))
+    return []
 
-    scope_arg = sys.argv[1] if len(sys.argv) == 2 else None
-    try:
-        chokepoints = entry_paths(scope_arg)
-    except ValueError as exc:
-        print(f"[FAIL] invalid validation scope: {exc}", file=sys.stderr)
-        return 2
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("path", nargs="?", default=None,
+                    help="optional .yml file or directory to validate "
+                         "(e.g. drafts/<tactic>/<slug>/<slug>.yml); "
+                         "default: all chokepoints/ + trends data files")
+    args = ap.parse_args(argv)
+
+    targets = _collect(args.path)
+    if args.path is not None and not targets:
+        print(f"[FAIL] path not found: {args.path}")
+        return 1
 
     all_errors: list[str] = []
-    for path in chokepoints:
-        all_errors.extend(validate_entry(path))
+    placeholders: dict[str, int] = {}
+    for path in targets:
+        # fail-soft: a malformed entry (e.g. a list-typed SigmaRef) becomes a
+        # reported finding, never an uncaught traceback that aborts the whole run.
+        rel = path.relative_to(REPO).as_posix() if _under_repo(path) else path.as_posix()
+        try:
+            all_errors.extend(validate_entry(path))
+            try:
+                # count only the actual drafter marker ("<UNKNOWN -- verify ...>"), not
+                # incidental "<UNKNOWN>" mentions in comments/prose.
+                n = sum(1 for _ in re.finditer(r"<UNKNOWN\s*--\s*verify",
+                                               path.read_text(encoding="utf-8"), re.I))
+            except OSError:
+                n = 0
+            if n:
+                placeholders[rel] = n
+        except Exception as exc:  # noqa: BLE001 — deliberately broad; report, don't crash
+            all_errors.append(f"{rel}: validator crashed on this entry: {type(exc).__name__}: {exc}")
 
-    # Trends are global generated assets, so only validate them for the default
-    # full-site run.  A scoped draft validation should not fail on unrelated
-    # generated data or misleadingly report it as part of the draft.
+    # Trends data files are validated only on the full (no-path) run — they aren't
+    # chokepoint entries, so a targeted file/dir check shouldn't drag them in.
     trends: list[str] = []
-    if scope_arg is None:
+    if args.path is None:
         trends = [rel for rel in TRENDS_SPECS if (REPO / rel).exists()]
         for rel in trends:
             all_errors.extend(validate_trends(rel, TRENDS_SPECS[rel]))
 
-    scope = f"{len(chokepoints)} chokepoint file(s)"
-    if scope_arg is None:
-        scope += f" and {len(trends)} trends data file(s)"
+    scope = f"{len(targets)} entry file(s)" + (
+        f" and {len(trends)} trends data file(s)" if args.path is None else "")
+
+    def _report_placeholders() -> None:
+        if not placeholders:
+            return
+        total = sum(placeholders.values())
+        print(f"  [NOTE] {total} unresolved <UNKNOWN> placeholder(s) -- not promotion-ready "
+              f"until grounded against lab data:")
+        for rel, n in sorted(placeholders.items()):
+            print(f"         {n:>3}  {rel}")
+        print()
+
     if all_errors:
         print(f"\n  {len(all_errors)} error(s) across {scope}:\n")
         for e in all_errors:
             print(f"  [FAIL] {e}")
         print()
+        _report_placeholders()
         return 1
 
-    print(f"[OK] {scope} valid.")
+    print(f"[OK] {scope} structurally valid.")
+    _report_placeholders()
     return 0
 
 

