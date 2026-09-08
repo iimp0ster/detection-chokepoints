@@ -1,0 +1,31 @@
+title: Source-Grounded Suspicious Scheduled Task Registration
+id: d0b55371-f727-46a8-9ff2-e6bb6d9987d8
+status: experimental
+description: Detects the two source-grounded WindowsConnSvc and INetHealth scheduled-task shapes documented by the contributing reports.
+references:
+- https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps
+- https://www.huntress.com/blog/exodus-crypto-wallet-installer-rat
+author: '@iimp0ster'
+date: 2026/09/07
+tags:
+- attack.persistence
+- attack.t1053.005
+- detection.maturity.analyst
+logsource:
+  product: windows
+  service: security
+detection:
+  selection_event:
+    EventID: 4698
+  selection_gentlemen_action:
+    TaskContent|contains: 'C:\Windows\Temp\svchost32.exe'
+  selection_exodus_action:
+    TaskContent|contains|all:
+    - 'conhost.exe'
+    - '--headless'
+    - 'powershell'
+    - '-e'
+  condition: selection_event and (selection_gentlemen_action or selection_exodus_action)
+falsepositives:
+- A legitimate INetHealth task using conhost.exe headless mode to launch encoded PowerShell
+level: high

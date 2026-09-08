@@ -26,16 +26,7 @@ SIGMA_RULES_DIR = os.path.join(REPO_ROOT, "sigma-rules")
 DATA_DIR = os.path.join(REPO_ROOT, "_data")
 COLLECTION_DIR = os.path.join(REPO_ROOT, "_chokepoints")
 ASSETS_JS_DIR = os.path.join(REPO_ROOT, "assets", "js")
-SIGMA_LEVELS = (
-    "research",
-    "hunt",
-    "hunt-network",
-    "hunt-registry",
-    "hunt-downloadfix",
-    "hunt-signer",
-    "hunt-process",
-    "analyst",
-)
+SIGMA_LEVELS = ("research", "hunt", "hunt-network", "analyst")
 
 
 def extract_sigma_dir(detections):
@@ -148,6 +139,8 @@ def load_chokepoints():
         techniques   = data.get("Techniques", []) or []
         chokepoints  = data.get("Chokepoints", []) or []
         bypasses     = data.get("KnownBypasses", []) or []
+        prevention   = data.get("PreventionOpportunities", []) or []
+        deception    = data.get("DeceptionOpportunities", []) or []
 
         kw = []
         # MITRE technique names (e.g. "OS Credential Dumping: LSASS Memory")
@@ -175,6 +168,14 @@ def load_chokepoints():
                 continue
             if bp.get("Bypass"):
                 kw.append(_t(bp["Bypass"])[:150])
+        # Opportunities are useful search context, but never substitute for a
+        # detection stage or indicate that a control/decoy is deployed.
+        for opp in prevention:
+            if isinstance(opp, dict):
+                kw.extend(_t(opp.get(field))[:150] for field in ("Category", "Control", "Impact") if opp.get(field))
+        for opp in deception:
+            if isinstance(opp, dict):
+                kw.extend(_t(opp.get(field))[:150] for field in ("Category", "Objective", "Placement", "Signal") if opp.get(field))
 
         data["_keywords"] = " ".join(kw)
 

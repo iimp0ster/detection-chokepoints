@@ -40,7 +40,7 @@ ThreatPrevalence: string
 DetectionDifficulty: string
 
 # One-paragraph description of the chokepoint
-Description: string
+Description: string  # Explain the attacker behavior and its required environmental contact; new drafts need a concrete 120+ character description.
 
 # ISO 8601 date of last update
 LastUpdated: string  # Example: "2025-01-15"
@@ -62,12 +62,16 @@ Chokepoints:
     SigmaRef: string        # Relative path to the Sigma/IOK rule covering this stage (or "" if none)
     BypassNote: string      # (optional) One sentence — known bypass risk surfaced as red callout
 
-# Tool/method variations that exploit this chokepoint
+# Tool/method variations that exploit this chokepoint. New drafts require at
+# least two distinct, source-grounded variations so the invariant is shown to
+# survive changes in tooling or implementation rather than describing one case.
 Variations:
   - Name: string            # Tool or method name
     FirstSeen: string       # Quarter or date: "2024-Q2" or "2024-06"
     Status: string          # Active | Declining | Emerging | Legacy
+    SourceURL: string       # Original research/report grounding this variation
     Notes: string           # (optional) brief context
+    ChokepointMapping: string # How this variation traverses the shared invariant stages
 
 # The unchanging prerequisites — what MUST be true for the attack to succeed
 # These are the actual chokepoints: conditions that cannot be bypassed
@@ -93,6 +97,13 @@ Detections:
     ExpectedFPRate: string  # High | Medium | Low
     UseCase: string         # Who uses this and for what
     SigmaRule: string       # Relative path: "sigma-rules/clickfix/research.yml"
+    Validation:             # Optional deployment evidence; omit rather than inventing it
+      RuleStatus: string    # e.g., Experimental candidate | Validated candidate
+      State: string         # e.g., Not yet recorded | Lab validated | Environment validated
+      TestedOn: string      # ISO 8601 test date, e.g., "2026-08-14"
+      Backends:             # SIEM / detection engines where the rule was exercised
+        - string            # e.g., "Microsoft Sentinel (KQL translation)"
+      Notes: string         # Scope, sample size, tuning caveats, or known limitations
 
 # Free intel resources tied to this chokepoint
 Intel:
@@ -112,15 +123,54 @@ RelatedChokepoints:
 References:
   - string  # Example: "https://attack.mitre.org/techniques/T1204/001/"
 
+# ─── CLICKFIX PAGE STANDARD (NEW DRAFT PROMOTION GATE) ───────────────────────
+#
+# The live ClickFix page is the minimum operator-review contract for every new
+# chokepoint. `scripts/validate_schema.py` enforces this for `drafts/` before
+# promotion, while older canonical entries are backfilled separately. A new
+# entry needs all of the following rendered sections; do not omit a section to
+# make an incomplete page appear finished:
+#   - Overview, three or more invariant Chokepoints stages, and two or more
+#     source-grounded Variations (including timeframe, procedure material, and
+#     a source link)
+#   - Research, Hunt, and Analyst Detections with Sigma rules
+#   - PreventionSummary plus a concrete PreventionOpportunity
+#   - at least one provenance-safe RawLogs sample
+#   - an existing, fixed lab-only EmulationScript reference
+#   - at least one passive OsintSources pivot with a usable HTTPS destination,
+#     and a reviewed RelatedChokepoints relationship
+# References are not part of this gate: source links belong on the individual
+# variation cards so the page does not repeat a stale bottom reference block.
+
 # ─── OPTIONAL FIELDS ────────────────────────────────────────────────────────────
 
 # OSINT queries useful for hunting this chokepoint externally
 OsintSources:
   - Platform: string        # URLScan | Shodan | Censys | GitHub | VirusTotal
-    Query: string           # The actual query string, in the platform's real syntax
-    URL: string             # Direct link that executes exactly the Query above; without it the
-                            # card renders as plain text instead of a clickable pivot
+    Query: string           # The actual query string
     Notes: string           # (optional) context on what this finds
+    URL: string             # Direct, usable HTTPS destination for the passive pivot
+
+# Prevention is a control recommendation at the invariant, not a promise that a
+# control is deployed. Deception entries are likewise opportunities only: every
+# one must identify an observable, safety boundary, and validation method before
+# an operator considers implementation.
+PreventionSummary: string
+PreventionOpportunities:
+  - Category: string        # Endpoint | Identity | Network | SaaS | Cloud
+    Control: string         # The preventive control to consider
+    Impact: string          # Which invariant stage it breaks or limits
+    MagicSwordFit: string   # (optional) fit rationale; never a deployment claim
+    MagicSwordTag: string   # (optional) stable product/category tag
+
+DeceptionSummary: string
+DeceptionOpportunities:
+  - Category: string        # Endpoint | Identity | Network | SaaS | Cloud
+    Objective: string       # Defensive outcome to surface at this chokepoint
+    Placement: string       # Approved control plane or decoy surface, at a high level
+    Signal: string          # Expected defender-visible telemetry or alert
+    SafetyBoundary: string  # Scope, approval, and no-production-impact guardrail
+    Validation: string      # How to test it safely before relying on it
 
 # DEPRECATED: KnownBypasses is no longer rendered in the layout.
 # Field definition preserved to maintain YAML data integrity for future migration.
@@ -128,20 +178,6 @@ OsintSources:
 KnownBypasses:
   - Bypass: string          # How attackers evade detection or harden against mitigation
     Mitigation: string      # One sentence — how to prevent or harden against this bypass
-
-# When a faithful detection needs multiple time-bound sources or an independent
-# relationship, document why a standalone single-event Sigma rule would weaken
-# the chokepoint boundary. The page will render this in place of a generic
-# missing-rule prompt. Pair it with an offline validation contract.
-NoStandaloneSigmaRationale: string
-
-# Optional public validation contract for an evidence-bound correlation use case.
-# The File path is repository-relative and should contain only safe synthetic
-# fixtures, expected outcomes, and coverage boundaries — never live indicators,
-# raw logs, provider responses, credentials, or active-query material.
-ValidationContract:
-  File: string
-  Description: string
 
 # YARA rules for memory/file-based detection (in addition to Sigma)
 YaraRules:

@@ -1,0 +1,40 @@
+title: Scheduled Task Registration With Suspicious Writable-Path Action
+id: 2df740bf-24b0-4387-9169-107c2eb85184
+status: experimental
+description: Detects scheduled-task registration from writable paths when the definition invokes an interpreter, script host, or a source-grounded suspicious executable shape.
+references:
+- https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps
+- https://www.huntress.com/blog/exodus-crypto-wallet-installer-rat
+author: '@iimp0ster'
+date: 2026/09/07
+tags:
+- attack.persistence
+- attack.t1053.005
+- detection.maturity.hunt
+logsource:
+  product: windows
+  service: security
+detection:
+  selection_event:
+    EventID: 4698
+  selection_path:
+    TaskContent|contains:
+    - '\AppData\'
+    - '\Temp\'
+  selection_action:
+    TaskContent|contains:
+    - 'powershell'
+    - 'pythonw.exe'
+    - 'wscript.exe'
+    - 'svchost32.exe'
+  selection_headless_powershell:
+    TaskContent|contains|all:
+    - 'conhost.exe'
+    - '--headless'
+    - 'powershell'
+    - '-e'
+  condition: selection_event and ((selection_path and selection_action) or selection_headless_powershell)
+falsepositives:
+- Development tooling or administrative automation that intentionally uses an interpreter from a user profile
+- Developer tooling that intentionally uses conhost.exe headless mode to launch encoded PowerShell
+level: medium
