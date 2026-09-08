@@ -1,0 +1,103 @@
+title: AWS Identity Orientation and Authorization Failure Baseline
+id: 3c1f7a92-6b04-4d55-9e88-2a0c5f31b7de
+status: experimental
+description: >
+  Baselining rule for visibility. Surfaces sts:GetCallerIdentity and CloudTrail
+  authorization failures so the Hunt and Analyst thresholds can be derived from local data.
+  Deploy it to characterise the environment, then tune the higher tiers from what it shows.
+  Answer three questions before deploying the higher tiers:
+    1. Which principals call GetCallerIdentity routinely, and from which source IPs?
+    2. Which principals carry chronic authorization failures, and on which
+       (eventSource, eventName) pairs? That list becomes the Hunt tier allowlist.
+    3. What is the normal distinct-namespace denial spread per principal? Most legitimate
+       principals sit at 0-1. Re-derive the Hunt threshold from this, do not assume 5.
+  Choosing the principal key: baseline on the identity that issued the session. A temporary
+  ASIA* access key rotates per session, and an assumed-role ARN embeds a RoleSessionName that
+  repeats only when the caller reuses it, so neither is a dependable long-term baseline
+  identity. All three tiers key on COALESCE(useridentity.sessioncontext.sessionissuer.arn,
+  useridentity.arn, useridentity.principalid, useridentity.accesskeyid) — the session issuer
+  ARN (the role) for AssumedRole sessions, the caller ARN or principal ID otherwise, with
+  accessKeyId as a last fallback. Keep the expression identical across tiers so baselines,
+  aggregations, and joins agree on what a principal is.
+  Only authorization and authentication failures count as denials — AccessDenied,
+  AccessDeniedException, UnauthorizedOperation, Client.UnauthorizedOperation,
+  AuthorizationError, AuthFailure. Throttling, validation, and missing-resource errors are
+  also written to errorCode and say nothing about the caller's permissions, so counting every
+  non-empty errorCode as probing inflates the denial ratio with application noise. Total event
+  counts stay as the denominator. AWS documents errorCode and errorMessage as optional record
+  fields, and some services report authorization failures inside responseElements rather
+  than the top-level errorcode column this query reads. CloudTrail visibility also depends on
+  support for the service and operation, the selected event category, and whether that
+  integration records denied requests. Confirm those conditions before relying on the count.
+  Avoid building detection on userAgent. AWS SDKs and tools commonly expose application-ID or
+  custom user-agent metadata, so tool-name matches such as "Pacu" or "Boto3" are not durable.
+  Baseline query (Athena). It needs a CloudTrail trail delivering management events to S3 and
+  an Athena table over that data. Management events are selected by default when a trail is
+  created, but the S3 delivery and the Athena table are not created automatically; console
+  event history is automatic and covers 90 days, but is not queryable this way.
+    WITH ct AS (
+      SELECT COALESCE(useridentity.sessioncontext.sessionissuer.arn,
+                      useridentity.arn,
+                      useridentity.principalid,
+                      useridentity.accesskeyid)                       AS principal,
+             eventsource,
+             eventname,
+             sourceipaddress,
+             useridentity.accesskeyid                                 AS access_key,
+             COALESCE(errorcode, '') IN (
+               'AccessDenied', 'AccessDeniedException', 'UnauthorizedOperation',
+               'Client.UnauthorizedOperation', 'AuthorizationError', 'AuthFailure'
+             )                                                        AS auth_denied
+      FROM cloudtrail_logs
+      WHERE from_iso8601_timestamp(eventtime) > now() - INTERVAL '30' DAY
+    )
+    SELECT principal,
+           count(*)                                                   AS total_events,
+           count_if(auth_denied)                                      AS auth_denials,
+           count(DISTINCT CASE WHEN auth_denied THEN eventsource END) AS denied_namespaces,
+           array_agg(DISTINCT concat(eventsource, ':', eventname))
+             FILTER (WHERE auth_denied)                               AS denied_pairs,
+           count_if(eventname = 'GetCallerIdentity')                  AS orientation_calls,
+           count(DISTINCT sourceipaddress)                            AS src_ips,
+           count(DISTINCT access_key)                                 AS session_keys
+    FROM ct
+    GROUP BY 1
+    ORDER BY total_events DESC
+  This tier keeps service and chronic-denial principals in the results, since identifying them
+  is the point, and nothing here needs data-event logging.
+references:
+  - https://unit42.paloaltonetworks.com/large-scale-cloud-extortion-operation/
+  - https://attack.mitre.org/techniques/T1580/
+  - https://docs.aws.amazon.com/STS/latest/APIReference/API_GetCallerIdentity.html
+  - https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-event-reference-record-contents.html
+  - https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-unsupported-aws-services.html
+  - https://docs.aws.amazon.com/athena/latest/ug/cloudtrail-logs.html
+author: '@NovaSky0x1'
+date: 2026-08-09
+tags:
+  - attack.discovery
+  - attack.t1580
+  - attack.t1526
+  - detection.maturity.research
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection_orientation:
+    eventSource: 'sts.amazonaws.com'
+    eventName: 'GetCallerIdentity'
+  selection_denied:
+    errorCode:
+      - 'AccessDenied'
+      - 'AccessDeniedException'
+      - 'UnauthorizedOperation'
+      - 'Client.UnauthorizedOperation'
+      - 'AuthorizationError'
+      - 'AuthFailure'
+  condition: selection_orientation or selection_denied
+falsepositives:
+  - Expected at this tier. GetCallerIdentity is routine SDK, CI/CD, and Terraform behaviour
+  - AWS Config rules and drift detection generating chronic denials on a fixed API set
+  - Backup and inventory agents probing services they are not permitted to read
+  - Developers running exploratory CLI commands against accounts they legitimately hold
+level: informational
