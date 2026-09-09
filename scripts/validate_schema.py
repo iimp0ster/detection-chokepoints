@@ -18,6 +18,7 @@ import argparse
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 import yaml
 
@@ -125,8 +126,32 @@ def _looks_like_sigma(data: dict) -> bool:
             and "MitreIds" not in data and "Name" not in data)
 
 
-def validate_clickfix_page_standard(errors: list[str], rel: str, data: dict) -> None:
-    """Gate future drafts against the complete live ClickFix page contract.
+def _has_procedure_material(variation: dict) -> bool:
+    """Accept either post-compromise Command material or ClickFix-style Payloads."""
+    command = variation.get("Command")
+    if isinstance(command, dict) and any(
+        command.get(field) not in (None, "", [], {})
+        for field in ("Invocation", "DecodedPayload", "Artifacts")
+    ):
+        return True
+    payloads = variation.get("Payloads")
+    return isinstance(payloads, list) and any(
+        isinstance(payload, dict) and payload.get("Command") not in (None, "")
+        for payload in payloads
+    )
+
+
+def _canonical_source_url(value: object) -> str:
+    """Compare report identities without query, fragment, or trailing-slash noise."""
+    if not isinstance(value, str):
+        return ""
+    parts = urlsplit(value.strip())
+    normalized_path = parts.path.rstrip("/") or "/"
+    return urlunsplit((parts.scheme.casefold(), parts.netloc.casefold(), normalized_path, "", ""))
+
+
+def validate_chokepoint_page_standard(errors: list[str], rel: str, data: dict) -> None:
+    """Gate new pages against the complete operator-review contract.
 
     This is intentionally stricter than basic YAML validation.  A new public
     chokepoint must be reviewable end-to-end: the renderer should never hide a
@@ -135,45 +160,74 @@ def validate_clickfix_page_standard(errors: list[str], rel: str, data: dict) -> 
     """
     description = data.get("Description")
     if not isinstance(description, str) or len(description.strip()) < 120:
-        errors.append(f"{rel}: ClickFix page standard Description must concretely explain the attacker behavior and required environmental contact (at least 120 characters)")
+        errors.append(f"{rel}: chokepoint page standard Description must concretely explain the attacker behavior and required environmental contact (at least 120 characters)")
+
+    if data.get("TheConstant") in (None, "", [], {}):
+        errors.append(f"{rel}: chokepoint page standard requires TheConstant")
 
     stages = data.get("Chokepoints") or []
     if not isinstance(stages, list) or len(stages) < 3:
-        errors.append(f"{rel}: ClickFix page standard requires at least 3 Chokepoints stages")
+        errors.append(f"{rel}: chokepoint page standard requires at least 3 Chokepoints stages")
     else:
         for idx, stage in enumerate(stages, start=1):
             if not isinstance(stage, dict):
-                errors.append(f"{rel}: ClickFix page standard Chokepoints[{idx}] must be a mapping")
+                errors.append(f"{rel}: chokepoint page standard Chokepoints[{idx}] must be a mapping")
                 continue
             for field in ("Stage", "Input", "Invariant", "Observable", "WhyCantBypass", "LogSources", "DetectionTier", "SigmaRef"):
                 if stage.get(field) in (None, "", [], {}):
-                    errors.append(f"{rel}: ClickFix page standard Chokepoints[{idx}].{field} is required")
+                    errors.append(f"{rel}: chokepoint page standard Chokepoints[{idx}].{field} is required")
 
     variations = data.get("Variations") or []
+    if not isinstance(variations, list) or len(variations) < 2:
+        errors.append(f"{rel}: chokepoint page standard requires at least 2 source-grounded Variations")
     for idx, variation in enumerate(variations, start=1):
         if not isinstance(variation, dict):
             continue
-        for field in ("FirstSeen", "Status", "Notes", "Command"):
+        for field in ("Name", "FirstSeen", "Status", "SourceURL", "ChokepointMapping"):
             if variation.get(field) in (None, "", [], {}):
-                errors.append(f"{rel}: ClickFix page standard Variations[{idx}].{field} is required")
-        command = variation.get("Command")
-        if isinstance(command, dict) and not any(command.get(field) not in (None, "", [], {}) for field in ("Context", "Invocation", "Artifacts")):
-            errors.append(f"{rel}: ClickFix page standard Variations[{idx}].Command needs Context, Invocation, or Artifacts")
+                errors.append(f"{rel}: chokepoint page standard Variations[{idx}].{field} is required")
+        if variation.get("Notes") in (None, "") and variation.get("NotesShort") in (None, ""):
+            errors.append(f"{rel}: chokepoint page standard Variations[{idx}] requires concise procedure notes")
+        if not _has_procedure_material(variation):
+            errors.append(f"{rel}: chokepoint page standard Variations[{idx}] requires Command or Payloads procedure material")
+    source_urls = {
+        _canonical_source_url(variation.get("SourceURL"))
+        for variation in variations
+        if isinstance(variation, dict) and variation.get("SourceURL")
+    }
+    if len(source_urls) < 2:
+        errors.append(f"{rel}: chokepoint page standard requires at least 2 independent variation SourceURL values")
 
     detections = data.get("Detections") or []
     by_level = {str(row.get("Level", "")).strip().lower(): row for row in detections if isinstance(row, dict)}
     for level in ("research", "hunt", "analyst"):
         row = by_level.get(level)
         if not row:
-            errors.append(f"{rel}: ClickFix page standard requires a {level.title()} Detection")
+            errors.append(f"{rel}: chokepoint page standard requires a {level.title()} Detection")
         elif row.get("SigmaRule") in (None, ""):
-            errors.append(f"{rel}: ClickFix page standard {level.title()} Detection requires SigmaRule")
+            errors.append(f"{rel}: chokepoint page standard {level.title()} Detection requires SigmaRule")
+        if row:
+            validation = row.get("Validation")
+            if not isinstance(validation, dict):
+                errors.append(f"{rel}: chokepoint page standard {level.title()} Detection requires explicit Validation metadata")
+                continue
+            for field in ("RuleStatus", "State", "Backends", "Notes"):
+                if field not in validation or validation[field] in (None, "", {}):
+                    errors.append(f"{rel}: chokepoint page standard {level.title()} Detection.Validation.{field} is required")
+            if "Backends" in validation and not isinstance(validation["Backends"], list):
+                errors.append(f"{rel}: chokepoint page standard {level.title()} Detection.Validation.Backends must be a list")
+            state = str(validation.get("State", "")).strip().casefold()
+            if state != "not yet recorded":
+                if validation.get("TestedOn") in (None, ""):
+                    errors.append(f"{rel}: chokepoint page standard {level.title()} validated Detection requires Validation.TestedOn")
+                if validation.get("Backends") in (None, "", [], {}):
+                    errors.append(f"{rel}: chokepoint page standard {level.title()} validated Detection requires a recorded backend")
 
     if not data.get("PreventionSummary"):
-        errors.append(f"{rel}: ClickFix page standard requires PreventionSummary")
+        errors.append(f"{rel}: chokepoint page standard requires PreventionSummary")
     opportunities = data.get("PreventionOpportunities") or []
     if not isinstance(opportunities, list) or not opportunities:
-        errors.append(f"{rel}: ClickFix page standard requires at least one PreventionOpportunity")
+        errors.append(f"{rel}: chokepoint page standard requires at least one PreventionOpportunity")
     else:
         for idx, opportunity in enumerate(opportunities, start=1):
             if not isinstance(opportunity, dict):
@@ -181,47 +235,44 @@ def validate_clickfix_page_standard(errors: list[str], rel: str, data: dict) -> 
                 continue
             for field in ("Category", "Control", "Impact"):
                 if opportunity.get(field) in (None, "", [], {}):
-                    errors.append(f"{rel}: ClickFix page standard PreventionOpportunities[{idx}].{field} is required")
+                    errors.append(f"{rel}: chokepoint page standard PreventionOpportunities[{idx}].{field} is required")
 
     raw_logs = data.get("RawLogs") or []
     if not isinstance(raw_logs, list) or not raw_logs:
-        errors.append(f"{rel}: ClickFix page standard requires at least one RawLogs sample")
+        errors.append(f"{rel}: chokepoint page standard requires at least one RawLogs sample")
     else:
+        covered_tiers: set[str] = set()
         for idx, raw_log in enumerate(raw_logs, start=1):
             if not isinstance(raw_log, dict):
                 errors.append(f"{rel}: RawLogs[{idx}] must be a mapping")
                 continue
             for field in ("Type", "Description", "EvidenceBasis", "SourceURL", "MatchedRules", "Sample"):
                 if raw_log.get(field) in (None, "", [], {}):
-                    errors.append(f"{rel}: ClickFix page standard RawLogs[{idx}].{field} is required")
+                    errors.append(f"{rel}: chokepoint page standard RawLogs[{idx}].{field} is required")
             matched = {str(value).strip().casefold() for value in (raw_log.get("MatchedRules") or [])}
-            if not {"research", "hunt", "analyst"}.issubset(matched):
-                errors.append(f"{rel}: RawLogs[{idx}].MatchedRules must identify Research, Hunt, and Analyst coverage")
-
-        raw_log_sources = {
-            str(row.get("SourceURL", "")).strip()
-            for row in raw_logs if isinstance(row, dict) and row.get("SourceURL")
-        }
-        for idx, variation in enumerate(variations, start=1):
-            if isinstance(variation, dict) and str(variation.get("SourceURL", "")).strip() not in raw_log_sources:
-                errors.append(f"{rel}: Variations[{idx}] needs a source-matched RawLogs sample")
+            covered_tiers.update(matched)
+        if not {"research", "hunt", "analyst"}.issubset(covered_tiers):
+            errors.append(f"{rel}: RawLogs must collectively identify Research, Hunt, and Analyst coverage")
 
     emulation = data.get("EmulationScript")
     if not isinstance(emulation, dict):
-        errors.append(f"{rel}: ClickFix page standard requires a fixed lab-only EmulationScript")
+        errors.append(f"{rel}: chokepoint page standard requires a fixed lab-only EmulationScript")
     else:
         for field in ("AtomicRef", "Description", "File", "Language", "SafetyNotes"):
             if emulation.get(field) in (None, "", [], {}):
-                errors.append(f"{rel}: ClickFix page standard EmulationScript.{field} is required")
+                errors.append(f"{rel}: chokepoint page standard EmulationScript.{field} is required")
+        description = emulation.get("Description")
+        if isinstance(description, str) and len(description.strip()) > 180:
+            errors.append(f"{rel}: chokepoint page standard EmulationScript.Description must be at most 180 characters")
         emulation_file = emulation.get("File")
         if isinstance(emulation_file, str):
             resolved = (REPO / emulation_file).resolve()
             if REPO.resolve() not in resolved.parents or not resolved.is_file():
-                errors.append(f"{rel}: ClickFix page standard EmulationScript.File must resolve to an existing repository file")
+                errors.append(f"{rel}: chokepoint page standard EmulationScript.File must resolve to an existing repository file")
 
     osint = data.get("OsintSources") or []
     if not isinstance(osint, list) or not osint:
-        errors.append(f"{rel}: ClickFix page standard requires at least one OsintSources pivot")
+        errors.append(f"{rel}: chokepoint page standard requires at least one OsintSources pivot")
     else:
         for idx, pivot in enumerate(osint, start=1):
             if not isinstance(pivot, dict):
@@ -229,14 +280,14 @@ def validate_clickfix_page_standard(errors: list[str], rel: str, data: dict) -> 
                 continue
             for field in ("Platform", "Query", "Notes", "URL"):
                 if pivot.get(field) in (None, "", [], {}):
-                    errors.append(f"{rel}: ClickFix page standard OsintSources[{idx}].{field} is required")
+                    errors.append(f"{rel}: chokepoint page standard OsintSources[{idx}].{field} is required")
             url = pivot.get("URL")
             if url not in (None, "", [], {}) and (not isinstance(url, str) or not re.match(r"^https://[^\s]+$", url)):
-                errors.append(f"{rel}: ClickFix page standard OsintSources[{idx}].URL must be a usable HTTPS destination")
+                errors.append(f"{rel}: chokepoint page standard OsintSources[{idx}].URL must be a usable HTTPS destination")
 
     related = data.get("RelatedChokepoints") or []
     if not isinstance(related, list) or not any(isinstance(slug, str) and slug.strip() for slug in related):
-        errors.append(f"{rel}: ClickFix page standard requires at least one RelatedChokepoints entry")
+        errors.append(f"{rel}: chokepoint page standard requires at least one RelatedChokepoints entry")
 
 
 def validate_entry(path: Path) -> list[str]:
@@ -295,6 +346,12 @@ def validate_entry(path: Path) -> list[str]:
                        leading_token(v.get("Status")) if v.get("Status") else None,
                        VARIATION_STATUS)
 
+    page_standard_version = data.get("PageStandardVersion")
+    if page_standard_version is not None and not (
+        type(page_standard_version) is int and page_standard_version == 1
+    ):
+        errors.append(f"{rel}: PageStandardVersion must be 1 when present")
+
     # Promotion gate for NEW work. A chokepoint is only persuasive when the same
     # invariant is demonstrated across at least two distinct implementations.
     # Keep this draft-scoped so older canonical entries remain readable while
@@ -322,11 +379,11 @@ def validate_entry(path: Path) -> list[str]:
             errors.append(
                 f"{rel}: promotion gate requires distinct Variations; duplicate Name values do not count"
             )
-        # New public entries use the fully populated ClickFix page as the
-        # operator-facing standard.  Older canonical pages are intentionally
-        # exempt while they are backfilled; every future draft must satisfy it
-        # before promotion can copy it into chokepoints/.
-        validate_clickfix_page_standard(errors, rel, data)
+    # Drafts and explicitly migrated canonical pages use the complete reviewed
+    # contract. Older canonical pages stay readable while their evidence gaps
+    # are backfilled; opting in prevents a migrated page from regressing.
+    if is_draft or page_standard_version == 1:
+        validate_chokepoint_page_standard(errors, rel, data)
     for d in data.get("Detections", []) or []:
         if isinstance(d, dict):
             check_enum(errors, f"{rel}: Detections.Level", d.get("Level"), TIER)

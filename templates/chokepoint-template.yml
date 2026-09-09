@@ -16,6 +16,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 Name: ""                            # Human-readable name (e.g., "ClickFix Techniques")
+PageStandardVersion: 1              # Activates the complete promotion contract
 Id: ""                              # Generate a UUIDv4: python3 -c "import uuid; print(uuid.uuid4())"
 MitreIds:
   - "T0000.000"
@@ -83,6 +84,8 @@ AttackerCannotControl:              # The invariant behaviors — the chokepoint
   - ""                              # e.g., "Must spawn a scripting interpreter to execute"
   - ""                              # e.g., "Must make outbound connection to fetch payload"
 
+TheConstant: ""                    # One sentence: the invariant proven across every variation
+
 # ── Chokepoint stages ──
 
 Chokepoints:
@@ -147,15 +150,18 @@ Chokepoints:
 # The list grows; the chokepoint doesn't change.
 #
 # RULES FOR WRITING VARIATIONS:
-#   1. Every variation MUST include Notes and a ChokepointMapping.
-#   2. Lure and Payloads sections are OPTIONAL — they apply to initial access /
+#   1. A promotion-ready draft MUST include at least TWO distinct variations.
+#      They may differ by actor, malware/tool, delivery path, or implementation,
+#      but both must traverse the same invariant chokepoint.
+#   2. Every variation MUST include Notes, SourceURL, and ChokepointMapping.
+#   3. Lure and Payloads sections are OPTIONAL — they apply to initial access /
 #      social engineering techniques (ClickFix, Renamed RMM).
 #      Post-compromise techniques (EDR Bypass, Ransomware, Remote Execution)
 #      use the "Command" field instead.
-#   3. If a field is empty or absent, the template MUST NOT render that section.
+#   4. If a field is empty or absent, the template MUST NOT render that section.
 #      No placeholder text, no "content needed" messages, no empty boxes.
-#   4. Defang all IOCs: hxxps[://], [.]com, etc.
-#   5. Include a SourceURL link to the original research/report.
+#   5. Defang all IOCs: hxxps[://], [.]com, etc.
+#   6. Include a SourceURL link to the original research/report.
 #
 # WHICH FIELDS TO USE:
 #
@@ -220,7 +226,11 @@ Variations:
       # Examples:
       #   Initial access: "clipboard write → powershell.exe (parent: explorer.exe) → outbound HTTP"
       #   EDR bypass: "admin privesc → driver load (zam64.sys) → sc stop SophosFileScanner"
-      #   Web shell: "aspx file write to wwwroot → w3wp.exe → cmd.exe child → whoami"
+  #   Web shell: "aspx file write to wwwroot → w3wp.exe → cmd.exe child → whoami"
+
+  # Add at least one more independently sourced variation before promotion.
+  # Never invent a second case to satisfy the count; leave the draft blocked
+  # until another report grounds a genuinely distinct implementation.
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 4: DETECTION STRATEGY
@@ -240,6 +250,12 @@ Detections:
     ExpectedFPRate: High            # High | Medium | Low
     UseCase: ""                     # Who uses this and for what purpose
     SigmaRule: ""                   # Path to file in repo (e.g., "sigma-rules/[technique]/research.yml")
+    Validation:                     # Always state confidence explicitly; never infer validation
+      RuleStatus: Experimental candidate
+      State: Not yet recorded       # Not yet recorded | Lab validated | Environment validated
+      TestedOn: ""                  # YYYY-MM-DD
+      Backends: []                  # e.g., ["Elastic Security"]
+      Notes: ""                     # Tuning scope, dataset, or known limitations
 
   - Level: Hunt
     Description: ""
@@ -250,6 +266,12 @@ Detections:
     ExpectedFPRate: Medium
     UseCase: ""
     SigmaRule: ""
+    Validation:
+      RuleStatus: Experimental candidate
+      State: Not yet recorded
+      TestedOn: ""
+      Backends: []
+      Notes: ""
 
   - Level: Analyst
     Description: ""
@@ -260,6 +282,12 @@ Detections:
     ExpectedFPRate: Low
     UseCase: ""
     SigmaRule: ""
+    Validation:
+      RuleStatus: Experimental candidate
+      State: Not yet recorded
+      TestedOn: ""
+      Backends: []
+      Notes: ""
 
 # Optional: pre-execution or IOK-layer detection
 EarlyDetections:
@@ -272,7 +300,24 @@ EarlyDetections:
     SigmaRule: ""                   # or IokRule: "" for IOK rules
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 5: EVOLUTION TIMELINE
+# SECTION 5: PREVENTION
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# These are control opportunities at the invariant, not evidence that a control
+# has been deployed. Omit an entry when it cannot be tied to a specific
+# chokepoint stage.
+
+PreventionSummary: >
+  # Optional: explain which invariant stage prevention can break or constrain.
+PreventionOpportunities:
+  - Category: ""                    # Endpoint | Identity | Network | SaaS | Cloud
+    Control: ""                     # Preventive control to consider
+    Impact: ""                      # Which invariant stage it interrupts
+    MagicSwordFit: ""               # Optional; fit rationale, not a deployment claim
+    MagicSwordTag: ""               # Optional stable category
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 6: EVOLUTION TIMELINE
 # ═══════════════════════════════════════════════════════════════════════════════
 
 EvolutionTimeline:
@@ -298,7 +343,7 @@ OsintSources:
 
 EmulationScript:
   AtomicRef: ""                     # MITRE ATT&CK technique ID
-  Description: ""                   # What the emulation script does
+  Description: ""                   # One sentence, at most 180 characters: behavior tested and safety boundary, without rule-count narration
   File: ""                          # Path to script in repo (e.g., "emulation/[technique]/emulate.ps1")
   Language: ""                      # powershell | python | bash
   SafetyNotes: >
@@ -310,11 +355,3 @@ EmulationScript:
 
 RelatedChokepoints:
   - ""                              # Slug of related chokepoint (e.g., "renamed-rmm-tools")
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 9: REFERENCES
-# ═══════════════════════════════════════════════════════════════════════════════
-
-References:
-  - "https://attack.mitre.org/techniques/T0000/"
-  - "https://example.com/research-blog"

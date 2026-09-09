@@ -9,6 +9,9 @@
 # Human-readable name of the chokepoint
 Name: string  # Example: "ClickFix Techniques"
 
+# Complete operator-review format. New public pages use version 1.
+PageStandardVersion: integer
+
 # Unique identifier (UUIDv4 preferred, generated at creation time)
 Id: string  # Example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 
@@ -78,6 +81,9 @@ Variations:
 Prerequisites:
   - string  # Example: "User must interact with clipboard (copy action)"
 
+# One concise statement of the invariant the page proves across its variations.
+TheConstant: string
+
 # Chronological record of how variations evolved; each entry includes
 # what changed AND what stayed the same (the chokepoint constant)
 EvolutionTimeline:
@@ -119,15 +125,17 @@ Intel:
 RelatedChokepoints:
   - string  # Example: "renamed-rmm-tools"
 
-# External references: blogs, papers, MITRE links, vendor reports
+# DEPRECATED: retained for older YAML only. The renderer uses source links on
+# each variation instead of repeating a bottom-of-page References section.
 References:
   - string  # Example: "https://attack.mitre.org/techniques/T1204/001/"
 
-# ─── CLICKFIX PAGE STANDARD (NEW DRAFT PROMOTION GATE) ───────────────────────
+# ─── CHOKEPOINT PAGE STANDARD (NEW DRAFT PROMOTION GATE) ────────────────────
 #
-# The live ClickFix page is the minimum operator-review contract for every new
-# chokepoint. `scripts/validate_schema.py` enforces this for `drafts/` before
-# promotion, while older canonical entries are backfilled separately. A new
+# The reviewed ClickFix and Scheduled Task pages establish the minimum
+# operator-review contract for every new chokepoint. `scripts/validate_schema.py`
+# enforces this for `drafts/` and `PageStandardVersion: 1` canonical entries,
+# while older canonical entries are backfilled through source-grounded research. A new
 # entry needs all of the following rendered sections; do not omit a section to
 # make an incomplete page appear finished:
 #   - Overview, three or more invariant Chokepoints stages, and two or more
@@ -152,9 +160,7 @@ OsintSources:
     URL: string             # Direct, usable HTTPS destination for the passive pivot
 
 # Prevention is a control recommendation at the invariant, not a promise that a
-# control is deployed. Deception entries are likewise opportunities only: every
-# one must identify an observable, safety boundary, and validation method before
-# an operator considers implementation.
+# control is deployed.
 PreventionSummary: string
 PreventionOpportunities:
   - Category: string        # Endpoint | Identity | Network | SaaS | Cloud
@@ -163,6 +169,8 @@ PreventionOpportunities:
     MagicSwordFit: string   # (optional) fit rationale; never a deployment claim
     MagicSwordTag: string   # (optional) stable product/category tag
 
+# DEPRECATED: retained for older YAML only and no longer rendered. The current
+# page contract exposes evidence-backed prevention controls only.
 DeceptionSummary: string
 DeceptionOpportunities:
   - Category: string        # Endpoint | Identity | Network | SaaS | Cloud

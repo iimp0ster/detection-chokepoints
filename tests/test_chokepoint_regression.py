@@ -72,6 +72,12 @@ class TrustedBinaryDllSideloadingRegressionTests(unittest.TestCase):
         with self.assertRaisesRegex(RegressionError, "current Sigma hashes"):
             validate_receipt_data(self.data, self.hashes, mutated)
 
+    def test_superseded_receipt_is_rejected(self) -> None:
+        mutated = copy.deepcopy(self.receipt)
+        mutated["status"] = "superseded"
+        with self.assertRaisesRegex(RegressionError, "explicitly superseded"):
+            validate_receipt_data(self.data, self.hashes, mutated)
+
     def test_sigma_hash_ignores_checkout_line_endings(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             lf = Path(directory) / "lf.yml"

@@ -2,6 +2,19 @@
 
 All notable changes to this detection chokepoints repository will be documented in this file.
 
+## [2026-09-08] - Chokepoint Page Standard and DonutLoader Scheduled Task
+
+### Added
+
+- Added the source-grounded DonutLoader `IntelDriver` logon-task variation, an inert lab registration case, and Research/Hunt/Analyst Sigma coverage to the Scheduled Task Registration chokepoint.
+- Added `PageStandardVersion: 1` and regression tests to enforce the complete, evidence-backed page contract for new drafts and explicitly migrated canonical pages.
+
+### Changed
+
+- Applied the reviewed responsive presentation to the shared chokepoint renderer, including concise variation and detection cards, tier icons, mobile-friendly logs and emulation, syntax-highlighted raw logs, and a Prevention-only section.
+- Removed redundant bottom-page references and unimplemented deception content from the renderer; original report links remain attached to their variations.
+- Marked the new DonutLoader detection expansion as not yet lab-recorded so the earlier Scheduled Task receipt is not reused as evidence for changed rule hashes.
+
 ## [2026-08-21] - C2 Service Relationship Correlation
 
 ### Added
