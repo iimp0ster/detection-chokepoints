@@ -5,9 +5,8 @@ description: Detects scheduled-task registration from writable paths when the de
 references:
 - https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps
 - https://www.huntress.com/blog/exodus-crypto-wallet-installer-rat
-- https://www.aryaka.com/docs/reports/donutloader-multi-stage-loader-report.pdf
 author: '@iimp0ster'
-date: 2026/09/08
+date: 2026/09/07
 tags:
 - attack.persistence
 - attack.t1053.005
@@ -22,7 +21,6 @@ detection:
     TaskContent|contains:
     - '\AppData\'
     - '\Temp\'
-    - '\ProgramData\'
   selection_action:
     TaskContent|contains:
     - 'powershell'
@@ -39,5 +37,4 @@ detection:
 falsepositives:
 - Development tooling or administrative automation that intentionally uses an interpreter from a user profile
 - Developer tooling that intentionally uses conhost.exe headless mode to launch encoded PowerShell
-- Software updaters or management tasks that legitimately launch script hosts from ProgramData
 level: medium

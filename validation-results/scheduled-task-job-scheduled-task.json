@@ -1,17 +1,14 @@
 {
   "schema_version": "ValidationResult/v1",
-  "status": "superseded",
-  "superseded_at": "2026-09-08",
-  "superseded_reason": "The Scheduled Task Sigma rules changed to add the source-grounded DonutLoader IntelDriver variation. This retained receipt documents only the prior seven-case rule hashes and is not current validation evidence.",
   "tid": "T1053.005",
   "mode": "telemetry",
-  "captured_at": "2026-09-07T09:55:54.7317622-06:00",
+  "captured_at": "2026-09-09T18:44:28.7467301-06:00",
   "range": "ludus",
   "sensor": "Security",
   "event_count": 7,
   "telemetry_observed": true,
   "draft_dir": "drafts/persistence/scheduled-task-job-scheduled-task",
-  "source_capture_sha256": "15f06e440263aec096501e387025d7fb48b2e0f7e21c98d770f0491710a40d90",
+  "source_capture_sha256": "c03836ceb65dc8ba4d33351d4398215d30a01d93b3bacfd7e18f6d22c33bec4c",
   "tiers": [
     {
       "file": "analyst.yml",
@@ -355,8 +352,8 @@
     }
   ],
   "sweep_passed": true,
-  "validation_revision": "4d5c2040e560c8fc49e0ed0d899fa280e8cb7143c5e7b3178c71bc73896c5a2b",
-  "run_id": "T1053.005-20260907155338-2b88f82c4f0d",
+  "validation_revision": "d6127aee0ff3e4b062d5e8f047b80a7a66225e912a07ef217e3a4ea1ed7ec712",
+  "run_id": "T1053.005-20260910004213-0a0ba5863ec4",
   "elastic_validation": {
     "schema_version": "ElasticNativeValidation/v1",
     "backend": "elastic",
@@ -472,11 +469,5 @@
       }
     ],
     "passed": true
-  },
-  "validation_result_ref": {
-    "schema_version": "ValidationRunResultRef/v1",
-    "run_id": "T1053.005-20260907155338-2b88f82c4f0d",
-    "revision": "0002",
-    "sha256": "65ad1f39ca7469e59ae48ca5a8c66dcd59f9906b0b37cb63eba00e14a5ee1d15"
   }
 }

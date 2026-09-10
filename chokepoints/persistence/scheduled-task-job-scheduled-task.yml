@@ -1,5 +1,4 @@
 Name: 'Scheduled Task Registration'
-PageStandardVersion: 1
 Id: 749265c4-5af7-49c3-a9d3-62e2cc9eb8e1
 MitreIds:
 - T1053.005
@@ -8,7 +7,7 @@ Tactics:
 - Persistence
 Techniques:
 - 'Scheduled Task/Job: Scheduled Task'
-LastUpdated: '2026-09-08'
+LastUpdated: '2026-09-07'
 Author: '@iimp0ster'
 DetectionPriority: HIGH
 ThreatPrevalence: HIGH
@@ -16,14 +15,13 @@ DetectionDifficulty: MEDIUM
 Description: >
   Detects the required Windows Task Scheduler registration boundary used by adversaries to obtain scheduler-managed persistence or execution. Task names, triggers, and payloads vary, but the task definition must be registered before Task Scheduler can run it.
 Prerequisites:
-- 'Windows Security auditing records Event ID 4698 and forwards TaskName and TaskContent to the telemetry backend.'
+- 'Windows Security auditing records Event ID 4698 and forwards TaskName and TaskContentNew (or TaskContent) to the telemetry backend.'
 AttackerControls:
 - 'Task name, trigger, principal, and action command'
 - 'Whether registration uses schtasks.exe, PowerShell ScheduledTasks cmdlets, or the Task Scheduler API'
 AttackerCannotControl:
 - 'A scheduler-managed job requires creation or modification of a task definition'
 - 'The operating system must persist the registered task and its execution context'
-TheConstant: 'A scheduler-managed job requires a registered task definition before Task Scheduler can execute its action.'
 Chokepoints:
 - Stage: 'Task registration request'
   Input: 'A local or remote caller submits a task definition through schtasks.exe, PowerShell, WMI, COM, or the ScheduledTasks API'
@@ -94,40 +92,29 @@ Variations:
     - 'Decoded behavior clears ProxyEnable, ProxyServer, and AutoConfigURL, then refreshes WinINet settings'
   VariantId: 'exodus-inethealth'
   ChokepointMapping: 'A different task name and command still cross the same Task Scheduler registration boundary.'
-- Name: 'DonutLoader IntelDriver logon task'
-  FirstSeen: '2026-08-03'
-  Status: Emerging
-  SourceURL: 'https://www.aryaka.com/docs/reports/donutloader-multi-stage-loader-report.pdf'
-  Notes: 'DonutLoader writes a UTF-16 task definition and registers IntelDriver from XML. At user logon, Task Scheduler starts wscript.exe with IntelDriver.vbs, which launches C:\ProgramData\IntelDriver\IJil.cmd hidden.'
+- Name: "Beyond the Batch File: Analysis of a Multi‑Stage DonutLoader Infection Chain"
+  Status: Active
+  FirstSeen: "2026-08-03"
+  SourceURL: "https://www.aryaka.com/docs/reports/donutloader-multi-stage-loader-report.pdf"
+  Notes: "PowerShell writes an XML task definition and registers the IntelDriver task. At user logon, Task Scheduler starts wscript.exe through a VBS launcher to run C:\\ProgramData\\IntelDriver\\IJil.cmd without a visible console."
   Command:
-    Context: 'Source-literal commands from Figure 14 retain the report variable names; Figure 13 and the report prose supply the resolved IntelDriver identifiers listed below.'
-    Invocation: |
-      $vxvI4iCwnpqCjEX | Out-File -Encoding Unicode $BBkphUlrU4QvXFb
-      schtasks /create /tn $rrNLCksCzgXcVls /xml $BBkphUlrU4QvXFb /f
-      Set objShell = CreateObject("WScript.Shell")
-      objShell.Run "$BtIdr76EOPPVbmV\IJil.cmd", 0, False
+    Invocation: "$vxvI4iCwnpqCjEX | Out-File -Encoding Unicode $BBkphUlrU4QvXFb\n\nschtasks /create /tn $rrNLCksCzgXcVls /xml $BBkphUlrU4QvXFb /f\n\nSet objShell = CreateObject(\"WScript.Shell\") objShell.Run \"$BtIdr76EOPPVbmV\\IJil.cmd\", 0, False \"@ | out-FILE -FilePath $IvKxaR2KTLLAXWR -Encoding ASCII"
     Artifacts:
-    - 'TaskName: IntelDriver'
-    - 'Trigger: current-user logon'
-    - 'Task action: wscript.exe C:\ProgramData\IntelDriver\IntelDriver.vbs'
-    - 'Launcher target: C:\ProgramData\IntelDriver\IJil.cmd'
-    - 'Task settings: InteractiveToken, LeastPrivilege, Hidden=true, StartWhenAvailable=true'
-  VariantId: 'donutloader-inteldriver'
-  ChokepointMapping: 'The XML and VBS implementation changes the payload chain, but still requires Task Scheduler to register the IntelDriver definition before logon execution.'
+    - "Task: IntelDriver"
+    - "Trigger: user logon"
+    - "Task XML: LogonTrigger, InteractiveToken, LeastPrivilege, Hidden=true, StartWhenAvailable=true"
+    - "Execution: wscript.exe -> IntelDriver.vbs -> C:\\ProgramData\\IntelDriver\\IJil.cmd"
+  VariantId: "intelopes-e077a5a7ac14"
+  ChokepointMapping: "Task definition registration → Task Scheduler execution"
 Detections:
 - Level: Research
-  Description: 'Find scheduled tasks whose definitions execute from writable data paths or invoke headless encoded PowerShell.'
+  Description: 'Find scheduled tasks whose definitions execute from commonly writable paths or invoke headless encoded PowerShell.'
   LogSources:
   - 'Windows Security Event ID 4698'
-  Logic: 'EventID 4698 and TaskContent contains an AppData, Temp, or ProgramData path, or the conhost.exe --headless PowerShell encoded-command shape.'
-  ExpectedFPRate: High
+  Logic: 'EventID 4698 and TaskContentNew contains an AppData/Temp path or the conhost.exe --headless PowerShell encoded-command shape.'
+  ExpectedFPRate: Medium
   UseCase: 'Broad hunt for scheduler-managed execution from writable locations'
   SigmaRule: 'sigma-rules/scheduled-task-job-scheduled-task/research.yml'
-  Validation:
-    RuleStatus: 'Experimental candidate'
-    State: 'Not yet recorded'
-    Backends: []
-    Notes: 'ProgramData and DonutLoader coverage were added after the retained seven-case receipt; rerun the isolated validation sweep before promotion.'
 - Level: Hunt
   Description: 'Prioritize writable-path interpreter tasks and headless encoded PowerShell task actions.'
   LogSources:
@@ -136,24 +123,14 @@ Detections:
   ExpectedFPRate: Low
   UseCase: 'Behavioral threat hunt across task-name and registration-method variants'
   SigmaRule: 'sigma-rules/scheduled-task-job-scheduled-task/hunt.yml'
-  Validation:
-    RuleStatus: 'Experimental candidate'
-    State: 'Not yet recorded'
-    Backends: []
-    Notes: 'The prior receipt predates the ProgramData and IntelDriver cases.'
 - Level: Analyst
-  Description: 'Match the source-grounded WindowsConnSvc, INetHealth, and IntelDriver task shapes.'
+  Description: 'Match the two source-grounded high-confidence WindowsConnSvc and INetHealth task shapes.'
   LogSources:
   - 'Windows Security Event ID 4698'
-  Logic: 'EventID 4698 and the source-specific WindowsConnSvc, INetHealth, or IntelDriver task-and-action pair.'
+  Logic: 'EventID 4698 and either the WindowsConnSvc/svchost32.exe report shape or the INetHealth/headless encoded PowerShell report shape.'
   ExpectedFPRate: Low
   UseCase: 'High-confidence triage with direct source or controlled-lab context'
   SigmaRule: 'sigma-rules/scheduled-task-job-scheduled-task/analyst.yml'
-  Validation:
-    RuleStatus: 'Experimental candidate'
-    State: 'Not yet recorded'
-    Backends: []
-    Notes: 'The IntelDriver source shape requires a fresh isolated telemetry receipt.'
 Intel:
 - Name: 'The Gentlemen Ransomware — Defense Evasion TTPs Uncovered'
   Tier: primary
@@ -167,21 +144,12 @@ Intel:
   Tier: primary
   URL: 'https://attack.mitre.org/techniques/T1053/005/'
   Description: 'Canonical Scheduled Task/Job technique definition.'
-- Name: 'Beyond the Batch File: Analysis of a Multi-Stage DonutLoader Infection Chain'
-  Tier: primary
-  URL: 'https://www.aryaka.com/docs/reports/donutloader-multi-stage-loader-report.pdf'
-  Description: 'Primary source for the IntelDriver XML task, VBS launcher, and logon-triggered persistence procedure.'
 EvolutionTimeline:
 - Date: '2026-05-21'
   Event: 'The Gentlemen procedure published'
   Change: 'WindowsConnSvc added as a source-grounded scheduled-task variation.'
   DetectionImpact: 'Adds a SYSTEM task launching a Windows Temp executable to high-confidence triage.'
   TheConstant: 'Task Scheduler registration remains required.'
-- Date: '2026-08-03'
-  Event: 'DonutLoader procedure published'
-  Change: 'IntelDriver added as a source-grounded XML and VBS scheduled-task variation.'
-  DetectionImpact: 'Extends coverage to hidden logon tasks that launch wscript.exe from ProgramData.'
-  TheConstant: 'Task Scheduler registration remains required despite the XML and script-launcher indirection.'
 - Date: '2026-09-01'
   Event: 'Exodus RAT procedure published'
   Change: 'INetHealth added as an independent encoded-PowerShell variation.'
@@ -202,7 +170,7 @@ RawLogs:
 - Type: 'Windows Security'
   EventId: 4698
   Source: 'Security'
-  Description: 'The Gentlemen WindowsConnSvc task — source-shaped Event 4698 fixture'
+  Description: 'WindowsConnSvc task creation'
   EvidenceBasis: 'Normalized only from the task name, schedule, principal, action, and arguments published in the Huntress report; no unrelated Event 4698 metadata is invented.'
   SourceURL: 'https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps'
   MatchedRules:
@@ -212,7 +180,7 @@ RawLogs:
   Sample: |
     EventID: 4698
     TaskName: \\WindowsConnSvc
-    TaskContent:
+    TaskContentNew:
       <Task>
         <Triggers>
           <CalendarTrigger>
@@ -232,7 +200,7 @@ RawLogs:
 - Type: 'Windows Security'
   EventId: 4698
   Source: 'Security'
-  Description: 'Exodus RAT INetHealth task — source-shaped Event 4698 fixture'
+  Description: 'INetHealth task creation'
   EvidenceBasis: 'Normalized from the task name, action prefix, and decoded PowerShell published in the Huntress report. The report did not publish the original Base64 argument or a native Event 4698 record.'
   SourceURL: 'https://www.huntress.com/blog/exodus-crypto-wallet-installer-rat'
   MatchedRules:
@@ -242,7 +210,7 @@ RawLogs:
   Sample: |
     EventID: 4698
     TaskName: \\INetHealth
-    TaskContent:
+    TaskContentNew:
       <Task>
         <Actions>
           <Exec>
@@ -264,36 +232,17 @@ RawLogs:
       $miihtwvx = Add-Type -MemberDefinition $xbzshxel -Name syjtmthn -PassThru
       $gmsqtp = $miihtwvx::InternetSetOption(0, 39, 0, 0)
       $pfoguq = $miihtwvx::InternetSetOption(0, 37, 0, 0)
-- Type: 'Windows Security'
-  EventId: 4698
-  Source: 'Security'
-  Description: 'IntelDriver task creation'
-  EvidenceBasis: 'Source-shaped from the task name and working directory in the report prose and Figure 13, the appendix filename, and the variable-backed task XML and VBS behavior visible in Figure 14. The full VBS path is an explicit cross-figure normalization, not a source-literal native Event 4698 record.'
-  SourceURL: 'https://www.aryaka.com/docs/reports/donutloader-multi-stage-loader-report.pdf'
+- Type: "Windows Security"
+  EventId: "4698"
+  Source: "Security"
+  Description: "Beyond the Batch File: Analysis of a Multi‑Stage DonutLoader Infection Chain source-matched procedure sample"
+  EvidenceBasis: "Normalized only from the procedure values published by the linked source; unrelated event fields are not invented."
+  SourceURL: "https://www.aryaka.com/docs/reports/donutloader-multi-stage-loader-report.pdf"
   MatchedRules:
   - Research
   - Hunt
   - Analyst
-  CoverageGap: 'The DonutLoader rule expansion has not yet been revalidated in the lab.'
-  Sample: |
-    EventID: 4698
-    TaskName: \IntelDriver
-    TaskContent:
-      <Task version="1.4">
-        <Triggers>
-          <LogonTrigger><Enabled>true</Enabled></LogonTrigger>
-        </Triggers>
-        <Principals>
-          <Principal><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal>
-        </Principals>
-        <Settings><StartWhenAvailable>true</StartWhenAvailable><Hidden>true</Hidden></Settings>
-        <Actions>
-          <Exec>
-            <Command>wscript.exe</Command>
-            <Arguments>"C:\ProgramData\IntelDriver\IntelDriver.vbs"</Arguments>
-          </Exec>
-        </Actions>
-      </Task>
+  Sample: "EventID: 4698\nObservedProcedure: PowerShell writes an XML task definition and registers the IntelDriver task. At user logon, Task Scheduler starts wscript.exe through a VBS launcher to run C:\\ProgramData\\IntelDriver\\IJil.cmd without a visible console.\nInvocation: $vxvI4iCwnpqCjEX | Out-File -Encoding Unicode $BBkphUlrU4QvXFb\n\nschtasks /create /tn $rrNLCksCzgXcVls /xml $BBkphUlrU4QvXFb /f\n\nSet objShell = CreateObject(\"WScript.Shell\") objShell.Run \"$BtIdr76EOPPVbmV\\IJil.cmd\", 0, False \"@ | out-FILE -FilePath $IvKxaR2KTLLAXWR -Encoding ASCII\nArtifact: Task: IntelDriver\nArtifact: Trigger: user logon\nArtifact: Task XML: LogonTrigger, InteractiveToken, LeastPrivilege, Hidden=true, StartWhenAvailable=true\nArtifact: Execution: wscript.exe -> IntelDriver.vbs -> C:\\ProgramData\\IntelDriver\\IJil.cmd"
 EmulationScript:
   File: 'emulation/scheduled-task-job-scheduled-task/emulate.ps1'
   Language: powershell

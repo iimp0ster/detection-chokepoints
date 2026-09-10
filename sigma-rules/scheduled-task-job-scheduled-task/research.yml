@@ -1,14 +1,13 @@
 title: Scheduled Task Registration From Writable Paths
 id: 02fb88c4-d939-42ce-9443-ecdd233487ad
 status: experimental
-description: Detects creation of a Windows scheduled task whose definition references a writable data path or invokes the source-grounded headless encoded PowerShell action shape.
+description: Detects creation of a Windows scheduled task whose definition references a commonly writable path or invokes the source-grounded headless encoded PowerShell action shape.
 references:
 - https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps
 - https://www.huntress.com/blog/exodus-crypto-wallet-installer-rat
-- https://www.aryaka.com/docs/reports/donutloader-multi-stage-loader-report.pdf
 - https://attack.mitre.org/techniques/T1053/005/
 author: '@iimp0ster'
-date: 2026/09/08
+date: 2026/09/07
 tags:
 - attack.persistence
 - attack.t1053.005
@@ -23,7 +22,6 @@ detection:
     TaskContent|contains:
     - '\AppData\'
     - '\Temp\'
-    - '\ProgramData\'
   selection_headless_powershell:
     TaskContent|contains|all:
     - 'conhost.exe'
@@ -32,6 +30,6 @@ detection:
     - '-e'
   condition: selection_event and (selection_path or selection_headless_powershell)
 falsepositives:
-- Software updaters and enterprise management tools that register tasks from writable data paths
+- Software updaters and enterprise management tools that register tasks from user-writable paths
 - Developer tooling that intentionally uses conhost.exe headless mode to launch encoded PowerShell
 level: low

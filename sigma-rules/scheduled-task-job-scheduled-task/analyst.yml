@@ -1,13 +1,12 @@
 title: Source-Grounded Suspicious Scheduled Task Registration
 id: d0b55371-f727-46a8-9ff2-e6bb6d9987d8
 status: experimental
-description: Detects the source-grounded WindowsConnSvc, INetHealth, and IntelDriver scheduled-task shapes documented by the contributing reports.
+description: Detects the two source-grounded WindowsConnSvc and INetHealth scheduled-task shapes documented by the contributing reports.
 references:
 - https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps
 - https://www.huntress.com/blog/exodus-crypto-wallet-installer-rat
-- https://www.aryaka.com/docs/reports/donutloader-multi-stage-loader-report.pdf
 author: '@iimp0ster'
-date: 2026/09/08
+date: 2026/09/07
 tags:
 - attack.persistence
 - attack.t1053.005
@@ -26,13 +25,7 @@ detection:
     - '--headless'
     - 'powershell'
     - '-e'
-  selection_donutloader:
-    TaskName|contains: '\IntelDriver'
-    TaskContent|contains|all:
-    - 'wscript.exe'
-    - '\ProgramData\IntelDriver\IntelDriver.vbs'
-  condition: selection_event and (selection_gentlemen_action or selection_exodus_action or selection_donutloader)
+  condition: selection_event and (selection_gentlemen_action or selection_exodus_action)
 falsepositives:
 - A legitimate INetHealth task using conhost.exe headless mode to launch encoded PowerShell
-- A legitimate IntelDriver task using Windows Script Host from the same ProgramData path
 level: high
