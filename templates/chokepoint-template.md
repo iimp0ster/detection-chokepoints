@@ -16,15 +16,28 @@
 
 Brief description of what this chokepoint covers.
 
+**The Constant:** [One sentence describing the invariant proven across every variation]
+
+## Chokepoint Stages
+
+For each stage, record its input, invariant, observable, why it cannot be bypassed,
+data sources, detection tier, and Sigma rule.
+
 ## Variations
 
-Current and historical methods that use this chokepoint:
+Current and historical methods that use this chokepoint. Every variation needs an
+independent source link and procedure-level command, payload, or artifacts:
 
-| Method/Tool | First Seen | Status | Notes |
-|-------------|------------|--------|-------|
-| [Tool name] | YYYY-MM | Active | Current threat |
-| [Tool name] | YYYY-MM | Declining | Less common now |
-| [Tool name] | YYYY-MM | Legacy | Rarely seen |
+### [Tool or malware name]
+
+- **First Seen:** YYYY-MM-DD
+- **Status:** Active / Declining / Emerging / Legacy
+- **Source:** [Original report](https://example.com/report)
+- **Procedure:** [Only the source-grounded behavior relevant to this chokepoint]
+- **Command / Artifacts:** `[Exact command, decoded behavior, filenames, paths, or infrastructure]`
+- **Chokepoint Mapping:** [Why this implementation still crosses the invariant]
+
+Add at least one more independently sourced variation before promotion.
 
 ## Prerequisites (The Chokepoint)
 
@@ -109,18 +122,24 @@ What **must** be true for this technique to work:
 - [Shodan/Censys dorks]
 - [Threat intel feeds]
 
-## Known Bypasses
+## Prevention
 
-| Bypass Method | Mitigation | Detection |
-|---------------|------------|-----------|
-| [How attackers evade] | [How to prevent] | [How to detect anyway] |
+| Control | Chokepoint Stage | Validation |
+|---------|-------------------|------------|
+| [Control that interrupts the invariant] | [Stage] | [How it is safely validated] |
 
-## References
+## Raw Log Samples
 
-- [MITRE ATT&CK](https://attack.mitre.org/techniques/[ID])
-- [Research paper/blog]
-- [Tool documentation]
-- [Threat intel report]
+Include source-shaped or lab-captured telemetry containing every value used by
+the detection logic. Label normalized fixtures honestly and link the source on
+the associated variation.
+
+## Emulation
+
+- **ATT&CK:** T0000.000
+- **Script:** `emulation/[technique]/emulate.ps1`
+- **Behavior:** [One sentence describing what is tested]
+- **Safety:** [Isolated lab and cleanup boundary]
 
 ## Related Chokepoints
 

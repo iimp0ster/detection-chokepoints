@@ -27,15 +27,18 @@ A new technique or attack requirement not yet documented in the repo.
 
 **Requirements:**
 - Complete YAML entry (all required fields per `schema/chokepoint-schema.yml`)
+- `PageStandardVersion: 1` so the complete review contract is enforced in CI
 - `AttackerControls` and `AttackerCannotControl` lists filled in — these must be written before chokepoint stages
-- At least Research and Hunt level Sigma rules, **or** a documented
+- A concise top-level `TheConstant` plus at least three fully observable chokepoint stages
+- At least two distinct variations grounded by two independent original source URLs
+- Research, Hunt, and Analyst Sigma rules, **or** a documented
   `NoStandaloneSigmaRationale` where the use case is inherently a multi-source,
   time-bounded correlation (for example passive infrastructure inventory plus an
   independent endpoint-to-service relationship). The rationale must explain why
   a single event would weaken the stated attribution and false-positive
   boundaries, and must include a reproducible validation contract.
-- Analyst level sigma rule (or documented rationale for why one isn't feasible)
-- At least one source reference (MITRE, research blog, threat report)
+- Source-linked procedure material on every variation; do not repeat a bottom-page references list
+- Evidence-safe raw-log samples, prevention controls, an inert lab emulation, OSINT pivots, and a related chokepoint
 
 ### 2. New Variation on Existing Chokepoint
 A new tool, family, or method that exploits an existing chokepoint.
@@ -107,6 +110,7 @@ impact/
 | Field | Type | Example |
 |-------|------|---------|
 | `Name` | string | `"ClickFix Techniques"` |
+| `PageStandardVersion` | integer | `1` |
 | `Id` | UUIDv4 | `"c7f2a1b4-3e8d-4a9c-8b5f-2d1e6f0a7c3b"` |
 | `MitreIds` | list | `["T1204.001", "T1204.004"]` |
 | `Tactics` | list | `["Initial Access"]` |
@@ -135,6 +139,7 @@ one item the attacker cannot control, this may not be a chokepoint.
 | `Prerequisites` | Conditions that must be true for the attack to succeed |
 | `AttackerControls` | List of things the attacker can change (variables — lures, encoding, infra) |
 | `AttackerCannotControl` | List of invariant prerequisites (the chokepoints — the things your detections target) |
+| `TheConstant` | One sentence stating the invariant proven across variations |
 
 See `FRAMEWORK.md` for the full methodology.
 
@@ -171,7 +176,7 @@ Each entry in `Variations:` supports different fields depending on the technique
 | `Name` | Tool or method name |
 | `FirstSeen` | Quarter or date (e.g., `"2024-Q1"`) |
 | `Status` | `Active`, `Emerging`, `Declining`, `Legacy`, `Disrupted` |
-| `SourceURL` | Full URL to the original report. Use a YAML list for multiple sources |
+| `SourceURL` | Full URL to the original report grounding this variation |
 | `NotesShort` | One-line summary for card header |
 | `Notes` | 2-3 sentences on what makes this variant different |
 | `VariantId` | URL-safe slug (e.g., `"clickfix-original"`) |
@@ -197,7 +202,7 @@ Each entry in `Variations:` supports different fields depending on the technique
 **Important rules for variations:**
 1. Defang all IOCs: `hxxps[://]`, `[.]com`, etc.
 2. Payload examples must be sourced from the `SourceURL` article — not fabricated
-3. If `SourceURL` has multiple links, use a YAML list — they render as separate hyperlinks
+3. Use one original `SourceURL` per variation; add independently sourced variations rather than repeating a general references list
 4. If a field is empty or absent, the template will not render that section
 
 ---
@@ -260,9 +265,10 @@ logsource:
 2. **Create a branch** named `<your-handle>/<chokepoint-name>` (e.g., `jsmith/browser-cred-theft`)
 3. **Copy** `templates/chokepoint-template.yml` to `chokepoints/<tactic>/<name>.yml`
 4. **Fill in** `AttackerControls` and `AttackerCannotControl` first — then write stages
-5. **Create** sigma rules in `sigma-rules/<name>/research.yml`, `hunt.yml`, `analyst.yml`
-6. **Update** `CHANGELOG.md` with your entry
-7. **Submit** a PR with the checklist below completed
+5. **Keep** `PageStandardVersion: 1`; `scripts/validate_schema.py` blocks incomplete drafts and migrated pages
+6. **Create** sigma rules in `sigma-rules/<name>/research.yml`, `hunt.yml`, `analyst.yml`
+7. **Update** `CHANGELOG.md` with your entry
+8. **Submit** a PR with the checklist below completed
 
 **PR Description Checklist:**
 
@@ -270,6 +276,7 @@ logsource:
 ## Chokepoint Submission
 
 - [ ] YAML entry at `chokepoints/<tactic>/<name>.yml` with all required fields
+- [ ] `PageStandardVersion: 1` and top-level `TheConstant` are present
 - [ ] Unique UUIDv4 generated for `Id` field
 - [ ] All MITRE IDs verified against current ATT&CK framework
 - [ ] `AttackerControls` and `AttackerCannotControl` lists filled in
@@ -278,7 +285,8 @@ logsource:
 - [ ] Hunt sigma rule at `sigma-rules/<name>/hunt.yml`
 - [ ] Analyst sigma rule at `sigma-rules/<name>/analyst.yml`
   - If not provided: [ ] Documented why analyst-level rule is not feasible
-- [ ] At least one source reference included
+- [ ] At least two independently sourced variations include procedure-level material
+- [ ] Prevention, raw logs, inert lab emulation, OSINT pivots, and related chokepoints are complete
 - [ ] Variation payload examples sourced from cited articles (not fabricated)
 - [ ] All IOCs defanged (hxxps[://], [.]com)
 - [ ] CHANGELOG.md updated

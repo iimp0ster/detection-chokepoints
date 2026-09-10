@@ -123,6 +123,7 @@ def validate_receipt_data(
 ) -> None:
     mitre_ids = {str(value).upper() for value in data.get("MitreIds") or []}
     require(receipt.get("schema_version") == "ValidationResult/v1", "unexpected validation receipt schema")
+    require(receipt.get("status") != "superseded", "validation receipt is explicitly superseded")
     require(str(receipt.get("tid", "")).upper() in mitre_ids, "receipt ATT&CK ID is not on the chokepoint")
     require(receipt.get("mode") == "telemetry", "receipt must come from telemetry validation")
     require(receipt.get("telemetry_observed") is True, "receipt does not confirm telemetry")

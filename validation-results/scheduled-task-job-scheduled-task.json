@@ -1,5 +1,8 @@
 {
   "schema_version": "ValidationResult/v1",
+  "status": "superseded",
+  "superseded_at": "2026-09-08",
+  "superseded_reason": "The Scheduled Task Sigma rules changed to add the source-grounded DonutLoader IntelDriver variation. This retained receipt documents only the prior seven-case rule hashes and is not current validation evidence.",
   "tid": "T1053.005",
   "mode": "telemetry",
   "captured_at": "2026-09-07T09:55:54.7317622-06:00",

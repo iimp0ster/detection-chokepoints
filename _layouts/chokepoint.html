@@ -578,15 +578,15 @@ details.det-rule-item[open] {
 }
 
 .det-rule-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: .5rem;
+  gap: .55rem;
   padding: .7rem .95rem;
   cursor: pointer;
   user-select: none;
   list-style: none;
   background: var(--bg-card);
-  flex-wrap: wrap;
   transition: background .15s;
 }
 .det-rule-header:hover { background: rgba(240,136,62,.04); }
@@ -596,9 +596,25 @@ details.det-rule-item[open] {
   font-size: .82rem;
   font-weight: 600;
   color: var(--text);
-  flex: 1;
   min-width: 0;
 }
+
+.det-rule-icon {
+  align-items: center;
+  align-self: stretch;
+  background: rgba(255,255,255,.025);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  min-height: 38px;
+  width: 38px;
+}
+.det-rule-icon img { image-rendering: pixelated; height: 22px; width: 22px; }
+.det-rule-icon-research { border-color: rgba(88,166,255,.3); }
+.det-rule-icon-hunt { border-color: rgba(227,179,65,.3); }
+.det-rule-icon-analyst { border-color: rgba(63,185,80,.3); }
+.det-rule-icon-preexec { border-color: rgba(240,136,62,.3); }
 
 .det-rule-badges { display: flex; gap: .3rem; flex-shrink: 0; flex-wrap: wrap; }
 
@@ -623,6 +639,15 @@ details.det-rule-item[open] {
 
 .det-rule-chevron { color: var(--text-muted); font-size: .68rem; transition: transform .2s; flex-shrink: 0; }
 details.det-rule-item[open] .det-rule-chevron { transform: rotate(90deg); }
+
+@media (max-width: 640px) {
+  .det-rule-header { grid-template-columns: 42px minmax(0, 1fr) auto; padding: .7rem; }
+  .det-rule-icon { grid-row: 1 / span 2; min-height: 42px; width: 42px; }
+  .det-rule-title { align-self: end; font-size: .86rem; }
+  .det-rule-badges { align-self: start; grid-column: 2; }
+  .det-rule-chevron { grid-column: 3; grid-row: 1 / span 2; }
+  .det-meta-row { grid-template-columns: 1fr; }
+}
 
 .det-rule-body {
   padding: .85rem;
@@ -809,7 +834,8 @@ details.log-item[open] {
 }
 
 .log-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: .6rem;
   padding: .65rem .95rem;
@@ -817,7 +843,6 @@ details.log-item[open] {
   user-select: none;
   list-style: none;
   background: var(--bg-card);
-  flex-wrap: wrap;
   transition: background .15s;
 }
 .log-header:hover { background: rgba(240,136,62,.04); }
@@ -835,9 +860,9 @@ details.log-item[open] {
   flex-shrink: 0;
 }
 .log-source { font-family: var(--font-mono); font-size: .68rem; color: var(--text-muted); flex-shrink: 0; }
-.log-desc   { font-size: .8rem; flex: 1; }
+.log-desc   { font-size: .8rem; min-width: 0; }
 
-.rule-badges { display: flex; gap: .3rem; margin-left: auto; flex-shrink: 0; }
+.rule-badges { display: flex; gap: .3rem; flex-shrink: 0; }
 .rule-badge {
   font-family: var(--font-mono);
   font-size: .6rem;
@@ -854,6 +879,7 @@ details.log-item[open] {
 details.log-item[open] .log-chevron { transform: rotate(90deg); }
 
 .log-body {
+  margin: 0;
   border-top: 1px solid var(--border);
   background: var(--bg);
   padding: .75rem 1rem;
@@ -864,6 +890,12 @@ details.log-item[open] .log-chevron { transform: rotate(90deg); }
   white-space: pre;
   overflow-x: auto;
 }
+.log-body code, .log-body code.hljs { display: block; padding: 0; background: transparent; color: inherit; overflow: visible; }
+.log-body .hljs-attr, .log-body .hljs-attribute { color: #79c0ff; }
+.log-body .hljs-string, .log-body .hljs-literal { color: #a5d6ff; }
+.log-body .hljs-number { color: #ffa657; }
+.log-body .hljs-comment { color: #8b949e; font-style: italic; }
+.log-body .hljs-meta, .log-body .hljs-symbol, .log-body .hljs-bullet { color: #d2a8ff; }
 .log-provenance {
   display: flex;
   align-items: center;
@@ -877,6 +909,19 @@ details.log-item[open] .log-chevron { transform: rotate(90deg); }
 }
 .log-provenance strong { color: var(--text); }
 .log-provenance a { margin-left: auto; font-family: var(--font-mono); font-size: .68rem; }
+
+@media (max-width: 640px) {
+  .log-header { grid-template-columns: auto minmax(0, 1fr) auto; padding: .7rem; }
+  .log-eid { grid-column: 1; }
+  .log-source { grid-column: 2; }
+  .log-chevron { grid-column: 3; grid-row: 1; }
+  .log-desc { grid-column: 1 / -1; line-height: 1.45; padding-top: .2rem; }
+  .rule-badges { grid-column: 1 / -1; }
+  .log-header > .rb-gap { grid-column: 1 / -1; justify-self: start; }
+  .log-provenance { align-items: flex-start; flex-direction: column; }
+  .log-provenance a { margin-left: 0; }
+  .log-body { max-height: 52vh; overflow: auto; }
+}
 
 /* ── Emulation ───────────────────────────────────────────────────── */
 .emulation-wrapper {
@@ -892,7 +937,8 @@ details.emulation-wrapper[open] {
 }
 
 .emulation-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: .65rem;
   padding: .75rem .95rem;
@@ -913,8 +959,18 @@ details.emulation-wrapper[open] {
   letter-spacing: .04em;
   flex-shrink: 0;
 }
-.emulation-desc { font-size: .82rem; font-weight: 500; flex: 1; }
-.emulation-lang { font-family: var(--font-mono); font-size: .68rem; color: var(--text-muted); flex-shrink: 0; }
+.emulation-desc { font-size: .82rem; font-weight: 500; min-width: 0; }
+.emulation-lang { font-family: var(--font-mono); font-size: .68rem; color: var(--text-muted); }
+.emulation-chevron { color: var(--text-muted); font-size: .68rem; transition: transform .2s; }
+details.emulation-wrapper[open] .emulation-chevron { transform: rotate(90deg); }
+
+@media (max-width: 640px) {
+  .emulation-header { grid-template-columns: auto minmax(0, 1fr) auto; padding: .7rem; }
+  .emulation-attck { grid-column: 1; }
+  .emulation-lang { grid-column: 2; justify-self: end; }
+  .emulation-chevron { grid-column: 3; grid-row: 1; }
+  .emulation-desc { grid-column: 1 / -1; line-height: 1.45; padding-top: .25rem; }
+}
 
 details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
 
@@ -1072,8 +1128,8 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
     <a href="#variations" class="sidebar-link">Variations</a>
     {% endif %}
     <a href="#detection-strategy" class="sidebar-link">Detection</a>
-    {% if cp.PreventionSummary or cp.PreventionOpportunities or cp.DeceptionSummary or cp.DeceptionOpportunities %}
-    <a href="#prevention" class="sidebar-link">Prevention &amp; deception</a>
+    {% if cp.PreventionSummary or cp.PreventionOpportunities %}
+    <a href="#prevention" class="sidebar-link">Prevention</a>
     {% endif %}
     {% if cp.RawLogs %}
     <a href="#raw-logs" class="sidebar-link">Logs</a>
@@ -1375,9 +1431,9 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
         {% for ed in cp.EarlyDetections %}
         <details class="det-rule-item">
           <summary class="det-rule-header">
-            <span class="det-rule-title">{{ ed.Layer | default: "Pre-Execution Detection" | escape }}</span>
+            <span class="det-rule-icon det-rule-icon-preexec" aria-hidden="true"><img src="{{ '/assets/img/pixel/sec-detection.png' | relative_url }}" alt="" width="22" height="22" /></span>
+            <span class="det-rule-title">{{ ed.Layer | default: "Pre-execution detection" | escape }}</span>
             <div class="det-rule-badges">
-              <span class="det-rule-badge det-badge-preexec">Pre-Exec</span>
               {% if ed.ExpectedFPRate %}
               {% assign fp_lower = ed.ExpectedFPRate | downcase %}
               <span class="det-rule-badge det-badge-fp-{{ fp_lower | replace: 'medium', 'med' | escape }}">{{ ed.ExpectedFPRate | escape }} FP</span>
@@ -1448,9 +1504,9 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
         {% if show_rule %}
         <details class="det-rule-item">
           <summary class="det-rule-header">
-            <span class="det-rule-title">{{ det.Description | truncate: 80 }}</span>
+            <span class="det-rule-icon det-rule-icon-{{ det_lower | escape }}" aria-hidden="true">{% if det_lower == "research" %}<img src="{{ '/assets/img/pixel/research.png' | relative_url }}" alt="" width="22" height="22" />{% elsif det_lower == "hunt" %}<img src="{{ '/assets/img/pixel/hunt.png' | relative_url }}" alt="" width="22" height="22" />{% elsif det_lower == "analyst" %}<img src="{{ '/assets/img/pixel/analyst.png' | relative_url }}" alt="" width="22" height="22" />{% else %}<img src="{{ '/assets/img/pixel/sec-detection.png' | relative_url }}" alt="" width="22" height="22" />{% endif %}</span>
+            <span class="det-rule-title">{{ det.Level | escape }} rule</span>
             <div class="det-rule-badges">
-              <span class="det-rule-badge {{ badge_class }}">{% if badge_class == "det-badge-research" %}<img src="{{ '/assets/img/pixel/research.png' | relative_url }}" alt="" width="14" height="14" class="tier-pixel-icon" />{% elsif badge_class == "det-badge-hunt" %}<img src="{{ '/assets/img/pixel/hunt.png' | relative_url }}" alt="" width="14" height="14" class="tier-pixel-icon" />{% elsif badge_class == "det-badge-analyst" %}<img src="{{ '/assets/img/pixel/analyst.png' | relative_url }}" alt="" width="14" height="14" class="tier-pixel-icon" />{% endif %}{{ det.Level }}</span>
               {% assign fp_lower = det.ExpectedFPRate | downcase %}
               {% if fp_lower == "high" %}
               <span class="det-rule-badge det-badge-fp-high">High FP</span>
@@ -1498,11 +1554,12 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
             {% endif %}
             <div class="sigma-block">
               <div class="sigma-header">
-                <span class="sigma-label">Sigma Rule - {{ det.Level }} Level</span>
+                {% if det.IokRule %}<span class="sigma-label">IOK Rule - {{ det.Level }} Level</span>{% else %}<span class="sigma-label">Sigma Rule - {{ det.Level }} Level</span>{% endif %}
                 <div class="sigma-actions">
-                  {% if det.SigmaRule %}
-                  <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ det.SigmaRule }}" target="_blank" rel="noopener">GitHub &#8594;</a>
-                  <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ det.SigmaRule }}" download>Download</a>
+                  {% assign det_rule_path = det.SigmaRule | default: det.IokRule %}
+                  {% if det_rule_path %}
+                  <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ det_rule_path }}" target="_blank" rel="noopener">GitHub &#8594;</a>
+                  <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ det_rule_path }}" download>Download</a>
                   {% endif %}
                   <button class="sigma-btn" onclick="copyCode(this)">Copy</button>
                 </div>
@@ -1525,9 +1582,9 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
         {% if forloop.index == 3 and cp["_sigma_hunt-network"] %}
         <details class="det-rule-item">
           <summary class="det-rule-header">
-            <span class="det-rule-title">Browser-Spawned Interpreter Outbound Connection</span>
+            <span class="det-rule-icon det-rule-icon-hunt" aria-hidden="true"><img src="{{ '/assets/img/pixel/hunt.png' | relative_url }}" alt="" width="22" height="22" /></span>
+            <span class="det-rule-title">Hunt network rule</span>
             <div class="det-rule-badges">
-              <span class="det-rule-badge det-badge-hunt">Hunt</span>
               <span class="det-rule-badge det-badge-fp-med">Med FP</span>
               <span class="det-rule-badge det-badge-new">New</span>
             </div>
@@ -1594,9 +1651,11 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
         <div class="det-rule-list">
           <details class="det-rule-item">
             <summary class="det-rule-header">
-              <span class="det-rule-title">{{ det.Description | truncate: 80 }}</span>
+              <span class="det-rule-icon det-rule-icon-{{ det_level_lower | escape }}" aria-hidden="true">{% if det_level_lower == "research" %}<img src="{{ '/assets/img/pixel/research.png' | relative_url }}" alt="" width="22" height="22" />{% elsif det_level_lower == "hunt" %}<img src="{{ '/assets/img/pixel/hunt.png' | relative_url }}" alt="" width="22" height="22" />{% elsif det_level_lower == "analyst" %}<img src="{{ '/assets/img/pixel/analyst.png' | relative_url }}" alt="" width="22" height="22" />{% else %}<img src="{{ '/assets/img/pixel/sec-detection.png' | relative_url }}" alt="" width="22" height="22" />{% endif %}</span>
+              <span class="det-rule-title">{{ det.Level | escape }} rule</span>
               <div class="det-rule-badges">
-                <span class="det-rule-badge {{ badge_class }}">{{ det.Level | escape }}</span>
+                {% assign fp_lower = det.ExpectedFPRate | downcase %}
+                {% if fp_lower == "high" %}<span class="det-rule-badge det-badge-fp-high">High FP</span>{% elsif fp_lower == "medium" %}<span class="det-rule-badge det-badge-fp-med">Med FP</span>{% elsif fp_lower == "low" %}<span class="det-rule-badge det-badge-fp-low">Low FP</span>{% endif %}
               </div>
               <span class="det-rule-chevron">&#9654;</span>
             </summary>
@@ -1620,11 +1679,12 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
               {% endif %}
               <div class="sigma-block">
                 <div class="sigma-header">
-                  <span class="sigma-label">Sigma Rule - {{ det.Level }} Level</span>
+                  {% if det.IokRule %}<span class="sigma-label">IOK Rule - {{ det.Level }} Level</span>{% else %}<span class="sigma-label">Sigma Rule - {{ det.Level }} Level</span>{% endif %}
                   <div class="sigma-actions">
-                    {% if det.SigmaRule %}
-                    <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ det.SigmaRule }}" target="_blank" rel="noopener">GitHub &#8594;</a>
-                    <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ det.SigmaRule }}" download>Download</a>
+                    {% assign det_rule_path = det.SigmaRule | default: det.IokRule %}
+                    {% if det_rule_path %}
+                    <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/{{ det_rule_path }}" target="_blank" rel="noopener">GitHub &#8594;</a>
+                    <a class="sigma-btn" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/raw/main/{{ det_rule_path }}" download>Download</a>
                     {% endif %}
                     <button class="sigma-btn" onclick="copyCode(this)">Copy</button>
                   </div>
@@ -1758,13 +1818,13 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
 
   <!-- ── 5. Raw Log Samples ─────────────────────────────────────── -->
   <!-- ── Prevention Opportunities ──────────────────────────────────────────── -->
-  {% if cp.PreventionSummary or cp.PreventionOpportunities or cp.DeceptionSummary or cp.DeceptionOpportunities %}
+  {% if cp.PreventionSummary or cp.PreventionOpportunities %}
   <section class="cp-section-card" id="prevention">
     <div class="cp-section-heading-row">
       <div class="cp-section-icon" aria-hidden="true">
         <img class="cp-section-pixel" src="{{ '/assets/img/pixel/sec-prevention.png' | relative_url }}" alt="" width="22" height="22" />
       </div>
-      <h2 class="cp-section-heading">Prevention &amp; Deception Opportunities</h2>
+      <h2 class="cp-section-heading">Prevention</h2>
     </div>
     {% if cp.PreventionSummary %}
     <p class="section-intro mb-4">{{ cp.PreventionSummary | escape }}</p>
@@ -1790,25 +1850,6 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
       {% endfor %}
     </div>
     {% assign ms_opps = "" %}{% for opp in cp.PreventionOpportunities %}{% if opp.MagicSwordFit %}{% assign ms_opps = "yes" %}{% endif %}{% endfor %}
-    {% endif %}
-    {% if cp.DeceptionSummary %}
-    <p class="section-intro mt-5 mb-4">{{ cp.DeceptionSummary | escape }}</p>
-    {% endif %}
-    {% if cp.DeceptionOpportunities %}
-    <h3 class="section-subheading">Deception opportunities</h3>
-    <p class="section-intro mb-4">These are design opportunities only. Confirm ownership, scope, and safe validation before deployment.</p>
-    <div class="prevention-grid">
-      {% for opp in cp.DeceptionOpportunities %}
-      <article class="prev-card">
-        <div class="prev-label">{{ opp.Category }}</div>
-        <h4 class="prev-title">{{ opp.Objective }}</h4>
-        <p class="prev-body"><strong>Placement:</strong> {{ opp.Placement }}</p>
-        <p class="prev-body"><strong>Signal:</strong> {{ opp.Signal }}</p>
-        <p class="prev-body"><strong>Safety boundary:</strong> {{ opp.SafetyBoundary }}</p>
-        <p class="prev-body"><strong>Validation:</strong> {{ opp.Validation }}</p>
-      </article>
-      {% endfor %}
-    </div>
     {% endif %}
   </section>
   {% endif %}
@@ -1847,7 +1888,7 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
         </div>
         {% endif %}
         {% if log.CoverageGap %}<div class="log-provenance"><span><strong>Detection gap:</strong> {{ log.CoverageGap | escape }}</span></div>{% endif %}
-        <div class="log-body">{{ log.Sample | xml_escape }}</div>
+        <pre class="log-body" aria-label="Syntax-highlighted raw log sample"><code class="language-yaml">{{ log.Sample | xml_escape }}</code></pre>
       </details>
       {% endfor %}
     </div>
@@ -1868,7 +1909,8 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
       <summary class="emulation-header">
         {% if emu.AtomicRef %}<span class="emulation-attck">ATT&amp;CK: {{ emu.AtomicRef }}</span>{% endif %}
         <span class="emulation-desc">{{ emu.Description }}</span>
-        <span class="emulation-lang">{{ emu.Language }} &#9654;</span>
+        <span class="emulation-lang">{{ emu.Language }}</span>
+        <span class="emulation-chevron">&#9654;</span>
       </summary>
       <div class="emu-body">
         {% if emu.SafetyNotes %}
@@ -1952,23 +1994,6 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
   </section>
   {% endif %}
 
-  <!-- ── References ────────────────────────────────────────────── -->
-  {% if cp.References %}
-  <section class="cp-section-card">
-    <div class="cp-section-heading-row">
-      <div class="cp-section-icon" aria-hidden="true">
-        <img class="cp-section-pixel" src="{{ '/assets/img/pixel/sec-references.png' | relative_url }}" alt="" width="22" height="22" />
-      </div>
-      <h2 class="cp-section-heading">References</h2>
-    </div>
-    <ul class="ref-list flex flex-col gap-1.5">
-      {% for ref in cp.References %}
-      <li><a href="{{ ref }}" target="_blank" rel="noopener">{{ ref }}</a></li>
-      {% endfor %}
-    </ul>
-  </section>
-  {% endif %}
-
   </article>
 </div>
 
@@ -1980,7 +2005,9 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/powershell.min.js" integrity="sha384-q/8iVbv95DiFN+l7qeoBwJ0Wju7gozJemMfG3DdxiOR8CfA/2dKvKA3W5t4l/n9t" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  hljs.highlightAll();
+  if (window.hljs) {
+    window.hljs.highlightAll();
+  }
 });
 
 function switchTab(btn, panelId) {
