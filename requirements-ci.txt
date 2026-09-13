@@ -1,0 +1,8 @@
+# Sigma validation toolchain for .github/workflows/validate-sigma.yml.
+# Pinned so a backend release cannot change a build verdict without a commit
+# here saying so. Covered by the existing dependabot pip entry (directory: "/").
+sigma-cli==3.1.0
+pySigma==1.5.0
+pySigma-backend-elasticsearch==2.1.1
+pySigma-pipeline-sysmon==2.0.0
+pySigma-validators-sigmahq==0.20.2
