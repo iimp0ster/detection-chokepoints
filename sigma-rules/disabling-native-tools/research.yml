@@ -1,0 +1,45 @@
+title: Windows Disable Registry Tool
+id: d4db5ff3-8ece-4b53-9295-7aeb4dd3b7dc
+status: experimental
+description: |
+  Baseline rule for disabling of registry tools via the reg key. 
+  Loosely based off of Atomic T1112 test "Disable Windows Registry Tool" (Modify Registry). Correlate with additional signals before alerting.
+author: zendannyy
+references:
+  - https://attack.mitre.org/techniques/T1112/
+  - https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1112
+  - https://any.run/report/ea4ea08407d4ee72e009103a3b77e5a09412b722fdef67315ea63f22011152af/a866d7b1-c236-4f26-a391-5ae32213dfc4
+  - https://www.microsoft.com/en-us/security/blog/2022/06/13/the-many-lives-of-blackcat-ransomware/
+tags:
+  - attack.defense_evasion
+  - attack.defense_impairment
+  - attack.t1112
+  - attack.hunting
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_binary:
+    Image|endswith: '\\reg.exe'
+  selection_cmd:
+    CommandLine|contains:
+      - 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\policies\system'
+      - 'DisableRegistryTools /t REG_DWORD /d 1 '
+  # selection_known_malware_disabling_registry_hashes:
+  #   EventID: 6
+  #   Hashes|contains:
+  #     - 'MD5=<real_hash_from_loldrivers>'
+  # see any.run report for this 
+  filter_legit_software:
+    # Tune for your environment, add legitimate parent image that triggers this rule
+    ParentImage|endswith:
+      - '\placeholder_tune_for_your_env.exe'
+  condition: selection_binary and 1 of selection_cmd
+fields:
+  - ParentImage
+  - Image
+  - CommandLine
+  - User
+falsepositives:
+  - Authorized red team or security assessment activity
+level: medium
