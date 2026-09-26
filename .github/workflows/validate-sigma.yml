@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
@@ -31,10 +33,18 @@ jobs:
       # here, because your dependabot pip entry is `directory: "/"` and reads
       # requirements files. Pins written inside a `run:` step would never be
       # proposed for a bump and would rot silently.
-      - name: Install sigma-cli and backends
+      - name: Install sigma-cli and backend
         run: pip install -r requirements-ci.txt
 
       # ~50 seconds over 48 rules on a workstation, dominated by process start-up
       # rather than CPU. A hosted runner will be slower, plus the install step.
-      - name: Validate Sigma rules
+      # The repository predates this gate and has known conversion debt. PRs
+      # must not add to it, while workflow_dispatch retains the explicit full-
+      # corpus audit used to pay that debt down deliberately.
+      - name: Validate changed Sigma rules
+        if: github.event_name == 'pull_request'
+        run: python scripts/check_sigma.py --rules-dir sigma-rules --changed-from "${{ github.event.pull_request.base.sha }}"
+
+      - name: Audit the complete Sigma corpus
+        if: github.event_name == 'workflow_dispatch'
         run: python scripts/check_sigma.py --rules-dir sigma-rules

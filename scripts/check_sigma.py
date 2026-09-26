@@ -23,6 +23,7 @@ Exit codes:  0 = every rule converted   1 = at least one failed
 
 Usage:
   python scripts/check_sigma.py [--rules-dir sigma-rules] [--targets eql,lucene]
+      [--changed-from <git-revision>]
 """
 import argparse
 import re
@@ -72,11 +73,35 @@ def reason(text):
     lines = substance(text)
     if not lines:
         return "no output"
-    pick = next((l for l in lines if l.startswith("*")), lines[0])
+    pick = next((l for l in lines if l.startswith("*")), None)
+    if pick is None and any("Traceback (most recent call last)" in l for l in lines):
+        # The final traceback line contains the exception and rule context;
+        # reporting only the word "Traceback" hides the actionable failure.
+        pick = lines[-1]
+    if pick is None:
+        pick = lines[0]
     return PATH_RE.sub("", pick.lstrip("* ").removeprefix("Error: ")).strip()
 
 
-def convert(path, targets, pipeline):
+def discover_rules(root, changed_from=None):
+    """Return the bounded set of existing Sigma files this run owns."""
+    if not changed_from:
+        return sorted(p for p in root.rglob("*") if p.suffix in (".yml", ".yaml"))
+    rc, out = run([
+        "git", "diff", "--name-only", "--diff-filter=ACMR", changed_from, "HEAD", "--",
+        f"{root.as_posix()}/**/*.yml", f"{root.as_posix()}/**/*.yaml",
+    ])
+    if rc != 0:
+        raise RuntimeError(f"unable to enumerate changed Sigma rules: {reason(out)}")
+    candidates = []
+    for value in out.splitlines():
+        path = Path(value.strip())
+        if path.suffix in (".yml", ".yaml") and path.is_file():
+            candidates.append(path)
+    return sorted(set(candidates))
+
+
+def convert(path, targets, pipeline=None):
     """Try each backend in order.
 
     Returns ("ok", backend) if a query came back, ("fail", reason) if a backend
@@ -86,7 +111,8 @@ def convert(path, targets, pipeline):
     errors = []
     saw_clean_empty = False
     for t in targets:
-        rc, out = run(["sigma", "convert", "-t", t, "-p", pipeline, str(path)])
+        pipeline_args = ["-p", pipeline] if pipeline else ["--without-pipeline"]
+        rc, out = run(["sigma", "convert", "-t", t, *pipeline_args, str(path)])
         if rc == 0 and substance(out):
             return "ok", t
         if rc == 0:
@@ -105,7 +131,10 @@ def main(argv=None):
     ap.add_argument("--rules-dir", default="sigma-rules")
     ap.add_argument("--targets", default="eql,lucene",
                     help="comma-separated backends, tried in order")
-    ap.add_argument("--pipeline", default="sysmon")
+    ap.add_argument("--pipeline", default=None,
+                    help="optional deployment pipeline; syntax CI intentionally omits one")
+    ap.add_argument("--changed-from",
+                    help="validate only Sigma files added or modified since this git revision")
     a = ap.parse_args(argv)
 
     if not shutil.which("sigma"):
@@ -115,8 +144,15 @@ def main(argv=None):
         return 2
 
     root = Path(a.rules_dir)
-    rules = sorted(p for p in root.rglob("*") if p.suffix in (".yml", ".yaml"))
+    try:
+        rules = discover_rules(root, a.changed_from)
+    except RuntimeError as e:
+        print(f"NOT CHECKED  {e}")
+        return 2
     if not rules:
+        if a.changed_from:
+            print(f"PASS  no Sigma rules changed since {a.changed_from}")
+            return 0
         print(f"NOT CHECKED  no .yml or .yaml files found under {root}/")
         return 2
 
@@ -147,7 +183,7 @@ def main(argv=None):
     # `sigma check` exits 1 both when it finds issues and when it dies, so the
     # exit code cannot tell those apart. A crash leaves a Python traceback and a
     # completed run does not, which is the signal that can.
-    rc, out = run(["sigma", "check", str(root)])
+    rc, out = run(["sigma", "check", *[str(rule) for rule in rules]])
     crashed = rc is None or rc not in (0, 1) or "Traceback (most recent call last)" in out
     if crashed or not substance(out):
         print(f"\nStage 2 (advisory): NOT CHECKED  sigma check did not complete "
