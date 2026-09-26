@@ -139,7 +139,7 @@ def main(argv=None):
 
     if not shutil.which("sigma"):
         print("NOT CHECKED  sigma-cli is not on PATH. Install with: pip install "
-              "sigma-cli pySigma-backend-elasticsearch pySigma-pipeline-sysmon "
+              "sigma-cli pySigma-backend-elasticsearch "
               "pySigma-validators-sigmahq")
         return 2
 
