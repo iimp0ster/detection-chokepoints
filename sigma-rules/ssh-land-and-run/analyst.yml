@@ -1,0 +1,44 @@
+title: SSH Land-and-Run - Hidden or Dot-Prefixed Binary Execution from Staging Directory (Analyst)
+id: 05b1a367-d439-4914-bcc9-add33c7b7e2e
+name: ssh_land_and_run_analyst
+status: experimental
+description: >
+  Detects execution of hidden (dot-prefixed) or suspiciously named binaries
+  from common staging directories. Analyst level — low false positive rate,
+  SOC-deployable. Hidden files in /tmp and /dev/shm are a strong indicator
+  of attacker staging; legitimate software rarely uses this pattern.
+  Lab-validated 2026-09-28: Sliver implant /tmp/.update, reverse shell
+  /dev/shm/.cache, and staging payload /dev/shm/.payload all matched the
+  dot-prefix selection. Cron persistence writing /tmp/.update to a crontab
+  matched the cron-from-staging selection.
+references:
+  - https://attack.mitre.org/techniques/T1059/004/
+  - https://attack.mitre.org/techniques/T1105/
+  - https://attack.mitre.org/techniques/T1036/005/
+  - https://github.com/iimp0ster/detection-chokepoints
+author: Jenna Frank (co-conspirator: SancLogic)
+date: 2026/09/28
+tags:
+  - attack.execution
+  - attack.t1059.004
+  - attack.defense_evasion
+  - attack.t1036.005
+  - detection.maturity.analyst
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  selection_hidden_tmp:
+    Image|startswith:
+      - '/tmp/.'
+      - '/dev/shm/.'
+      - '/var/tmp/.'
+  selection_cron_from_staging:
+    ParentImage|endswith: '/cron'
+    Image|startswith:
+      - '/tmp/'
+      - '/dev/shm/'
+  condition: selection_hidden_tmp or selection_cron_from_staging
+falsepositives:
+  - Legitimate hidden temp files from build systems (rare in /tmp)
+level: high

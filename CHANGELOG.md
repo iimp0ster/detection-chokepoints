@@ -2,6 +2,22 @@
 
 All notable changes to this detection chokepoints repository will be documented in this file.
 
+## [2026-09-28] - SSH Land-and-Run Chokepoint
+
+### Added
+- **SSH Land-and-Run** chokepoint entry (`chokepoints/execution/ssh-land-and-run.yml`)
+  - Lab-validated against Debian 12 and Rocky Linux 9 with auditd + Sysmon for Linux
+  - 8 delivery/execution variants tested with marker payloads
+  - Sliver C2 implant delivery and execution validated
+  - Lateral movement (internal SCP redeployment rocky9 → deb12) validated
+  - Three coverage gaps documented: authorized_keys persistence, sensitive file reads, system noise baseline
+  - Prior honeypot evidence: 4,893 of 69,979 sessions with commands (6.99%) staged and ran code over 153 days
+- Sigma rules at all three maturity levels (`sigma-rules/ssh-land-and-run/`)
+  - Research: file creation in staging directories (informational)
+  - Hunt: process execution from staging directories with noise filters (medium)
+  - Analyst: dot-prefixed binary execution and cron-from-staging (high)
+- Emulation script (`emulation/ssh-land-and-run/emulate.sh`) — benign marker payloads covering all tested delivery/execution variants
+
 ## [2026-09-08] - Chokepoint Page Standard and DonutLoader Scheduled Task
 
 ### Added
