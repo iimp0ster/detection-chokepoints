@@ -1,0 +1,43 @@
+title: SSH Land-and-Run - Suspicious Payload Execution from Staging Directory (Hunt)
+id: d5a6c3ad-48e6-4fb2-bf1d-109a7900213a
+name: ssh_run_from_staging_dir
+status: experimental
+description: >
+  Detects process execution where the binary or script was launched from a
+  common staging directory. Excludes known system paths to reduce noise.
+  Hunt level — medium false positive rate. Lab-validated 2026-09-28: every
+  execution method tested (bash, chmod+exec, source, python3, cron, nohup)
+  generated exec_log events. Sliver implant /tmp/.update and
+  /tmp/systemd-helper both matched. System filters for systemd-private,
+  dracut, and initramfs paths significantly reduce noise from the ~38k raw
+  exec events down to the ~780 operator-attributable events.
+references:
+  - https://attack.mitre.org/techniques/T1059/004/
+  - https://attack.mitre.org/techniques/T1105/
+  - https://github.com/iimp0ster/detection-chokepoints
+author: Jenna Frank (co-conspirator: SancLogic)
+date: 2026/09/28
+tags:
+  - attack.execution
+  - attack.t1059.004
+  - attack.t1105
+  - detection.maturity.hunt
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  selection:
+    Image|startswith:
+      - '/tmp/'
+      - '/dev/shm/'
+      - '/var/tmp/'
+  filter_system:
+    Image|contains:
+      - 'systemd-private'
+      - 'dracut'
+      - 'initramfs'
+  condition: selection and not filter_system
+falsepositives:
+  - Legitimate admin scripts stored in /tmp during maintenance
+  - Configuration management tools (Ansible, Puppet) staging in /tmp
+level: medium

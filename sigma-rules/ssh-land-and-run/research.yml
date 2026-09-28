@@ -1,0 +1,39 @@
+title: SSH Land-and-Run - Payload Staging in Temp Directories (Research)
+id: 34c48548-c78a-4325-bf2a-9d7e359fc1dc
+name: ssh_land_file_created
+status: experimental
+description: >
+  Detects file creation in common payload staging directories on Linux hosts.
+  Research level — high false positive rate from system activity. Use for
+  baselining what normally writes to these paths before tuning. Lab-validated
+  2026-09-28: all 8 delivery methods (scp, heredoc, base64, echo pipe, python
+  write, C2 upload, lateral scp, cron spool write) generated file_land events
+  on both Debian 12 and Rocky 9 targets. 26 file_land events on deb12, 30 on
+  rocky9. System noise is significant — dracut, systemd-private, package
+  managers — and must be baselined before hunting.
+references:
+  - https://attack.mitre.org/techniques/T1105/
+  - https://attack.mitre.org/techniques/T1059/004/
+  - https://github.com/iimp0ster/detection-chokepoints
+author: Jenna Frank (co-conspirator: SancLogic)
+date: 2026/09/28
+tags:
+  - attack.execution
+  - attack.t1059.004
+  - attack.t1105
+  - detection.maturity.research
+logsource:
+  product: linux
+  category: file_event
+detection:
+  selection:
+    TargetFilename|startswith:
+      - '/tmp/'
+      - '/dev/shm/'
+      - '/var/tmp/'
+  condition: selection
+falsepositives:
+  - System package managers writing temp files
+  - systemd-private tmp directory activity
+  - Application update mechanisms
+level: informational
