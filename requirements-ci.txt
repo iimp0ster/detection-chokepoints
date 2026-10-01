@@ -2,6 +2,6 @@
 # Pinned so a backend release cannot change a build verdict without a commit
 # here saying so. Covered by the existing dependabot pip entry (directory: "/").
 sigma-cli==3.1.0
-pySigma==1.5.0
+pySigma==1.5.1
 pySigma-backend-elasticsearch==2.1.1
-pySigma-validators-sigmahq==0.20.2
+pySigma-validators-sigmahq==0.21.0
