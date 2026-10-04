@@ -1,6 +1,5 @@
-title: SSH Land-and-Run - Payload Staging in Temp Directories (Research)
+title: Writable-Directory Stage-and-Execute - Payload Staging in Temp Directories (Research)
 id: 34c48548-c78a-4325-bf2a-9d7e359fc1dc
-name: ssh_land_file_created
 status: experimental
 description: >
   Detects file creation in common payload staging directories on Linux hosts.
@@ -13,15 +12,15 @@ description: >
   managers — and must be baselined before hunting.
 references:
   - https://attack.mitre.org/techniques/T1105/
-  - https://attack.mitre.org/techniques/T1059/004/
+  - https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
+  - https://intezer.com/blog/rocke-group-actively-targeting-the-cloud-wants-your-ssh-keys/
   - https://github.com/iimp0ster/detection-chokepoints
-author: Jenna Frank (co-conspirator: SancLogic)
-date: 2026/09/28
+author: "Jenna Frank (co-conspirator: SancLogic)"
+date: 2026-09-28
+modified: 2026-10-04
 tags:
-  - attack.execution
-  - attack.t1059.004
+  - attack.command-and-control
   - attack.t1105
-  - detection.maturity.research
 logsource:
   product: linux
   category: file_event

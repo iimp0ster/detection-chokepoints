@@ -1,5 +1,5 @@
 #!/bin/bash
-# SSH Land-and-Run Chokepoint Emulation
+# Writable-Directory Stage-and-Execute Chokepoint Emulation
 # SafetyNotes: Run ONLY in an isolated lab VM. Do NOT run on production hosts.
 # This script generates benign telemetry to validate auditd and Sysmon rules.
 # AtomicRef: T1059.004, T1105, T1053.003
@@ -15,6 +15,13 @@
 #   sudo journalctl -t CHOKEPOINT_EMULATION --no-pager
 
 set -euo pipefail
+
+# Safety gate: require explicit opt-in to prevent accidental production runs
+if [ "${CHOKEPOINT_LAB:-0}" != "1" ]; then
+    echo "ERROR: Set CHOKEPOINT_LAB=1 to confirm you are running in an isolated lab VM."
+    echo "Usage: CHOKEPOINT_LAB=1 bash emulate.sh"
+    exit 1
+fi
 
 MARKER_TAG="CHOKEPOINT_EMULATION"
 PASS=0
@@ -32,7 +39,8 @@ log_result() {
 }
 
 echo "============================================"
-echo "  SSH Land-and-Run Chokepoint Emulation"
+echo "  Writable-Directory Stage-and-Execute"
+echo "  Chokepoint Emulation"
 echo "  Generates detection telemetry ONLY"
 echo "  $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "============================================"
@@ -100,13 +108,20 @@ PAYLOAD
 chmod +x /dev/shm/.emulate_t07
 /dev/shm/.emulate_t07 && log_result "T07" "OK" "/dev/shm land, chmod+exec run (dot-prefix)" || log_result "T07" "FAIL" "/dev/shm land, chmod+exec run"
 
-# T08: Cron spool write (write only, does not install a running job)
+# T08: Cron spool write (writes to actual spool directory for file_land validation)
 echo "[T08] Cron spool directory write"
-if [ -d /var/spool/cron ] || [ -d /var/spool/cron/crontabs ]; then
-    SPOOL_DIR=$([ -d /var/spool/cron/crontabs ] && echo /var/spool/cron/crontabs || echo /var/spool/cron)
-    echo "# CHOKEPOINT_EMULATION T08 — this file is safe to delete" > /tmp/emulate_t08_cron.txt
-    logger -t ${MARKER_TAG} "T08 land=cron_spool run=deferred host=$(hostname) ts=$(date -u +%s)"
-    log_result "T08" "OK" "cron spool write (file_land on /var/spool/cron)"
+SPOOL_DIR=""
+if [ -d /var/spool/cron/crontabs ]; then
+    SPOOL_DIR="/var/spool/cron/crontabs"
+elif [ -d /var/spool/cron ]; then
+    SPOOL_DIR="/var/spool/cron"
+fi
+
+if [ -n "$SPOOL_DIR" ]; then
+    CRON_FILE="${SPOOL_DIR}/emulate_t08_chokepoint"
+    echo "# CHOKEPOINT_EMULATION T08 — safe to delete" > "$CRON_FILE"
+    logger -t ${MARKER_TAG} "T08 land=cron_spool run=write_only host=$(hostname) ts=$(date -u +%s)"
+    log_result "T08" "OK" "cron spool write (file_land on ${SPOOL_DIR})"
 else
     log_result "T08" "FAIL" "no cron spool directory found — skipped"
 fi
@@ -119,7 +134,7 @@ echo ""
 
 # Cleanup
 echo "[*] Cleaning up emulation artifacts"
-rm -f /tmp/emulate_t0*.sh /tmp/emulate_t06.py /tmp/emulate_t08_cron.txt /dev/shm/.emulate_t07
+rm -f /tmp/emulate_t0*.sh /tmp/emulate_t06.py /dev/shm/.emulate_t07 ${SPOOL_DIR:+"${SPOOL_DIR}/emulate_t08_chokepoint"}
 echo "[*] Cleanup complete"
 echo ""
 echo "[*] Verify telemetry:"
