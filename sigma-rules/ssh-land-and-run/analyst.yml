@@ -13,9 +13,9 @@ description: >
 references:
   - https://attack.mitre.org/techniques/T1059/004/
   - https://attack.mitre.org/techniques/T1105/
-  - https://attack.mitre.org/techniques/T1036/005/
   - https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
-  - https://intezer.com/blog/rocke-group-actively-targeting-the-cloud-wants-your-ssh-keys/
+  - https://www.zscaler.com/blogs/cybersecurity-best-practices/rocke-cryptominer
+  - https://attack.mitre.org/techniques/T1564/001/
   - https://github.com/iimp0ster/detection-chokepoints
 author: "Jenna Frank (co-conspirator: SancLogic)"
 date: 2026-09-28
@@ -24,7 +24,7 @@ tags:
   - attack.execution
   - attack.t1059.004
   - attack.defense-evasion
-  - attack.t1036.005
+  - attack.t1564.001
 logsource:
   product: linux
   category: process_creation
@@ -46,7 +46,9 @@ detection:
       - '/dev/shm/.'
       - '/var/tmp/.'
   selection_cron_from_staging:
-    ParentImage|endswith: '/cron'
+    ParentImage|endswith:
+      - '/cron'
+      - '/crond'
     Image|startswith:
       - '/tmp/'
       - '/dev/shm/'

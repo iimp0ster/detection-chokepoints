@@ -13,9 +13,8 @@ description: >
   selection_direct.
 references:
   - https://attack.mitre.org/techniques/T1059/004/
-  - https://attack.mitre.org/techniques/T1105/
   - https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
-  - https://intezer.com/blog/rocke-group-actively-targeting-the-cloud-wants-your-ssh-keys/
+  - https://www.zscaler.com/blogs/cybersecurity-best-practices/rocke-cryptominer
   - https://github.com/iimp0ster/detection-chokepoints
 author: "Jenna Frank (co-conspirator: SancLogic)"
 date: 2026-09-28
@@ -23,7 +22,6 @@ modified: 2026-10-04
 tags:
   - attack.execution
   - attack.t1059.004
-  - attack.t1105
 logsource:
   product: linux
   category: process_creation

