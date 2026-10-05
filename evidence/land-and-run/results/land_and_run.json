@@ -1,0 +1,99 @@
+{
+  "denominator_sessions_with_commands": 69979,
+  "sessions_with_any_land_run_event": 5224,
+  "classes": {
+    "staged_then_executed": {
+      "sessions": 4703,
+      "sources": 619,
+      "pct_of_land_run_sessions": 90.03
+    },
+    "in_memory": {
+      "sessions": 190,
+      "sources": 10,
+      "pct_of_land_run_sessions": 3.64
+    },
+    "staged_never_executed": {
+      "sessions": 124,
+      "sources": 68,
+      "pct_of_land_run_sessions": 2.37
+    },
+    "executed_no_staging": {
+      "sessions": 3,
+      "sources": 2,
+      "pct_of_land_run_sessions": 0.06
+    },
+    "execute_like_nothing_new": {
+      "sessions": 204,
+      "sources": 127,
+      "pct_of_land_run_sessions": 3.91
+    }
+  },
+  "overlap": {
+    "staged_then_executed_and_in_memory": 185
+  },
+  "staged_then_executed": {
+    "link_kind": {
+      "persistence_reference_only": 4055,
+      "direct_execute": 648
+    },
+    "first_stage_method": {
+      "stdin_to_file": 4055,
+      "fetch_to_file": 463,
+      "scp_pull": 185
+    },
+    "stage_to_execute_seconds": {
+      "n": 4703,
+      "min": 0.0,
+      "median": 15.55,
+      "p90": 18.38,
+      "max": 125.67
+    },
+    "same_session_correlation_within_5min": 4703,
+    "same_session_correlation_within_15min": 4703
+  },
+  "staged_never_executed_run_by_same_source_within_24h": 4,
+  "cross_session_5min_any_name": {
+    "staged_never_executed_followed_by_same_source_execute_event": 2,
+    "executed_no_staging_preceded_by_same_source_stage": 2
+  },
+  "direct_execute_only": {
+    "sessions": 648,
+    "stage_to_direct_execute_seconds": {
+      "n": 648,
+      "min": 0.0,
+      "median": 0.0,
+      "p90": 0.11,
+      "max": 14.81
+    },
+    "within_5min": 648,
+    "within_15min": 648
+  },
+  "write_probe_only_sessions_not_classified": 364,
+  "hunt_recon_presence_by_class": {
+    "execute_like_nothing_new": {
+      "hunt_recon_present": 159,
+      "no_hunt_recon": 45
+    },
+    "staged_then_executed": {
+      "hunt_recon_present": 4621,
+      "no_hunt_recon": 82
+    },
+    "executed_no_staging": {
+      "no_hunt_recon": 2,
+      "hunt_recon_present": 1
+    },
+    "in_memory": {
+      "hunt_recon_present": 128,
+      "no_hunt_recon": 62
+    },
+    "staged_never_executed": {
+      "no_hunt_recon": 96,
+      "hunt_recon_present": 28
+    }
+  },
+  "stdin_to_file_sessions_4117": {
+    "n": 4117,
+    "cron_or_unit_reference_only": 4055,
+    "no_linked_execute": 62
+  }
+}
