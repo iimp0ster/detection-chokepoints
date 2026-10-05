@@ -2,7 +2,7 @@
 
 ## Summary
 
-This PR adds live-fire lab validation for the writable-directory stage-and-execute detection chokepoint on Linux. Two throwaway Azure VMs (Debian 12, Rocky 9), both running auditd + Sysmon for Linux, were subjected to an authorized assumed-breach exercise covering initial access, execution, persistence, defense evasion, lateral movement, and C2-tunneled exfiltration. Every land method and every run method exercised was caught by the same two host-layer detection surfaces.
+This PR adds live-fire lab validation for the writable-directory stage-and-execute detection chokepoint on Linux. Two throwaway Azure VMs (Debian 12, Rocky 9), both running auditd + Sysmon for Linux, were subjected to an authorized assumed-breach exercise covering initial access, execution, persistence, defense evasion, lateral movement, and C2-tunneled exfiltration. Every validated land method generated `file_land`; every validated run method except `source` (BN-04, no new `execve`) generated `exec_log`. The revised T08 cron-spool write succeeded at script level but has no auditd receipt and is not telemetry-validated.
 
 The chokepoint is field-grounded against three independently sourced wild specimens: C0XMO (Gafgyt variant), the Rocke cryptomining group, and UNC3944 (Scattered Spider), all of which follow the same stage-then-execute pattern in shared-writable directories.
 
@@ -135,15 +135,15 @@ ATT&CK v19 (April 2026) split Defense Evasion (TA0005) into Stealth (TA0005) and
 
 ## What is the chokepoint?
 
-Code that lands on a Linux host as a file in a shared-writable directory (/tmp, /dev/shm, /var/tmp, /var/spool/cron) must be written before it can run. The write generates a file-creation event, the run generates an execve. This covers file-backed staging only.
+Code that lands on a Linux host as a file in a shared-writable directory (`/tmp`, `/dev/shm`, `/var/tmp`, `/var/spool/cron`) must be written before it can be consumed. Direct execution generates `execve`; interpreter consumption may instead expose the staged path in command-line or file-read telemetry. This covers file-backed staging only.
 
 ## Why can't attackers bypass this condition?
 
-File writes and execve are kernel-mediated operations. The attacker cannot execute a staged file without the kernel logging it. Delivery method rotation changes the source but not the file-write event. Execution method rotation changes the launcher but not the execve event. The known gap is source (shell builtin, no new execve), documented as BN-04.
+The file write is unavoidable for this scoped behavior, and the staged artifact must later be consumed to have an effect. Delivery and launch methods can rotate, but those conditions remain. Observability depends on configured telemetry: direct execution produces `execve`; interpreter launches can expose the path in command-line telemetry; and a sourced script using only shell builtins requires file-read monitoring. That `source` gap is documented as BN-04.
 
 ## Test environment / validation
 
-Two throwaway Azure VMs (Debian 12, Rocky 9) with auditd + Sysmon for Linux. Outbound firewalled — all C2 tunnelled via SSH reverse forwards. 8 marker payload variants + Sliver C2 implant + reverse shell + lateral movement validated. ~80k log lines captured, ~780 operator-attributable exec events. Field-grounded against C0XMO and Rocke. Full evidence package and per-claim reconciliation ledger attached.
+Two throwaway Azure VMs (Debian 12, Rocky 9) with auditd + Sysmon for Linux. Outbound firewalled — all C2 tunnelled via SSH reverse forwards. Seven current marker variants, a Sliver C2 implant, a reverse shell, and lateral movement were telemetry-validated; revised T08 has script-success evidence only. ~80k log lines captured, ~780 operator-attributable exec events. Field-grounded against C0XMO, Rocke, and UNC3944. The sanitized evidence subset and per-claim reconciliation ledger are committed under `evidence/land-and-run/`.
 
 ---
 

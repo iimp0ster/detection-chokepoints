@@ -300,7 +300,28 @@ The constant worth testing next is **"a file written by an SSH-session process i
 - **Classifications are text rules**, listed in full in `queries/hp_lib.py`.
 - **The six possible further operator addresses are still included** until the operator confirms them.
 
-## Pack contents
+## Private source pack and published subset
+
+The original private `evidence-pack-v2/` contains the complete analysis set
+listed below. This PR intentionally publishes only the land-and-run subset:
+the two counting modules, aggregate result, claims ledger, sanitized lab-log
+archives, and the T08 rerun receipt. Paths listed below which are absent from
+`evidence/land-and-run/` remain private provenance and are not represented as
+committed artifacts.
+
+### Published in this PR
+
+| Path | What it is |
+|---|---|
+| `EVIDENCE_SUMMARY.md` | This methodology and provenance summary |
+| `FINAL_NUMBERS.md` | Citable figures, denominators, ledger IDs, and queries |
+| `claims_ledger.csv` | Claim-level evidence states and limitations |
+| `queries/30_land_and_run.py`, `queries/hp_lib.py` | Land-and-run counting logic |
+| `results/land_and_run.json` | Sanitized aggregate result |
+| `lab/chokepoint_evidence_*.tar.gz` | Sanitized auditd and Sysmon lab logs rendered by the page |
+| `lab/emulate-receipt-t08-rerun.txt` | Current-script stdout; not an auditd validation receipt |
+
+### Original private pack contents
 
 | Path | What it is |
 |---|---|
@@ -325,7 +346,9 @@ The pseudonym map, the operator list, the look-alike review list and the scan re
 
 ## Output scan
 
-Script: `queries/12_scan_outputs.py`, the same scan as v1. It was run on 2026-09-26 over **all of v2**. Full report: `results/scan_report.txt`.
+Private-pack script: `queries/12_scan_outputs.py`, the same scan as v1. It was
+run on 2026-09-26 over **all of the private v2 pack**. The full report remains
+private at `results/scan_report.txt`; this section records its results.
 
 **What the scan covered:**
 
@@ -374,4 +397,6 @@ No attacker URL or domain appears undefanged.
 - Passwords under 6 characters.
 - Anything outside the pack. The private folder holds the pseudonym map, the operator list, the look-alike review list and the scan review file; it is outside the pack on purpose.
 
-Nothing was published or pushed, and no PR was opened.
+At the time of that scan, nothing had been published or pushed and no PR had
+been opened. This PR subsequently publishes the reduced, sanitized subset
+identified above.

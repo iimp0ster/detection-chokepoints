@@ -38,7 +38,7 @@ Description: >
   nohup), but the file-write event does not. This covers file-backed staging only. Stdin-only
   execution (curl | bash with no file on disk) and memory-only
   execution (memfd_create) are out of scope. Lab-validated across
-  8 delivery/execution variants, a Sliver C2 implant, and a
+  7 current delivery/execution variants, a Sliver C2 implant, and a
   lateral movement hop on Debian 12 and Rocky 9 with auditd and
   Sysmon for Linux. Of ~80k total log lines captured, ~780 were
   operator-attributable exec events. Same pattern seen in the wild:
@@ -93,7 +93,7 @@ Chokepoints:
     Observable: >
       auditd file-write event with key file_land on /tmp, /dev/shm, /var/tmp,
       /var/spool/cron; Sysmon for Linux EID 11 (FileCreate). Lab evidence:
-      26 file_land events on deb12, 30 on rocky9 — every delivery method
+      26 file_land events on deb12, 30 on rocky9 — every validated delivery method
       (scp, heredoc, base64, echo pipe, python write, C2 upload, lateral scp)
       generated at least one file_land event. Wild evidence: C0XMO writes
       to /tmp/.cache via wget; Rocke stages to /var/tmp via curl/wget.
@@ -206,7 +206,7 @@ Chokepoints:
     Observable: >
       A file create under a staging directory followed within 2 hours by a
       process whose Image is that same path, on the same host. Lab evidence:
-      every land method hit file_land; every run method except source
+      every validated land method hit file_land; every validated run method except source
       (BN-04) hit exec_log;
       the lateral-movement hop proves the same pattern fires on internal
       redeployment from a second host (T1021.004 / T1570).
@@ -382,8 +382,8 @@ Detections:
       Backends:
         - sigma-cli 3.1.0 / pySigma 1.5.1 (sigma check and EQL/Lucene conversion via pySigma-backend-elasticsearch)
       Notes: >
-        Lab-validated 2026-09-28. All 8 delivery methods generated file_land
-        events: 26 on deb12, 30 on rocky9. High noise from system activity
+        Lab-validated 2026-09-28. Seven current delivery methods generated
+        file_land events: 26 on deb12, 30 on rocky9. High noise from system activity
         confirmed — baseline tuning required. T08 (cron spool write) has not
         been revalidated after the emulate.sh revision; the September 28
         receipt validated the prior /tmp write, not the current spool-write

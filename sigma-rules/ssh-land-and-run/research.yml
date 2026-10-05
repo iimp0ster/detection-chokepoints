@@ -5,11 +5,13 @@ description: >
   Detects file creation in common payload staging directories on Linux hosts.
   Research level — high false positive rate from system activity. Use for
   baselining what normally writes to these paths before tuning. Lab-validated
-  2026-09-28: all 8 delivery methods (scp, heredoc, base64, echo pipe, python
-  write, C2 upload, lateral scp, cron spool write) generated file_land events
-  on both Debian 12 and Rocky 9 targets. 26 file_land events on deb12, 30 on
-  rocky9. System noise is significant — dracut, systemd-private, package
-  managers — and must be baselined before hunting.
+  2026-09-28: seven current delivery methods (scp, heredoc, base64, echo pipe,
+  python write, C2 upload, lateral scp) generated file_land events on Debian 12
+  and Rocky 9 targets. 26 file_land events on deb12, 30 on rocky9. The revised
+  T08 cron-spool write succeeded at script level on 2026-10-04 but has no
+  auditd file_land receipt, so it is not telemetry-validated. System noise is
+  significant — dracut, systemd-private, package managers — and must be
+  baselined before hunting.
 references:
   - https://attack.mitre.org/techniques/T1105/
   - https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
