@@ -31,9 +31,11 @@ Code that lands on a Linux host as a file in a shared-writable directory must be
 
 **C0XMO (Gafgyt variant)** — SSH/Telnet/HTTP brute-force, `wget -O /tmp/.cache`, `chmod 777`, `./.cache`, `rm -f .cache`. Same chokepoint across three delivery protocols. The dot-prefixed staging in /tmp matches the analyst-tier Sigma rule. Source: [Fortinet](https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo).
 
-**Rocke group** — Payload staged to /tmp, cron persistence via /var/spool/cron/root and /etc/cron.d/root, SSH key harvesting from known_hosts for lateral movement. Covers the cron spool and lateral movement angles. Source: [Intezer](https://intezer.com/blog/rocke-group-actively-targeting-the-cloud-wants-your-ssh-keys/).
+**Rocke group** — Payload staged to /var/tmp/kworkerds, cron persistence via /var/spool/cron/root and /etc/cron.d/root, SSH key harvesting from known_hosts for lateral movement. Covers the cron spool and lateral movement angles. Source: [Red Canary / Zscaler](https://www.zscaler.com/blogs/cybersecurity-best-practices/rocke-cryptominer), [Intezer](https://intezer.com/blog/rocke-group-actively-targeting-the-cloud-wants-your-ssh-keys/).
 
-Both confirm the invariant holds across delivery protocols. SSH is one variation, not part of the universal pattern.
+**UNC3944 (Scattered Spider)** — SCP ransomware to /tmp on ESXi hosts, chmod 0777, nohup with 4-hour sleep delay. Same staging chokepoint on ESXi as on Linux servers. Source: [Google Cloud](https://cloud.google.com/blog/topics/threat-intelligence/defending-vsphere-from-unc3944/).
+
+All three confirm the invariant holds across delivery protocols. SSH is one variation, not part of the universal pattern.
 
 ## Lab setup
 
@@ -112,7 +114,7 @@ Total captured log volume ≈ 80k lines; **operator-attributable exec events ≈
 
 ## ATT&CK v19 note
 
-ATT&CK v19 (April 2026) split Defense Evasion (TA0005) into Stealth (TA0005) and Defense Impairment (TA0112). T1036.005 (Masquerading: Match Legitimate Name or Location), tagged in the analyst rule, falls under Stealth. The Sigma tag `attack.defense-evasion` is still accepted — Sigma's tag taxonomy has not yet adopted the split — but the mapping is noted here for future alignment.
+ATT&CK v19 (April 2026) split Defense Evasion (TA0005) into Stealth (TA0005) and Defense Impairment (TA0112). T1564.001 (Hidden Files and Directories), tagged in the analyst rule, falls under Stealth. The analyst rule uses attack.stealth for T1564.001, as required by the repository's pinned validator.
 
 ---
 
@@ -127,7 +129,7 @@ ATT&CK v19 (April 2026) split Defense Evasion (TA0005) into Stealth (TA0005) and
 - [x] Research sigma rule at `sigma-rules/ssh-land-and-run/research.yml`
 - [x] Hunt sigma rule at `sigma-rules/ssh-land-and-run/hunt.yml` (direct + interpreter paths)
 - [x] Analyst sigma rule at `sigma-rules/ssh-land-and-run/analyst.yml` (direct + interpreter paths)
-- [x] Threat narratives: C0XMO (Fortinet), Rocke (Intezer), and UNC3944 (Google/Mandiant)
+- [x] Threat narratives: C0XMO (Fortinet), Rocke (Red Canary / Zscaler), and UNC3944 (Google/Mandiant)
 - [x] At least one source reference included
 - [x] All IOCs defanged
 - [x] CHANGELOG.md updated
