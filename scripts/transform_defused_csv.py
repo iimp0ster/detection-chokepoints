@@ -2,15 +2,18 @@
 """Transform Defused honeypot export CSV(s) into _data/edge_exploits.yml.
 
 Why this exists: the edge-exploits trends page used to be hand-typed. This reads
-the Defused export(s) (default: all export_shared_*.csv in ~/Downloads),
+the Defused export(s) (default: legacy export_shared_*.csv plus current
+defused-intel-*.csv files in ~/Downloads),
 aggregates per day, and writes combined = frozen baseline + live so history
 ACCUMULATES instead of being overwritten (decision #002). Aggregates only -- no
 IP address ever reaches the repo (decision #001); only counts.
 
 Data shape facts this relies on (verified against the May 2026 export and the
 page it reproduces):
-  * Exports are pre-filtered by the analyst to high+critical severity, so the
-    Severity column is uniformly "major" -- a dead dimension, intentionally skipped.
+  * The published longitudinal series is restricted to Defused severity "major",
+    matching the page's original high/critical scope. Newer all-products exports
+    also contain "medium" rows; those are summarized separately as the latest raw
+    export snapshot and never mixed into the comparable historical series.
   * Each export covers a time WINDOW, not a cumulative dump. Windows are merged
     at DAY granularity, keeping the FULLEST capture of each day (max row count
     across the exports covering it). Exports are snapshots of an append-only feed,
@@ -26,8 +29,8 @@ retained; it survives only as scripts/edge_exploits_baseline.yml (frozen, never
 recomputed). baseline = (page combined) - (CSV live), validated once.
 
 Usage:
-    py scripts/transform_defused_csv.py                 # all CSVs in ~/Downloads
-    py scripts/transform_defused_csv.py --input X.csv   # one specific export
+    py scripts/transform_defused_csv.py                 # all matching CSVs in ~/Downloads
+    py scripts/transform_defused_csv.py --input X.csv   # one or more specific exports
     py scripts/transform_defused_csv.py --check-seed    # assert it reproduces the page
 """
 from __future__ import annotations
@@ -46,7 +49,11 @@ import yaml
 REPO = Path(__file__).resolve().parent.parent
 BASELINE_FILE = REPO / "scripts" / "edge_exploits_baseline.yml"
 OUT = REPO / "_data" / "edge_exploits.yml"
-DEFAULT_GLOB = os.path.expanduser("~/Downloads/export_shared_*.csv")
+DEFAULT_GLOBS = [
+    os.path.expanduser("~/Downloads/export_shared_*.csv"),
+    os.path.expanduser("~/Downloads/defused-intel-*.csv"),
+]
+PUBLISHED_SEVERITIES = {"major"}
 
 CVE_RE = re.compile(r"CVE-\d{4}-\d{4,7}")
 MONTHS = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
@@ -58,6 +65,7 @@ MONTHS = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
 DECOY_DISPLAY = {
     "cPanel": "cPanel WHM",
     "Cisco Catalyst SD-WAN (vManage)": "Cisco SD-WAN",
+    "Wordpress // W3 Total Cache": "WordPress W3 Total Cache",
 }
 
 # Page headline stat cells, keyed by CVE. baseline contributes the first-window
@@ -129,31 +137,44 @@ def classify(alert: str) -> str:
     return "exploit" if "vulnerability exploited" in alert.lower() else "recon"
 
 
-def aggregate_file(path):
-    """One export CSV -> ({iso_date: {total, ips:set, cve:Counter, decoy:Counter}}, row_count).
+def _source_ip(value: str) -> str:
+    """Normalize an exported source address for in-memory cardinality only."""
+    value = value.strip()
+    if value.count(":") == 1 and "." in value:
+        return value.rsplit(":", 1)[0]
+    return value
 
-    Counts every row -- see module docstring on why there is no row-level dedup.
-    Cross-export overlap is resolved at the day level in build() (newest wins).
-    row_count lets build() detect a row-capped (truncated) export.
+
+def aggregate_file(path):
+    """One export CSV -> (published daily records, file metadata).
+
+    File metadata is aggregate-only and lets build() detect row caps and select the
+    newest export for the raw-scope snapshot. The published daily records include
+    only PUBLISHED_SEVERITIES so unlike-for-like historical charts stay comparable.
     """
     days = {}
     n = 0
+    raw_dates = Counter()
+    severities = Counter()
     with open(path, encoding="utf-8", newline="") as f:
         for r in csv.DictReader(f):
             n += 1
             iso = (r.get("Datetime") or "")[:10]
             if not iso:
                 continue
+            raw_dates[iso] += 1
+            severity = (r.get("Severity") or "").strip().lower()
+            severities[severity or "(blank)"] += 1
+            if severity not in PUBLISHED_SEVERITIES:
+                continue
             rec = days.setdefault(iso, {"total": 0, "ips": set(),
                                         "cve": Counter(), "decoy": Counter(),
                                         "cls": Counter(), "cve_cls": Counter()})
             rec["total"] += 1
-            ip = (r.get("Attacker IP") or "").strip()
+            ip = _source_ip(r.get("Attacker IP") or "")
             # Newer exports append the source :port (137.0.0.1:52396); older ones give
             # the bare IP. Strip an IPv4 port so a source counts once, not once per
             # ephemeral port, and stays consistent across the two export formats.
-            if ip.count(":") == 1 and "." in ip:
-                ip = ip.rsplit(":", 1)[0]
             if ip:
                 rec["ips"].add(ip)
             decoy = (r.get("Decoy Type") or "").strip()
@@ -165,29 +186,142 @@ def aggregate_file(path):
             if m:
                 rec["cve"][m.group(0)] += 1
                 rec["cve_cls"][(m.group(0), cls)] += 1
-    return days, n
+    return days, {
+        "row_count": n,
+        "raw_dates": raw_dates,
+        "severities": severities,
+        "raw_min": min(raw_dates) if raw_dates else None,
+        "raw_max": max(raw_dates) if raw_dates else None,
+    }
+
+
+def latest_export_snapshot(path, file_meta):
+    """Aggregate the newest raw export without mixing its scope into the trend.
+
+    The oldest day of a capped export is omitted because its count is truncated.
+    The newest day is retained but labeled partial, matching the chart convention.
+    Only counts and source cardinalities leave this function; no address is written.
+    """
+    capped = file_meta["row_count"] >= EXPORT_ROW_CAP
+    truncated_date = file_meta["raw_min"] if capped else None
+    severity = Counter()
+    decoys = Counter()
+    alerts = Counter()
+    cves = Counter()
+    cls = Counter()
+    ips = set()
+    major_decoys = Counter()
+    major_cves = Counter()
+    major_cls = Counter()
+    major_ips = set()
+    dates = Counter()
+
+    with open(path, encoding="utf-8", newline="") as f:
+        for r in csv.DictReader(f):
+            iso = (r.get("Datetime") or "")[:10]
+            if not iso or iso == truncated_date:
+                continue
+            sev = (r.get("Severity") or "").strip().lower() or "(blank)"
+            alert = (r.get("Alert") or "").strip()
+            decoy_raw = (r.get("Decoy Type") or "").strip()
+            decoy = DECOY_DISPLAY.get(decoy_raw, decoy_raw)
+            stage = classify(alert)
+            ip = _source_ip(r.get("Attacker IP") or "")
+            hit = CVE_RE.search(alert)
+
+            dates[iso] += 1
+            severity[sev] += 1
+            decoys[decoy] += 1
+            alerts[alert] += 1
+            cls[stage] += 1
+            if ip:
+                ips.add(ip)
+            if hit:
+                cves[hit.group(0)] += 1
+
+            if sev in PUBLISHED_SEVERITIES:
+                major_decoys[decoy] += 1
+                major_cls[stage] += 1
+                if ip:
+                    major_ips.add(ip)
+                if hit:
+                    major_cves[hit.group(0)] += 1
+
+    usable_events = sum(dates.values())
+    major_events = sum(major_cls.values())
+    usable_min = min(dates) if dates else None
+    usable_max = max(dates) if dates else None
+
+    def ranked(counter, key, limit=8):
+        return [{key: name, "count": count, "display": f"{count:,}",
+                 "pct": round(100 * count / max(1, usable_events), 1)}
+                for name, count in counter.most_common(limit)]
+
+    return {
+        "source_file": path.name,
+        "observed_window": (f"{label_for(file_meta['raw_min'])} - "
+                            f"{label_for(file_meta['raw_max'])}, {file_meta['raw_max'][:4]}"),
+        "usable_window": (f"{label_for(usable_min)} - {label_for(usable_max)}, {usable_max[:4]}"
+                          if usable_min else "none"),
+        "row_count": file_meta["row_count"],
+        "row_count_display": f"{file_meta['row_count']:,}",
+        "row_cap": capped,
+        "truncated_date": truncated_date,
+        "partial_date": file_meta["raw_max"],
+        "usable_events": usable_events,
+        "usable_events_display": f"{usable_events:,}",
+        "unique_ips": len(ips),
+        "severity": [{"name": name, "count": count,
+                      "pct": round(100 * count / max(1, usable_events), 1)}
+                     for name, count in severity.most_common()],
+        "exploit": cls["exploit"],
+        "recon": cls["recon"],
+        "exploit_pct": round(100 * cls["exploit"] / max(1, usable_events), 1),
+        "recon_pct": round(100 * cls["recon"] / max(1, usable_events), 1),
+        "top_targets": ranked(decoys, "name"),
+        "top_alerts": ranked(alerts, "name"),
+        "top_cves": ranked(cves, "id"),
+        "major_events": major_events,
+        "major_events_display": f"{major_events:,}",
+        "major_pct": round(100 * major_events / max(1, usable_events), 1),
+        "non_major_events": usable_events - major_events,
+        "non_major_pct": round(100 * (usable_events - major_events)
+                               / max(1, usable_events), 1),
+        "major_unique_ips": len(major_ips),
+        "major_exploit": major_cls["exploit"],
+        "major_recon": major_cls["recon"],
+        "major_targets": [{"name": name, "count": count, "display": f"{count:,}"}
+                          for name, count in major_decoys.most_common(8)],
+        "major_cves": [{"id": name, "count": count, "display": f"{count:,}"}
+                       for name, count in major_cves.most_common(8)],
+    }
 
 
 def build(paths):
     baseline = yaml.safe_load(BASELINE_FILE.read_text(encoding="utf-8"))
-    # Merge exports at day granularity: process oldest->newest (export_shared_
-    # YYYYMMDD_* sorts chronologically) so a newer export's day replaces an older
-    # one (newest is most complete). Disjoint windows simply union.
+    # Merge exports at day granularity. Max-wins makes path order irrelevant and
+    # keeps the fullest capture where export windows overlap. Disjoint windows union.
     live_days = {}
     seen_days = set()
     # (path, oldest_date, that_file's_count_for_oldest_date) for every capped export --
     # resolved to a final gap-day set AFTER the merge, since another export covering the
     # same day more completely would win the max and leave it a normal (non-gap) day.
     capped_candidates = []
+    file_metas = {}
     for p in sorted(paths):
-        fdays, row_count = aggregate_file(p)
+        fdays, file_meta = aggregate_file(p)
+        file_metas[p] = file_meta
+        excluded = file_meta["row_count"] - sum(d["total"] for d in fdays.values())
+        if excluded:
+            print(f"  {p.name}: excluded {excluded:,} non-major row(s) from the "
+                  "published high/critical series.")
         overlap = seen_days & set(fdays)
         if overlap:
             print(f"  {p.name}: {len(overlap)} day(s) overlap an earlier export; "
                   "kept the fuller (higher-count) capture per day.")
-        if row_count >= EXPORT_ROW_CAP and fdays:
-            oldest = min(fdays)
-            capped_candidates.append((p, oldest, fdays[oldest]["total"]))
+        if file_meta["row_count"] >= EXPORT_ROW_CAP and file_meta["raw_min"]:
+            oldest = file_meta["raw_min"]
+            capped_candidates.append((p, oldest, fdays.get(oldest, {}).get("total", 0)))
         # Per-day MAX-wins: keep the fullest capture of each day (see module docstring).
         for iso, rec in fdays.items():
             if iso not in live_days or rec["total"] > live_days[iso]["total"]:
@@ -203,12 +337,12 @@ def build(paths):
     # (wins the max) and closes the gap automatically, no code change needed.
     capped_gap_days = set()
     for p, oldest, day_total in capped_candidates:
-        if live_days[oldest]["total"] == day_total:
+        if oldest not in live_days or live_days[oldest]["total"] <= day_total:
             capped_gap_days.add(oldest)
             print(f"  WARN {p.name}: hit the {EXPORT_ROW_CAP}-row cap -- oldest day "
                   f"{oldest} is truncated with no fuller capture; rendered as a GAP.")
     for iso in capped_gap_days:
-        del live_days[iso]
+        live_days.pop(iso, None)
 
     live_total = sum(d["total"] for d in live_days.values())
     live_cve, live_decoy, live_ips = Counter(), Counter(), set()
@@ -355,11 +489,17 @@ def build(paths):
         cb2_data.append(live_days[iso]["cve"].get("CVE-2025-5777", 0))
     cb2_daily = {"dates": cb2_dates, "labels": cb2_labels, "data": cb2_data}
 
+    latest_path = max(
+        file_metas,
+        key=lambda p: (file_metas[p]["raw_max"] or "", p.stat().st_mtime),
+    )
+    latest_snapshot = latest_export_snapshot(latest_path, file_metas[latest_path])
+
     out = {
         "meta": {
             "source": "Defused Cyber honeypot telemetry",
             "source_url": "https://defusedcyber.com/",
-            "severity_scope": "high and critical severity alerts only",
+            "severity_scope": "Defused 'major' alerts (high/critical page scope)",
             "baseline_window": baseline["window"],
             "live_window": f"{label_for(live_min)} - {label_for(live_max)}, {live_max[:4]}",
             "date_range": f"{label_for(base_min)} - {label_for(live_max)}, {live_max[:4]}",
@@ -389,6 +529,7 @@ def build(paths):
             "daily": exploit_recon_daily,
         },
         "lead_times": lead_times,
+        "latest_export": latest_snapshot,
     }
     return out, live_total, live_cve, live_ips
 
@@ -429,15 +570,24 @@ def check_seed(out, live_total, live_cve, live_ips) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--input", help="one export CSV (default: all export_shared_*.csv in ~/Downloads)")
-    ap.add_argument("--glob", default=DEFAULT_GLOB)
+    ap.add_argument("--input", action="append",
+                    help="specific export CSV; repeat for multiple files")
+    ap.add_argument("--glob", action="append",
+                    help="export glob; repeat for multiple patterns")
     ap.add_argument("--check-seed", action="store_true",
                     help="assert output reproduces the page (seed-time validation)")
     args = ap.parse_args()
 
-    paths = [Path(args.input)] if args.input else [Path(p) for p in sorted(glob.glob(args.glob))]
+    if args.input:
+        paths = [Path(p) for p in args.input]
+        looked_for = args.input
+    else:
+        patterns = args.glob or DEFAULT_GLOBS
+        looked_for = patterns
+        paths = [Path(p) for pattern in patterns for p in glob.glob(pattern)]
+    paths = sorted({p.resolve() for p in paths})
     if not paths:
-        raise SystemExit(f"No export CSV found (looked for {args.glob})")
+        raise SystemExit(f"No export CSV found (looked for {looked_for})")
 
     out, live_total, live_cve, live_ips = build(paths)
     if args.check_seed:
