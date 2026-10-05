@@ -19,11 +19,11 @@ references:
   - https://github.com/iimp0ster/detection-chokepoints
 author: "Jenna Frank (co-conspirator: SancLogic)"
 date: 2026-09-28
-modified: 2026-10-04
+modified: 2026-10-05
 tags:
   - attack.execution
   - attack.t1059.004
-  - attack.defense-evasion
+  - attack.stealth
   - attack.t1564.001
 logsource:
   product: linux

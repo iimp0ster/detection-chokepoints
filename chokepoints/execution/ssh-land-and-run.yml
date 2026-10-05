@@ -45,12 +45,12 @@ Description: >
   C0XMO writes to /tmp/.cache, chmod 777, executes, deletes. Rocke
   group stages to /var/tmp with cron persistence via /var/spool/cron.
   On a 153-day SSH honeypot, 4,703 of the 5,020 sessions with
-  stage, execute, or in-memory activity (93.69%) wrote to a
-  shared-writable directory and then executed or scheduled the file
-  from there. The detection has to join on the file path, not the
+  stage, execute, or in-memory activity (93.69%) exhibited linked
+  stage-to-execution in a shared-writable directory: the file was
+  staged there and then executed or scheduled from there. The detection has to join on the file path, not the
   delivery session, because 86.22% of the linked runs were only
   scheduled with a cron line and would start later under crond.
-LastUpdated: '2026-10-04'
+LastUpdated: '2026-10-05'
 Author: Jenna Frank
 CoConspirator: SancLogic
 
@@ -82,8 +82,8 @@ AttackerControls:
 
 AttackerCannotControl:
   - The file write to a staging directory generating a kernel-mediated event
-  - The consumption of the staged file generating observable telemetry (execve for direct execution; command-line arguments or file-access events for interpreter consumption)
-  - The fact that both events are host-local and linkable by path
+  - "The unavoidable consumption of the staged file: to have any effect it must be executed, passed to an interpreter, or sourced. Whether that consumption is observable depends on configured telemetry (execve for direct execution; command-line arguments for interpreter consumption; file-read monitoring for a sourced script that uses only shell builtins)"
+  - The fact that both events are host-local and, when file-write and process-creation telemetry is configured, recorded and linkable by path
   - That tmpfs-backed paths (/dev/shm) still generate file-write events
 
 Chokepoints:
@@ -151,7 +151,7 @@ Chokepoints:
           paths is needed before this is analyst-usable.
   - Stage: Run
     Input: The payload is on the host as a file
-    Invariant: Some process must consume the staged file, either directly by path or through an interpreter.
+    Invariant: Some process must consume the staged file, either by executing it directly, passing it to an interpreter, or sourcing it.
     Observable: >
       Direct execution: auditd execve with the staged path as exe;
       Sysmon EID 1 with Image under a staging directory. Lab evidence:
@@ -163,7 +163,7 @@ Chokepoints:
       (see BN-04). Wild evidence: C0XMO uses direct execution
       (./.cache after chmod 777).
     WhyCantBypass: >
-      A file that is never executed has no effect. The honeypot showed three
+      A file that is never consumed has no effect. The honeypot showed three
       launchers: a direct run in the session (648 sessions), a cron line only
       (4,055), and a run from a separate SSH connection seconds later (2
       sessions from src-5063). In the wild, C0XMO runs ./tmp/.cache directly,
@@ -175,6 +175,13 @@ Chokepoints:
       interpreter plus the staged path in its command-line arguments.
       The source builtin (BN-04) is the exception: no new execve fires,
       but file_land still catches the staging write.
+
+      Note: a sourced script that uses only shell builtins does not spawn a
+      new child process, so its consumption is not observable with
+      write-plus-process-creation telemetry alone; file-read monitoring
+      (auditd read watches or an eBPF-based sensor) would be required. The
+      unavoidable condition is consumption; observability depends on
+      configured telemetry.
     LogSources:
       - Sysmon for Linux Event ID 1 (Process Creation)
       - "auditd: -a always,exit -F arch=b64 -S execve -F key=exec_log (and b32)"
@@ -377,7 +384,13 @@ Detections:
       Notes: >
         Lab-validated 2026-09-28. All 8 delivery methods generated file_land
         events: 26 on deb12, 30 on rocky9. High noise from system activity
-        confirmed — baseline tuning required.
+        confirmed — baseline tuning required. T08 (cron spool write) has not
+        been revalidated after the emulate.sh revision; the September 28
+        receipt validated the prior /tmp write, not the current spool-write
+        behavior. T08 is not yet validated. A 2026-10-04 rerun of the current
+        script (evidence/land-and-run/lab/emulate-receipt-t08-rerun.txt) is
+        script stdout only: it shows the spool write succeeded but captures
+        no auditd file_land record.
   - Level: Hunt
     Description: >
       A process run from a staging directory (direct execution) or an
@@ -498,9 +511,16 @@ HoneypotMethodology:
     asyncssh-based. Every credential accepted; command transcripts recorded
     from an emulated shell. No process telemetry — these are command-line
     transcripts, not endpoint logs. Operator sessions excluded.
-  CountingScript: queries/30_land_and_run.py
-  CountingResults: land_and_run.json
-  EvidencePack: evidence-pack-v2/
+  CountingScript: evidence/land-and-run/queries/30_land_and_run.py
+  CountingResults: evidence/land-and-run/results/land_and_run.json
+  EvidencePack: >
+    evidence/land-and-run/ holds the counting script and its shared library
+    (queries/), the aggregate results (results/land_and_run.json), the claims
+    ledger behind the LedgerID values (claims_ledger.csv), and the lab
+    archives and emulation receipt (lab/). The honeypot snapshot database,
+    the source-IP pseudonym map, the operator IP list, and the per-session
+    result files are not published, so the script can be read against the
+    aggregate results but not rerun from this repository.
   Denominator: >
     69,979 sessions with at least one command. 5,224 of these (7.47%) had
     at least one stage, in-memory, execute, or execute-like event.
@@ -529,7 +549,7 @@ HoneypotMethodology:
         (RouterOS probes, system binaries, reverse-shell one-liners) are
         excluded because they run nothing the session staged.
       LedgerID: L01, L02
-    - Figure: '93.69% wrote to a shared-writable directory'
+    - Figure: '93.69% exhibited linked stage-to-execution in a shared-writable directory'
       Derivation: '4,703 / 5,020 = 93.69%. Denominator is the 5,020 above.'
       LedgerID: L02
     - Figure: '86.22% linked runs were cron-scheduled only'
@@ -545,10 +565,10 @@ HoneypotMethodology:
 RawLogs:
   - Type: auditd file_land
     EventId: SYSCALL + PATH
-    Source: chokepoint_evidence_deb12.tar.gz / chokepoint_evidence_rocky9.tar.gz
+    Source: evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz / evidence/land-and-run/lab/chokepoint_evidence_rocky9.tar.gz
     Description: "File write to staging directory — the 'land' side of the chokepoint"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28. Both targets destroyed after evidence collection."
-    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz
     MatchedRules:
       - Research
     Sample: |
@@ -556,10 +576,10 @@ RawLogs:
       type=PATH ... name="/tmp/t01.sh" ... ouid=1001(sanc)
   - Type: auditd exec_log
     EventId: SYSCALL + EXECVE
-    Source: chokepoint_evidence_deb12.tar.gz / chokepoint_evidence_rocky9.tar.gz
+    Source: evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz / evidence/land-and-run/lab/chokepoint_evidence_rocky9.tar.gz
     Description: "Process execution — the 'run' side of the chokepoint"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28."
-    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz
     MatchedRules:
       - Hunt
       - Analyst
@@ -568,10 +588,10 @@ RawLogs:
       type=EXECVE ... a0="/usr/bin/bash" a1="/tmp/t01.sh"
   - Type: Sysmon for Linux Event ID 1
     EventId: "1"
-    Source: chokepoint_evidence_deb12.tar.gz / chokepoint_evidence_rocky9.tar.gz
+    Source: evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz / evidence/land-and-run/lab/chokepoint_evidence_rocky9.tar.gz
     Description: "Process creation with full command line"
-    EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28."
-    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
+    EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28. In the published Rocky 9 archive one public IPv4 address in ev_sysmon.log is replaced with <redacted-operator-host>; nothing else is altered."
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/lab/chokepoint_evidence_rocky9.tar.gz
     MatchedRules:
       - Hunt
       - Analyst
@@ -582,10 +602,10 @@ RawLogs:
       <Data Name="User">sanc</Data></EventData></Event>
   - Type: CHOKEPOINT marker
     EventId: syslog
-    Source: chokepoint_evidence_deb12.tar.gz (journalctl)
+    Source: evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz (journalctl, tmp/ev_markers.log)
     Description: "Marker payloads confirming each delivery/execution variant"
     EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28. Markers only emitted on deb12."
-    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz
     MatchedRules:
       - Research
       - Hunt
@@ -600,8 +620,8 @@ RawLogs:
     EventId: command
     Source: honeypot events table / events.jsonl
     Description: 'Land: a download to a file in the same request that runs it'
-    EvidenceBasis: 'Real capture from my own honeypot, 2026-04-27 to 2026-09-26 UTC. Emulated shell: nothing was downloaded or run; this is an attempted command. Staging address pseudonymised, URL defanged.'
-    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
+    EvidenceBasis: 'Real capture from my own honeypot, 2026-04-27 to 2026-09-26 UTC. Emulated shell: nothing was downloaded or run; this is an attempted command. Staging address pseudonymised, URL defanged. Raw honeypot events are not published; the linked claims ledger holds the aggregate counts these samples illustrate.'
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/claims_ledger.csv
     MatchedRules:
       - Research
       - Analyst
@@ -611,8 +631,8 @@ RawLogs:
     EventId: command
     Source: honeypot events table / events.jsonl (events.id 9422)
     Description: 'Land over stdin: the cat > "w.sh" part of a chained line; the same session later names w.sh in a cron line'
-    EvidenceBasis: 'Real capture from my own honeypot, 2026-05-06 UTC. The part starts with "then" because the emulated shell split an if/then line on "; ". The defanger renders w.sh as w[.]sh. stdin bytes were not captured. Source IP pseudonymised.'
-    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
+    EvidenceBasis: 'Real capture from my own honeypot, 2026-05-06 UTC. The part starts with "then" because the emulated shell split an if/then line on "; ". The defanger renders w.sh as w[.]sh. stdin bytes were not captured. Source IP pseudonymised. Raw honeypot events are not published; the linked claims ledger holds the aggregate counts these samples illustrate.'
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/claims_ledger.csv
     MatchedRules:
       - Research
       - Analyst
@@ -622,8 +642,8 @@ RawLogs:
     EventId: command
     Source: honeypot events table / events.jsonl (events.id 786044)
     Description: 'Run through an interpreter in a new SSH connection, 3 s after the same source pushed the file with scp -t in another connection'
-    EvidenceBasis: 'Real capture from my own honeypot, 2026-09-08 UTC. The only command event in this session. Source IP pseudonymised.'
-    SourceURL: https://github.com/iimp0ster/detection-chokepoints/pull/191
+    EvidenceBasis: 'Real capture from my own honeypot, 2026-09-08 UTC. The only command event in this session. Source IP pseudonymised. Raw honeypot events are not published; the linked claims ledger holds the aggregate counts these samples illustrate.'
+    SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/claims_ledger.csv
     MatchedRules:
       - Hunt
       - Analyst
@@ -635,8 +655,8 @@ EmulationScript:
   Language: shell
   AtomicRef: "T1059.004, T1105, T1053.003"
   Description: >
-    Benign marker payloads staged to /tmp and /dev/shm, run via multiple methods, cron spool validated.
-    Run 2026-09-28 on Debian 12 and Rocky 9. All markers fired.
+    Benign marker payloads staged to /tmp and /dev/shm, run several ways.
+    Lab run 2026-09-28 predates the T08 revision; T08 (cron spool write) is not yet validated.
   SafetyNotes: >
     Run ONLY in an isolated lab VM. Do NOT run on production hosts. This
     script generates benign telemetry to validate auditd and Sysmon rules.
