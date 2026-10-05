@@ -567,7 +567,7 @@ RawLogs:
     EventId: SYSCALL + PATH
     Source: evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz / evidence/land-and-run/lab/chokepoint_evidence_rocky9.tar.gz
     Description: "File write to staging directory — the 'land' side of the chokepoint"
-    EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28. Both targets destroyed after evidence collection."
+    EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28. Both targets destroyed after evidence collection. Displayed samples are from raw auditd output; the committed archives contain host-level interpreted summaries."
     SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz
     MatchedRules:
       - Research
@@ -578,7 +578,7 @@ RawLogs:
     EventId: SYSCALL + EXECVE
     Source: evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz / evidence/land-and-run/lab/chokepoint_evidence_rocky9.tar.gz
     Description: "Process execution — the 'run' side of the chokepoint"
-    EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28."
+    EvidenceBasis: "Real capture from authorized lab exercise, 2026-09-28. Displayed samples are from raw auditd output; the committed archives contain host-level interpreted summaries."
     SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/lab/chokepoint_evidence_deb12.tar.gz
     MatchedRules:
       - Hunt
@@ -620,7 +620,7 @@ RawLogs:
     EventId: command
     Source: honeypot events table / events.jsonl
     Description: 'Land: a download to a file in the same request that runs it'
-    EvidenceBasis: 'Real capture from my own honeypot, 2026-04-27 to 2026-09-26 UTC. Emulated shell: nothing was downloaded or run; this is an attempted command. Staging address pseudonymised, URL defanged. Raw honeypot events are not published; the linked claims ledger holds the aggregate counts these samples illustrate.'
+    EvidenceBasis: 'Real capture from my own honeypot, 2026-04-27 to 2026-09-26 UTC. Emulated shell: nothing was downloaded or run; this is an attempted command. Staging address pseudonymised, URL defanged. Raw session transcripts are not published; samples are representative of the observed pattern. The linked claims ledger holds the aggregate counts.'
     SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/claims_ledger.csv
     MatchedRules:
       - Research
@@ -631,7 +631,7 @@ RawLogs:
     EventId: command
     Source: honeypot events table / events.jsonl (events.id 9422)
     Description: 'Land over stdin: the cat > "w.sh" part of a chained line; the same session later names w.sh in a cron line'
-    EvidenceBasis: 'Real capture from my own honeypot, 2026-05-06 UTC. The part starts with "then" because the emulated shell split an if/then line on "; ". The defanger renders w.sh as w[.]sh. stdin bytes were not captured. Source IP pseudonymised. Raw honeypot events are not published; the linked claims ledger holds the aggregate counts these samples illustrate.'
+    EvidenceBasis: 'Real capture from my own honeypot, 2026-05-06 UTC. The part starts with "then" because the emulated shell split an if/then line on "; ". The defanger renders w.sh as w[.]sh. stdin bytes were not captured. Source IP pseudonymised. Raw session transcripts are not published; samples are representative of the observed pattern. The linked claims ledger holds the aggregate counts.'
     SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/claims_ledger.csv
     MatchedRules:
       - Research
@@ -642,7 +642,7 @@ RawLogs:
     EventId: command
     Source: honeypot events table / events.jsonl (events.id 786044)
     Description: 'Run through an interpreter in a new SSH connection, 3 s after the same source pushed the file with scp -t in another connection'
-    EvidenceBasis: 'Real capture from my own honeypot, 2026-09-08 UTC. The only command event in this session. Source IP pseudonymised. Raw honeypot events are not published; the linked claims ledger holds the aggregate counts these samples illustrate.'
+    EvidenceBasis: 'Real capture from my own honeypot, 2026-09-08 UTC. The only command event in this session. Source IP pseudonymised. Raw session transcripts are not published; samples are representative of the observed pattern. The linked claims ledger holds the aggregate counts.'
     SourceURL: https://github.com/iimp0ster/detection-chokepoints/blob/8c95c9ed9e42f39ce76743e6d07dd7a75c183296/evidence/land-and-run/claims_ledger.csv
     MatchedRules:
       - Hunt
