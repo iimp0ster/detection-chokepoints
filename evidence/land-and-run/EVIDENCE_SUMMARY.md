@@ -302,7 +302,7 @@ The constant worth testing next is **"a file written by an SSH-session process i
 
 ## Private source pack and published subset
 
-The original private `evidence-pack-v2/` contains the complete analysis set
+The original private `evidence-pack-v4/` contains the complete analysis set
 listed below. This PR intentionally publishes only the land-and-run subset:
 the two counting modules, aggregate result, claims ledger, sanitized lab-log
 archives, and the T08 rerun receipt. Paths listed below which are absent from
