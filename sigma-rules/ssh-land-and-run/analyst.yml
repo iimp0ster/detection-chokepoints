@@ -1,0 +1,59 @@
+title: Writable-Directory Stage-and-Execute - Hidden File Execution from Staging Directory (Analyst)
+id: 05b1a367-d439-4914-bcc9-add33c7b7e2e
+status: experimental
+description: >
+  Detects execution of hidden (dot-prefixed) files from staging directories,
+  covering direct execution (binary at /tmp/.) and interpreter consumption
+  (bash /tmp/.x visible in CommandLine). Also catches cron-launched execution
+  from staging paths. Analyst level — low false positive rate, SOC-deployable.
+  Hidden files in /tmp and /dev/shm are a strong indicator of attacker staging;
+  legitimate software rarely uses this pattern. Lab-validated 2026-09-28:
+  Sliver /tmp/.update, /dev/shm/.cache, /dev/shm/.payload all matched.
+  Field-grounded: C0XMO /tmp/.cache would match selection_hidden_direct.
+references:
+  - https://attack.mitre.org/techniques/T1059/004/
+  - https://attack.mitre.org/techniques/T1105/
+  - https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
+  - https://www.zscaler.com/blogs/cybersecurity-best-practices/rocke-cryptominer
+  - https://attack.mitre.org/techniques/T1564/001/
+  - https://github.com/iimp0ster/detection-chokepoints
+author: "Jenna Frank (co-conspirator: SancLogic)"
+date: 2026-09-28
+modified: 2026-10-05
+tags:
+  - attack.execution
+  - attack.t1059.004
+  - attack.stealth
+  - attack.t1564.001
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  selection_hidden_direct:
+    Image|startswith:
+      - '/tmp/.'
+      - '/dev/shm/.'
+      - '/var/tmp/.'
+  selection_hidden_interpreter:
+    Image|endswith:
+      - '/bash'
+      - '/sh'
+      - '/python3'
+      - '/python'
+      - '/perl'
+    CommandLine|contains:
+      - '/tmp/.'
+      - '/dev/shm/.'
+      - '/var/tmp/.'
+  selection_cron_from_staging:
+    ParentImage|endswith:
+      - '/cron'
+      - '/crond'
+    Image|startswith:
+      - '/tmp/'
+      - '/dev/shm/'
+      - '/var/tmp/'
+  condition: selection_hidden_direct or selection_hidden_interpreter or selection_cron_from_staging
+falsepositives:
+  - Legitimate hidden temp files from build systems (rare in /tmp)
+level: high

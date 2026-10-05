@@ -1,0 +1,35 @@
+============================================
+  Writable-Directory Stage-and-Execute
+  Chokepoint Emulation
+  Generates detection telemetry ONLY
+  2026-10-04T20:14:26Z
+============================================
+
+[T01] File write to /tmp + bash execution
+[+] T01: scp land, bash run
+[T02] File write to /tmp + chmod + exec
+[+] T02: scp land, chmod+exec run
+[T03] Heredoc write to /tmp + bash execution
+[+] T03: heredoc land, bash run
+[T04] Base64 decode to /tmp + execution
+[+] T04: base64 land, decode+exec run
+[T05] Echo pipe to /tmp + source execution
+[+] T05: echo land, source run
+[T06] Python write to /tmp + python3 execution
+[+] T06: python write land, python exec run
+[T07] File write to /dev/shm (tmpfs) + execution
+[+] T07: /dev/shm land, chmod+exec run (dot-prefix)
+[T08] Cron spool directory write
+[+] T08: cron spool write (file_land on /var/spool/cron/crontabs)
+
+============================================
+  Results: 8 passed, 0 failed
+============================================
+
+[*] Cleaning up emulation artifacts
+[*] Cleanup complete
+
+[*] Verify telemetry:
+    sudo ausearch -k exec_log -ts recent | head -40
+    sudo ausearch -k file_land -ts recent | head -40
+    sudo journalctl -t CHOKEPOINT_EMULATION --no-pager

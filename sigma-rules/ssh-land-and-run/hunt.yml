@@ -1,0 +1,60 @@
+title: Writable-Directory Stage-and-Execute - Process Execution from Staging Directory (Hunt)
+id: d5a6c3ad-48e6-4fb2-bf1d-109a7900213a
+status: experimental
+description: >
+  Detects process execution involving a staging directory, covering two
+  paths. Direct: the binary itself lives under /tmp, /dev/shm, or /var/tmp.
+  Interpreter: a shell or scripting interpreter consumes a file from a
+  staging directory (visible in CommandLine). Excludes known system paths
+  to reduce noise. Hunt level — medium false positive rate. Lab-validated
+  2026-09-28. Direct path caught T02 chmod+exec and Sliver /tmp/.update.
+  Interpreter path caught T01 bash, T03 heredoc, T04 base64, T06 python3.
+  Field-grounded: C0XMO direct execution of /tmp/.cache would match
+  selection_direct.
+references:
+  - https://attack.mitre.org/techniques/T1059/004/
+  - https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
+  - https://www.zscaler.com/blogs/cybersecurity-best-practices/rocke-cryptominer
+  - https://github.com/iimp0ster/detection-chokepoints
+author: "Jenna Frank (co-conspirator: SancLogic)"
+date: 2026-09-28
+modified: 2026-10-04
+tags:
+  - attack.execution
+  - attack.t1059.004
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  selection_direct:
+    Image|startswith:
+      - '/tmp/'
+      - '/dev/shm/'
+      - '/var/tmp/'
+  selection_interpreter:
+    Image|endswith:
+      - '/bash'
+      - '/sh'
+      - '/python3'
+      - '/python'
+      - '/perl'
+    CommandLine|contains:
+      - '/tmp/'
+      - '/dev/shm/'
+      - '/var/tmp/'
+  filter_main_system:
+    Image|contains:
+      - 'systemd-private'
+      - 'dracut'
+      - 'initramfs'
+  filter_main_interpreter_system:
+    CommandLine|contains:
+      - 'systemd-private'
+      - 'dracut'
+      - 'initramfs'
+  condition: (selection_direct and not filter_main_system) or (selection_interpreter and not filter_main_interpreter_system)
+falsepositives:
+  - Legitimate admin scripts stored in /tmp during maintenance
+  - Configuration management tools (Ansible, Puppet) staging in /tmp
+  - Package manager post-install scripts referencing /tmp
+level: medium
