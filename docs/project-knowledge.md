@@ -105,6 +105,55 @@ Platforms: URLScan (7), VirusTotal Intelligence (6), Shodan (4), GitHub Code Sea
 Censys (2), LOLDrivers (1), LOLRMM (1), ANY.RUN (1), Ransomware.live (1).
 All URLScan queries use exact matches (no wildcards/parens) for anonymous access.
 
+## Edge Exploit Trends — Active Handoff (2026-10-06)
+
+PR [#194](https://github.com/iimp0ster/detection-chokepoints/pull/194)
+updated `/trends/edge-exploits/` with data through October 6, 2026, including
+current-month reporting and new WordPress and FortiSandbox campaign analysis.
+
+### Agreed direction
+
+Keep `/trends/edge-exploits/` as the durable overview for changes and insights
+over time. It should contain long-term charts, rolling comparisons, newly
+observed or resurging vulnerabilities, current detection priorities, and a short
+timeline linking to detailed monthly reports. Avoid allowing it to become an
+ever-growing collection of monthly narratives and hard-coded snapshots.
+
+Publish each calendar month's export as a child report, using a path such as
+`/trends/edge-exploits/monthly/2026-10/`. A monthly page should be a frozen
+historical analysis containing:
+
+- an executive summary and collection window;
+- volume and severity totals, with changes from the previous month;
+- target, campaign-family, and scanner/User-Agent breakdowns;
+- new or resurging vulnerabilities and their detection opportunities; and
+- collection limitations and export provenance.
+
+### Intended monthly workflow
+
+1. On the first day of a month, export the preceding calendar month from
+   Defused.
+2. Record the export filename, SHA-256, time window, row count, and processing
+   status in an ingestion manifest so overlapping exports cannot be counted
+   twice.
+3. Generate that month's data and child page, then add its link and comparison
+   deltas to the overview.
+4. Preserve compact daily aggregates for long-term charts; archive raw exports
+   outside the published site after processing.
+
+Keep the overview's generated tables bounded (for example, top N plus Other),
+and distinguish **data through** from **enrichment through** dates. Continue to
+publish aggregate campaign statistics only: do not persist raw source IPs,
+requests, credentials, tokens, or live infrastructure details.
+
+### Next implementation slice
+
+- Add the ingestion manifest and duplicate-export protection.
+- Add a reusable monthly report layout and monthly index/navigation.
+- Turn the October 2026 analysis into the first child report.
+- Simplify the overview after the child page exists, retaining its long-term
+  charts and cross-month insights.
+
 ## Source URLs
 
 74/75 variants have SourceURL fields. Only BlackSanta EDR Killer lacks a source
