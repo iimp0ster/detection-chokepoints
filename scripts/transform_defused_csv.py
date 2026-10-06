@@ -77,6 +77,12 @@ HEADLINE = [
     ("cpanel_whm",   "cPanel WHM chain",  "CVE-2026-41940"),
 ]
 
+CPANEL_STAGES = [
+    ("preauth", "Vulnerability Exploited (CVE-2026-41940) - Preauth Session Mint"),
+    ("harvest", "Vulnerability Exploited (CVE-2026-41940) - Authenticated json-api Call"),
+    ("persist", "Vulnerability Exploited (CVE-2026-41940) - Cache Propagation Gadget"),
+]
+
 # The 6-day hole between the two export windows; rendered as a visible gap.
 GAP_DAYS = ["2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18"]
 
@@ -170,7 +176,8 @@ def aggregate_file(path):
                 continue
             rec = days.setdefault(iso, {"total": 0, "ips": set(),
                                         "cve": Counter(), "decoy": Counter(),
-                                        "cls": Counter(), "cve_cls": Counter()})
+                                        "alert": Counter(), "cls": Counter(),
+                                        "cve_cls": Counter()})
             rec["total"] += 1
             ip = _source_ip(r.get("Attacker IP") or "")
             # Newer exports append the source :port (137.0.0.1:52396); older ones give
@@ -181,6 +188,7 @@ def aggregate_file(path):
             decoy = (r.get("Decoy Type") or "").strip()
             rec["decoy"][DECOY_DISPLAY.get(decoy, decoy)] += 1
             alert = r.get("Alert") or ""
+            rec["alert"][alert] += 1
             cls = classify(alert)
             rec["cls"][cls] += 1
             m = CVE_RE.search(alert)
@@ -216,6 +224,21 @@ def latest_export_snapshot(path, file_meta):
     major_cls = Counter()
     major_ips = set()
     dates = Counter()
+    campaigns = Counter()
+
+    current_month_prefix = (file_meta["raw_max"] or "")[:7]
+    current_dates = Counter()
+    current_decoys = Counter()
+    current_alerts = Counter()
+    current_cves = Counter()
+    current_cls = Counter()
+    current_ips = set()
+
+    wordpress_name = "WordPress W3 Total Cache"
+    wordpress_dates = Counter()
+    wordpress_alerts = Counter()
+    wordpress_ips = set()
+    wordpress_batch_paths = Counter()
 
     with open(path, encoding="utf-8", newline="") as f:
         for r in csv.DictReader(f):
@@ -235,10 +258,39 @@ def latest_export_snapshot(path, file_meta):
             decoys[decoy] += 1
             alerts[alert] += 1
             cls[stage] += 1
+            campaigns[(decoy, alert, stage)] += 1
             if ip:
                 ips.add(ip)
             if hit:
                 cves[hit.group(0)] += 1
+
+            if current_month_prefix and iso.startswith(current_month_prefix):
+                current_dates[iso] += 1
+                current_decoys[decoy] += 1
+                current_alerts[alert] += 1
+                current_cls[stage] += 1
+                if ip:
+                    current_ips.add(ip)
+                if hit:
+                    current_cves[hit.group(0)] += 1
+
+            if decoy == wordpress_name:
+                wordpress_dates[iso] += 1
+                wordpress_alerts[alert] += 1
+                if ip:
+                    wordpress_ips.add(ip)
+                if "wp2shell rest batch rce" in alert.lower():
+                    request_line = ""
+                    for line in (r.get("Raw Request") or "").splitlines():
+                        if re.match(r"^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) \S+ HTTP/", line):
+                            request_line = line
+                            break
+                    parts = request_line.split()
+                    request_target = parts[1] if len(parts) >= 2 else ""
+                    if request_target.startswith("/wp-json/batch/v1"):
+                        wordpress_batch_paths["/wp-json/batch/v1"] += 1
+                    elif request_target.startswith("/?rest_route=/batch/v1"):
+                        wordpress_batch_paths["/?rest_route=/batch/v1"] += 1
 
             if sev in PUBLISHED_SEVERITIES:
                 major_decoys[decoy] += 1
@@ -253,10 +305,65 @@ def latest_export_snapshot(path, file_meta):
     usable_min = min(dates) if dates else None
     usable_max = max(dates) if dates else None
 
-    def ranked(counter, key, limit=8):
+    def ranked(counter, key, limit=8, denominator=None):
+        denominator = usable_events if denominator is None else denominator
         return [{key: name, "count": count, "display": f"{count:,}",
-                 "pct": round(100 * count / max(1, usable_events), 1)}
+                 "pct": round(100 * count / max(1, denominator), 1)}
                 for name, count in counter.most_common(limit)]
+
+    current_events = sum(current_dates.values())
+    current_min = min(current_dates) if current_dates else None
+    current_max = max(current_dates) if current_dates else None
+    current_month = {
+        "label": (date.fromisoformat(current_max).strftime("%B %Y")
+                  if current_max else "Current month"),
+        "window": (f"{label_for(current_min)} - {label_for(current_max)}, {current_max[:4]}"
+                   if current_min else "none"),
+        "through": current_max,
+        "events": current_events,
+        "events_display": f"{current_events:,}",
+        "unique_ips": len(current_ips),
+        "exploit": current_cls["exploit"],
+        "recon": current_cls["recon"],
+        "exploit_pct": round(100 * current_cls["exploit"] / max(1, current_events), 1),
+        "recon_pct": round(100 * current_cls["recon"] / max(1, current_events), 1),
+        "top_targets": ranked(current_decoys, "name", denominator=current_events),
+        "top_alerts": ranked(current_alerts, "name", denominator=current_events),
+        "top_cves": ranked(current_cves, "id", denominator=current_events),
+    }
+
+    campaign_rows = []
+    for (target, alert, stage), count in campaigns.most_common(12):
+        campaign_rows.append({
+            "target": target,
+            "alert": alert,
+            "stage": stage,
+            "count": count,
+            "display": f"{count:,}",
+            "pct": round(100 * count / max(1, usable_events), 1),
+        })
+
+    wordpress_events = sum(wordpress_dates.values())
+    wp2shell_events = sum(count for alert, count in wordpress_alerts.items()
+                          if "wp2shell rest batch rce" in alert.lower())
+    wordpress_snapshot = {
+        "events": wordpress_events,
+        "events_display": f"{wordpress_events:,}",
+        "unique_ips": len(wordpress_ips),
+        "first_seen": min(wordpress_dates) if wordpress_dates else None,
+        "last_seen": max(wordpress_dates) if wordpress_dates else None,
+        "wp2shell_events": wp2shell_events,
+        "wp2shell_display": f"{wp2shell_events:,}",
+        "file_upload_events": sum(
+            count for alert, count in wordpress_alerts.items()
+            if "CVE-2025-9314" in alert
+        ),
+        "batch_paths": [
+            {"path": path_name, "count": count, "display": f"{count:,}"}
+            for path_name, count in wordpress_batch_paths.most_common()
+        ],
+        "other_wp2shell_requests": wp2shell_events - sum(wordpress_batch_paths.values()),
+    }
 
     return {
         "source_file": path.name,
@@ -282,6 +389,9 @@ def latest_export_snapshot(path, file_meta):
         "top_targets": ranked(decoys, "name"),
         "top_alerts": ranked(alerts, "name"),
         "top_cves": ranked(cves, "id"),
+        "campaigns": campaign_rows,
+        "current_month": current_month,
+        "wordpress": wordpress_snapshot,
         "major_events": major_events,
         "major_events_display": f"{major_events:,}",
         "major_pct": round(100 * major_events / max(1, usable_events), 1),
@@ -346,10 +456,11 @@ def build(paths):
         live_days.pop(iso, None)
 
     live_total = sum(d["total"] for d in live_days.values())
-    live_cve, live_decoy, live_ips = Counter(), Counter(), set()
+    live_cve, live_decoy, live_alert, live_ips = Counter(), Counter(), Counter(), set()
     for d in live_days.values():
         live_cve.update(d["cve"])
         live_decoy.update(d["decoy"])
+        live_alert.update(d["alert"])
         live_ips |= d["ips"]
 
     # --- exploit-vs-recon split + per-CVE recon->exploit lead time ----------
@@ -522,6 +633,11 @@ def build(paths):
         "cb2_daily": cb2_daily,
         "cves": [{"id": c, "count": n}
                  for c, n in sorted(live_cve.items(), key=lambda kv: (-kv[1], kv[0]))],
+        "cpanel_stages": [
+            {"key": key, "name": name, "count": live_alert[name],
+             "display": f"{live_alert[name]:,}"}
+            for key, name in CPANEL_STAGES
+        ],
         "exploit_recon": {
             "exploit_total": cls_total["exploit"],
             "recon_total": cls_total["recon"],
