@@ -2,8 +2,8 @@
 """Transform Defused honeypot export CSV(s) into _data/edge_exploits.yml.
 
 Why this exists: the edge-exploits trends page used to be hand-typed. This reads
-the Defused export(s) (default: legacy export_shared_*.csv plus current
-defused-intel-*.csv files in ~/Downloads),
+the Defused export(s) (default: legacy export_shared_*.csv, current
+defused-intel-*.csv files, and numbered export(N).csv UI downloads),
 aggregates per day, and writes combined = frozen baseline + live so history
 ACCUMULATES instead of being overwritten (decision #002). Aggregates only -- no
 IP address ever reaches the repo (decision #001); only counts.
@@ -52,6 +52,7 @@ OUT = REPO / "_data" / "edge_exploits.yml"
 DEFAULT_GLOBS = [
     os.path.expanduser("~/Downloads/export_shared_*.csv"),
     os.path.expanduser("~/Downloads/defused-intel-*.csv"),
+    os.path.expanduser("~/Downloads/export(*).csv"),
 ]
 PUBLISHED_SEVERITIES = {"major"}
 
