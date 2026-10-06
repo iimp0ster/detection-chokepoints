@@ -152,6 +152,39 @@ def _source_ip(value: str) -> str:
     return value
 
 
+def _user_agent_family(raw_request: str) -> str:
+    """Reduce raw User-Agent values to stable, publishable families.
+
+    Exact browser versions churn and add little detection value, while named
+    automation clients are useful fingerprints. Keeping only these families also
+    prevents arbitrary header content from flowing into the generated data file.
+    """
+    user_agent = ""
+    for line in raw_request.splitlines():
+        if line.lower().startswith("user-agent:"):
+            user_agent = line.split(":", 1)[1].strip()
+            break
+    if not user_agent:
+        return "No parsed User-Agent"
+
+    lowered = user_agent.lower()
+    named = [
+        ("libredtail-http", "libredtail-http"),
+        ("go-http-client", "Go-http-client"),
+        ("l9scan", "l9scan (LeakIX)"),
+        ("python-requests", "python-requests"),
+        ("sonicwall netextender", "SonicWall NetExtender"),
+    ]
+    for needle, label in named:
+        if needle in lowered:
+            return label
+    if lowered.startswith("mozilla/"):
+        return "Browser-like / spoofed"
+    if lowered.startswith(("curl/", "wget/")):
+        return "curl / wget"
+    return "Other"
+
+
 def aggregate_file(path):
     """One export CSV -> (published daily records, file metadata).
 
@@ -225,6 +258,7 @@ def latest_export_snapshot(path, file_meta):
     major_ips = set()
     dates = Counter()
     campaigns = Counter()
+    user_agents = Counter()
 
     current_month_prefix = (file_meta["raw_max"] or "")[:7]
     current_dates = Counter()
@@ -259,6 +293,7 @@ def latest_export_snapshot(path, file_meta):
             alerts[alert] += 1
             cls[stage] += 1
             campaigns[(decoy, alert, stage)] += 1
+            user_agents[_user_agent_family(r.get("Raw Request") or "")] += 1
             if ip:
                 ips.add(ip)
             if hit:
@@ -390,6 +425,7 @@ def latest_export_snapshot(path, file_meta):
         "top_alerts": ranked(alerts, "name"),
         "top_cves": ranked(cves, "id"),
         "campaigns": campaign_rows,
+        "user_agents": ranked(user_agents, "name", limit=20),
         "current_month": current_month,
         "wordpress": wordpress_snapshot,
         "major_events": major_events,
