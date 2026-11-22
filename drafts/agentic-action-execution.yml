@@ -1,0 +1,223 @@
+---
+# Research profile for review. Keep this single YAML document out of Jekyll output.
+published: false
+Name: Agentic Action Execution
+Status: Research draft
+PromotionVerdict: EVIDENCE-GAP
+Description: >
+  A defender-side profile for operations selected by an externally operated
+  agent. It models where a request meets target-side authority and how defenders
+  can distinguish an attempt, a service decision, and an observed effect.
+TheConstant: >
+  To affect a protected environment, the selected operation must traverse the
+  interface and authority boundary that govern that operation. A controller
+  change alone does not change those requirements for the same operation.
+  A different operation can use a different boundary.
+AttackerArchitecture:
+  Scope: Conceptual. The attacker-controlled endpoint, prompts, harness calls, memory and reasoning are outside this profile's visibility.
+  Sequence: Objective → LLM or agent → harness → selected tool → target operation
+DefenderObservableExecution:
+  Source: Tool-generated request or action visible in monitored telemetry.
+  Bridge: The environmental interface and authority that handle the operation, including an application execution context where a separate authentication step is absent.
+  Sink: A recorded attempt, allow or deny decision, or independently supported effect. Record these outcomes separately.
+  Visibility: >
+    Telemetry is conditional on location, configuration and retention. A
+    request may use an existing connection or process or have only an
+    application-level effect. Separate origin attribution from operation
+    detection. Velocity, a name, tool output or high API volume alone
+    cannot attribute the controller.
+Sources:
+  gtig-artex:
+    Title: "GTIG and Mandiant, ARTEX and Friends (October 30, 2026)"
+    URL: https://cloud.google.com/blog/topics/threat-intelligence/artex-and-friends-enter-agentic-offensive-frameworks
+  gtig-november:
+    Title: "GTIG, Agentic Threat Activity Crosses a Significant Threshold (November 16, 2026)"
+    URL: https://cloud.google.com/blog/topics/threat-intelligence/agentic-threat-activity-crosses-a-significant-threshold
+  datadog-artex:
+    Title: "Datadog Security Labs, On the Hunt for ARTEX (November 9, 2026)"
+    URL: https://securitylabs.datadoghq.com/articles/artex-agentic-attacks-aws-environments/
+  anthropic-campaign:
+    Title: "Anthropic, Disrupting the First Reported AI-Orchestrated Cyber Espionage Campaign (November 2025)"
+    URL: https://assets.claude.com/d7dd50dd1185f59be051b307150d877f2b82bd2c.pdf
+Procedures:
+  - Framework: ARTEX
+    Procedure: AWS permission probes
+    Evidence:
+      Source: gtig-artex
+      Locator: "Observations in the Wild → ARTEX Framework burst analysis and lifecycle table → Initial Recon"
+      Capability: An orchestrator can distribute permission discovery and react to service results.
+      Observed: GTIG reported bursts of AWS permission probes and documented use of EC2 dry-run checks with compromised credentials.
+      Corroboration:
+        Source: datadog-artex
+        Locator: "Activity cluster 2, October 26–27 example"
+        Observed: Datadog reported that a Cognito-issued role made follow-up AWS discovery requests and all were denied for lack of permission. This supports the authorization boundary for a different reported procedure.
+    Operation: An AWS API request tests what an existing principal may do.
+    ATTACK:
+      - Id: T1580
+        Applicability: For operations that attempt AWS infrastructure discovery. A permission-only dry run alone does not establish a discovery attempt or effect.
+    Catalog:
+      - Path: chokepoints/discovery/aws-credential-permission-enumeration.yml
+        Fit: Direct boundary overlap when effective permissions are tested against an AWS service.
+    Source: AWS API call associated with a principal or session.
+    Bridge: Service-side evaluation of effective authorization.
+    Sink: A service result conveying authorization. A dry-run result provides no evidence that the underlying action executed.
+    RequiredTelemetry: CloudTrail records for supported and selected operations, with principal or session, operation and result or error.
+    ExpectedObservable: Permission probes attributed to the same AWS identity with recorded outcomes where supported.
+    Limits: Service and event coverage, denied request logging and outcome fields vary. A burst is a hunt lead and a tool-independent pattern.
+    Confidence: High for reported probing. Conditional for the exact CloudTrail record and any resource effect.
+  - Framework: ARTEX
+    Procedure: Attempted WinRM lateral movement
+    Evidence:
+      Source: gtig-artex
+      Locator: "ARTEX lifecycle table → Move Laterally"
+      Capability: An orchestrator can coordinate multiple remote-management attempts.
+      Observed: GTIG lists WinRM among attempted methods and reports endpoint protection blocking execution during the broader lateral-movement activity.
+    Operation: Windows Remote Management.
+    ATTACK:
+      - Id: T1021.006
+        Applicability: Attempted use as reported. Successful target execution is unverified.
+    Catalog:
+      - Path: chokepoints/lateral-movement/remote-execution-tools.yml
+        Fit: Partial overlap at the WinRM request boundary. The linked Sigma tiers require System event 7045, which an attempted WinRM request need not generate.
+    Source: Remote-management request where the target or network sensor records it.
+    Bridge: Authentication and WinRM service handling, followed by endpoint execution controls if reached.
+    Sink: Authentication or service result, prevention event, or attributable target-side effect if execution succeeds.
+    RequiredTelemetry: WinRM or target authentication records, with target process, service or endpoint prevention telemetry for the reported outcome.
+    ExpectedObservable: An attempted remote-management operation with an outcome linked by time, target and identity. A successful execution claim needs its own effect evidence.
+    Limits: The public report does not identify a matching WinRM target process or prove that a specific WinRM request caused the reported block.
+    Confidence: High for the reported attempt. Request-specific disposition and successful execution are unverified.
+  - Framework: ARTEX
+    Procedure: Web-mediated command execution
+    Evidence:
+      Source: gtig-artex
+      Locator: "Observations in the Wild → ARTEX Framework, web-shell attempts"
+      Capability: An orchestrator can vary a submitted action after an application error.
+      Observed: GTIG reported multiple web-shell iterations and eventual command output.
+    Operation: A request invokes web-accessible server-side code.
+    ATTACK:
+      - Id: T1505.003
+        Applicability: Reported web-shell behavior.
+    Catalog:
+      - Path: chokepoints/persistence/web-shells.yml
+        Fit: Partial. The catalog constant requires a child OS interpreter, whose lineage the public incident narrative does not supply.
+    Source: Web request to application code.
+    Bridge: Application routing and server interpreter or execution context.
+    Sink: An application error, command result, or other attributable execution effect.
+    RequiredTelemetry: Web and application logs with request correlation plus process or execution telemetry where available, or an independently attributable application-side effect.
+    ExpectedObservable: A correlated request and execution result or effect. A request or new file alone is only a candidate signal.
+    Limits: In-process execution can lack child process telemetry. A file or process event is only expected when the implementation creates it.
+    Confidence: High for the reported web-mediated execution. The catalog's exact process lineage is unverified.
+  - Framework: ARTEX
+    Procedure: HTTP tasking and command results
+    Evidence:
+      Source: gtig-artex
+      Locator: "ARTEX lifecycle table → Establish Foothold"
+      Capability: An orchestrator can coordinate remote exchanges and vary endpoints.
+      Observed: GTIG reported a target Windows server fetching scripts and returning command results through rotating web endpoints.
+    Operation: HTTP-based tasking and result exchange by an HTTP client.
+    ATTACK:
+      - Id: T1071.001
+        Applicability: Web protocols used for the reported remote command-and-control exchange.
+    Catalog:
+      - Path: chokepoints/command-and-control/c2-service-relationship-correlation.yml
+        Fit: Relationship overlap. The entry still requires a role-compatible, time-bounded relationship and independent evidence for C2 interpretation.
+    Source: Outbound target-side client request.
+    Bridge: Remote web service in a role compatible with tasking or results.
+    Sink: Attributable task retrieval or result submission corroborated by endpoint, application or content-visible network evidence.
+    RequiredTelemetry: Endpoint or egress telemetry with client and service roles, direction and usable timestamps, plus independent tasking or result evidence.
+    ExpectedObservable: A role-compatible endpoint-to-service relationship within the investigation interval.
+    Limits: Shared endpoints, encrypted payloads and proxying can obscure service role or client identity. A destination or TLS fingerprint alone is insufficient.
+    Confidence: High for the reported exchange. Deployment identity and role inference from local sensor data are conditional.
+  - Framework: CAIRN
+    Procedure: Reported intrusion use with unspecified actions
+    Evidence:
+      Source: gtig-november
+      Locator: "Multi-Agent Frameworks in Cyber Intrusions → CAIRN"
+      Capability: GTIG describes specialized agents coordinating through shared state.
+      Observed: GTIG reported CAIRN use in intrusion activity. The public summary does not name the victim-side operation for this case.
+    Operation: Unverified
+    ATTACK: []
+    Catalog: []
+    Source: Unverified
+    Bridge: Unverified
+    Sink: Unverified
+    RequiredTelemetry: Obtain case-linked target request, boundary and effect evidence before selecting a detector.
+    ExpectedObservable: Unverified
+    Limits: Framework architecture and sector do not establish the tool, operation, technique or outcome.
+    Confidence: High for the report of use. No procedure-level promotion evidence.
+  - Framework: PentAGI
+    Procedure: Vulnerability scanning from a customized deployment
+    Evidence:
+      Source: gtig-november
+      Locator: "Multi-Agent Frameworks in Cyber Intrusions → PentAGI"
+      Capability: GTIG describes specialized agents dividing tasks.
+      CapabilitySource: gtig-artex
+      CapabilityLocator: "PentAGI Offensive Framework"
+      Observed: GTIG tracked systematic reconnaissance and vulnerability scanning with a customized PentAGI-based platform.
+    Operation: Vulnerability scanning against target-facing services. The scan implementation is unverified.
+    ATTACK:
+      - Id: T1595.002
+        Applicability: Reported vulnerability scanning in this case.
+    Catalog: []
+    Source: Probe request where an exposed service or edge sensor can see it.
+    Bridge: Target-facing network or application request handling.
+    Sink: Service response, rejection or edge block if recorded. Protected access remains unverified for this case.
+    RequiredTelemetry: Service, firewall, proxy or edge request records with timestamp, destination and outcome, as available.
+    ExpectedObservable: Incoming probes consistent with vulnerability checks when sensor coverage can distinguish them from ordinary traffic.
+    Limits: Authorized scanners can look similar. A request pattern cannot establish exploitation or agent involvement.
+    Confidence: High for the reported scan activity. Exact tool, per-target effect and dedicated catalog mapping are unverified.
+  - Framework: Claude Code-based custom harness
+    Procedure: Testing and using previously obtained credentials
+    Evidence:
+      Source: anthropic-campaign
+      Locator: "pp. 3–4 and 9–11, including Phases 4 and 5"
+      Capability: The harness can sequence identity and access tasks with human approval at selected points.
+      Observed: Anthropic reported credential testing and a database-access example, and documented nonworking credentials presented as discoveries.
+    Operation: Authentication to internal services and subsequent access where successful.
+    ATTACK:
+      - Id: T1078
+        Applicability: Where harvested credentials were successfully used. A credential claim or failed attempt alone is insufficient.
+    Catalog: []
+    Source: Credential-bearing request to a service.
+    Bridge: Service authentication and authorization or session handling.
+    Sink: Login denial, authentication or attributable access to a protected resource.
+    RequiredTelemetry: Target service or database authentication and resource audit logs, joined by available account, session or request context.
+    ExpectedObservable: A recorded identity result and, if resource access is claimed, a matching resource audit or state observation.
+    Limits: Provider visibility is different from victim visibility. The public report does not establish a Graph API, AiTM, or cloud-account subtype for this example.
+    Confidence: High for the provider's campaign-level findings. Target-side join and case-specific catalog mapping are unverified.
+Detections:
+  - Level: Research
+    Opportunity: Normalize equivalent target operations, authority results and effects across controllers. Record sensor coverage and preserve event and arrival time.
+  - Level: Hunt
+    Opportunity: Correlate identity, execution, network or authorization evidence where available. Use retries, concurrency, failures and pacing to prioritize review of the observed operation.
+  - Level: Analyst
+    Opportunity: >
+      Require a specific unauthorized objective or effect corroborated by
+      boundary evidence and context. Report an attempt separately from a
+      confirmed effect. Attribute the controller only when independent
+      evidence exists.
+NoStandaloneSigmaRationale: >
+  A controller-independent profile spans multiple target interfaces with
+  different sensors and outcome semantics. Sequencing, entity joins and
+  operational context cannot be preserved by a universal single-event rule.
+  Apply catalog detections to the actual procedure and use a scoped correlator
+  only where the required evidence is available.
+ValidationContract:
+  File: docs/agentic-action-execution-validation.md
+  Test: tests/test_agentic_action_execution.py
+PromotionAssessment:
+  DistinctMandatoryBoundary: The required interfaces and authority differ by operation. No additional mandatory defender-observable boundary was demonstrated.
+  CoverageOverlap: >
+    AWS permission testing, WinRM, web server execution and HTTP C2 overlap
+    existing catalog documentation at the procedure level. Rule coverage
+    depends on the actual signal. Scan and identity mapping gaps are
+    technique- or sensor-specific.
+  Substitution: Other legitimate clients can produce equivalent records, and a different operation can avoid a method-specific signal while achieving the same objective.
+  MissingTelemetry: Mark the affected result or join coverage-limited. A positive result from another sensor may corroborate an effect but cannot substitute for unknown attribution.
+  IndependentEvidence: >
+    The Google and Anthropic reports support multiple operation-specific
+    paths through target-side authority. They do not demonstrate two
+    independent examples of an exact additional shared boundary, or coverage
+    beyond the mapped techniques.
+  Disposition: Retain this as a cross-cutting research profile outside the canonical catalog.
+...
