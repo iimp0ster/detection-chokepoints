@@ -17,7 +17,7 @@ Description: >
   vary, but successful DLL side-loading always produces a host-to-loaded-module
   relationship that can be observed with image-load telemetry.
 TheConstant: A trusted host must map the attacker-controlled DLL before its code can execute.
-LastUpdated: '2026-07-16'
+LastUpdated: '2026-11-22'
 Author: '@iimp0ster'
 
 Prerequisites:
@@ -44,7 +44,9 @@ Chokepoints:
     Observable: >
       Windows image-load telemetry records the loading process in Image and the
       mapped library in ImageLoaded. Sysmon Event ID 7 additionally provides
-      Signed, SignatureStatus, and hash context when configured.
+      Signed, SignatureStatus, and hash context when configured. A load establishes
+      the process-to-module mapping. Policy evaluation and execution of the DLL's
+      code each require their own evidence.
     WhyCantBypass: >
       If the executable does not map the attacker-controlled DLL, the DLL's code
       does not execute through side-loading; avoiding this observable requires
@@ -185,6 +187,43 @@ Detections:
     ExpectedFPRate: Low
     UseCase: SOC alerting after first-seen/rarity, signer, hash, and recent-file enrichment
     SigmaRule: sigma-rules/trusted-binary-dll-sideloading/analyst.yml
+
+PreventionSummary: >
+  Windows App Control for Business (WDAC) can evaluate the host executable and
+  the DLL as separate files within the scope of policy. Evaluate the module's
+  authorization separately from the host's trust status. To investigate a
+  suspected bypass, correlate the process and DLL by device, time, and available
+  process and file identifiers. Require execution evidence or a side effect
+  attributable to the DLL, plus evidence that the effective enforced policy
+  applied to that execution and should have prevented it. Trusted process
+  execution, image-load telemetry, and audit decisions each establish only
+  part of that chain. The effective enforcement policy and bypass outcome are
+  unverified for the four documented side-loading variations.
+
+PreventionOpportunities:
+  - Category: Endpoint
+    Control: Enforce App Control for user-mode DLLs
+    Impact: >
+      A policy with user-mode code integrity (UMCI) in enforcement mode can
+      block a DLL from mapping into an allowed executable when the DLL fails
+      policy. <a href="https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/design/select-types-of-rules-to-create">Microsoft App Control policy rules</a>.
+      <br><br>
+      In CodeIntegrity Operational, 3099 records a policy load and its options.
+      Use it with policy inventory to establish the policies and modes
+      effective for the file at the time. Event 3076 records a would-block
+      decision in audit mode. Event 3077 records an enforced block of the
+      evaluated file. Match 3089 signature details to the decision by
+      Correlation ActivityID. Default logging covers only some successful
+      executable evaluations.
+      <a href="https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/operations/event-id-explanations">Microsoft App Control event documentation</a>.
+
+      <br><br>
+      For script or MSI checks, App Control writes 8028 (audit would-block)
+      and 8029 (enforcement-mode counterpart) to the AppLocker MSI and Script
+      log. For scripts, the host applies the decision and can permit restricted
+      execution, as PowerShell does with Constrained Language Mode. Verify
+      the actual host outcome independently.
+      <a href="https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/design/script-enforcement">Microsoft App Control script enforcement</a>.
 
 Intel:
   - Name: PwC Red Lamassu JFMBackdoor research

@@ -2,6 +2,16 @@
 
 All notable changes to this detection chokepoints repository will be documented in this file.
 
+## [2026-11-22] - Application Control and Agentic Tempo
+
+### Added
+- Agentic Offensive Tempo analysis with original incident research, links to
+  existing chokepoints, and a proposed synthetic correlation replay.
+
+### Changed
+- Trusted Binary DLL Side-Loading now distinguishes image mapping, App Control
+  audit and enforcement decisions, and evidence of code execution under policy.
+
 ## [2026-09-28] - SSH Land-and-Run Chokepoint
 
 ### Added

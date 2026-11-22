@@ -349,6 +349,20 @@ permalink: /trends/
       </div>
     </a>
 
+    <a class="tr-card" href="{{ '/trends/agentic-tempo/' | relative_url }}">
+      <div class="tr-card-header">
+        <div class="tr-card-title">Agentic Offensive Tempo</div>
+        <span class="tr-card-badge analysis">Analysis</span>
+      </div>
+      <p class="tr-card-desc">
+        What incident reports show about pacing, retries and parallel activity,
+        with a synthetic replay for testing correlation and response time.
+      </p>
+      <div class="tr-card-footer">
+        <span class="tr-card-cta">Read analysis</span>
+      </div>
+    </a>
+
   </div>
 
 
