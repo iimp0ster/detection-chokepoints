@@ -3,7 +3,19 @@ title: Agentic Action Execution validation
 published: false
 ---
 
-# Agentic Action Execution validation
+# Agentic Action Execution
+
+**New operator. Same chokepoints.**
+
+Agentic frameworks orchestrate existing tools and techniques. They can automate planning, retries, tool selection, and parallel execution. When they carry out the same operation under the same authority model, the action still encounters the target's existing controls. Detect the behavior from victim-side evidence even when the controller is unknown.
+
+## Research questions
+
+1. Do human-directed, scripted, and agent-driven executions of the same underlying technique produce comparable victim-side telemetry?
+2. How do faster execution, higher event volume, retries, and changes in order affect the reliability of existing detections?
+3. Which basic defensive controls provide dependable prevention, visibility, and response across orchestration styles?
+
+The working hypothesis is that equivalent operations produce comparable evidence of decisions and effects where sensors have coverage. Client-specific fields and timing can differ. Collection loss, retries, and ordering can change whether an analytic fires in time. A different operation can encounter a different boundary. Evaluate any newly reported technique against that technique's own evidence.
 
 **Verdict: EVIDENCE-GAP.** Keep the [candidate](../drafts/agentic-action-execution.yml) as a cross-cutting research profile. The sources support operation-specific environmental boundaries. An additional mandatory boundary and incremental canonical detection coverage are unverified.
 
@@ -13,7 +25,7 @@ published: false
 
 **Defender-observable execution.** Tool-generated request or action → monitored environmental interface and authority → recorded attempt, service decision, or attributable effect. For the same operation and authority model, the target applies the same requirements regardless of who or what selected the action. A tool change can alter the operation and the resulting boundary. Authorization can come from existing application privileges or a public interface. A fresh authentication event, connection, process, module, or command line is therefore conditional. Write down which sensor observed each stage and which stages remain unknown.
 
-## Source and mapping checks
+## Reported observations and catalog mappings
 
 The YAML records each procedure's locator, evidence class, Source → Bridge → Sink, required sensor, expected outcome and confidence. The ATT&CK links here identify the procedure, independently of attribution.
 
@@ -36,6 +48,15 @@ GTIG describes the ARTEX timing observation in *Observations in the Wild* and th
 - **Analyst.** Require target-bound evidence and enough context to classify attempted or completed unauthorized activity. A denial can establish a specific attempt. A claim of success needs the corresponding state change, resource access, process or application effect. Report malicious behavior and any separately supported controller attribution as separate conclusions.
 
 **Sigma rationale.** No single event can encode the cross-source evidence, applicable authority, identity joins and procedure-specific evidence of effect across this profile. A source-specific event may independently detect a known unauthorized action. Existing catalog rules or environment-specific correlation are the appropriate place to implement those detections.
+
+## Defensive controls at the boundary
+
+- **Prevention.** Enforce least privilege for people and workloads, use short-lived credentials where supported, and isolate administrative interfaces from untrusted networks. Test permitted and denied operations against the effective policy. These controls can reduce what a compromised identity can do before a responder intervenes. [GTIG and Mandiant, Defensive Strategies](https://cloud.google.com/blog/topics/threat-intelligence/artex-and-friends-enter-agentic-offensive-frameworks)
+- **Visibility.** Collect identity and service decisions alongside endpoint, application, or cloud evidence of effects. Verify that each needed operation and outcome is captured. Check clock alignment, retention, and dropped or delayed records under bursts.
+- **Detection.** Anchor alerts to actions and effects, such as an unexpected attempt to access a protected resource or a verified unauthorized state change. Test joins against retries, reordered events, and legitimate automation. Treat high volume as context and assess the available evidence for the behavior itself.
+- **Response.** Exercise approved actions such as revoking a compromised session or isolating an affected system. Measure the time from the first usable signal to containment and compare it with the time to the next protected operation or objective.
+
+Foundational security controls, telemetry coverage, durable behavioral detections, and timely response become more valuable when attacks accelerate. Earlier enforcement limits what can happen during a short response window. Reliable evidence and rehearsed containment make the available time more useful.
 
 ## Deterministic replay
 

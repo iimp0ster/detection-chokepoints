@@ -4,10 +4,17 @@ published: false
 Name: Agentic Action Execution
 Status: Research draft
 PromotionVerdict: EVIDENCE-GAP
+Thesis: New operator. Same chokepoints.
 Description: >
-  A defender-side profile for operations selected by an externally operated
-  agent. It models where a request meets target-side authority and how defenders
-  can distinguish an attempt, a service decision, and an observed effect.
+  Agentic frameworks orchestrate existing tools and techniques. They can
+  automate planning, retries, tool selection, and parallel execution. This
+  profile examines how those changes affect visibility and detection when the
+  underlying operation is held fixed. Detection relies on evidence at the
+  target and can proceed with the controller unknown.
+ResearchQuestions:
+  - Do human-directed, scripted, and agent-driven executions of the same technique produce comparable victim-side telemetry?
+  - How do shorter intervals, higher event volume, retries, and reordering affect the reliability of existing detections?
+  - Which foundational controls provide dependable prevention, visibility, and response across orchestration styles?
 TheConstant: >
   To affect a protected environment, the selected operation must traverse the
   interface and authority boundary that govern that operation. A controller
@@ -202,6 +209,12 @@ NoStandaloneSigmaRationale: >
   operational context cannot be preserved by a universal single-event rule.
   Apply catalog detections to the actual procedure and use a scoped correlator
   only where the required evidence is available.
+DefensiveTakeaway: >
+  When attacks accelerate, effective access controls, verified telemetry
+  coverage, durable behavioral detections, and timely response become more
+  valuable. Enforce least privilege and restrict access to administrative
+  interfaces. Verify that sensors capture decisions and effects during bursts,
+  and measure whether responders can act before the objective.
 ValidationContract:
   File: docs/agentic-action-execution-validation.md
   Test: tests/test_agentic_action_execution.py
@@ -215,7 +228,7 @@ PromotionAssessment:
   Substitution: Other legitimate clients can produce equivalent records, and a different operation can avoid a method-specific signal while achieving the same objective.
   MissingTelemetry: Mark the affected result or join coverage-limited. A positive result from another sensor may corroborate an effect but cannot substitute for unknown attribution.
   IndependentEvidence: >
-    The Google and Anthropic reports support multiple operation-specific
+    The Google, Datadog, and Anthropic reports support multiple operation-specific
     paths through target-side authority. They do not demonstrate two
     independent examples of an exact additional shared boundary, or coverage
     beyond the mapped techniques.
