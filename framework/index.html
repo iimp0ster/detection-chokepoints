@@ -269,6 +269,14 @@ svg text { font-family: var(--font-sans); }
 
 <div class="fw-content">
 
+  <p class="py-5" style="color: var(--text-muted); max-width: 74ch;">
+    Pin the detection to what the tradecraft requires. An observation point is where a sensor can see part of that behavior.
+    A Sysmon Event ID 1 record can show that a child process started. The Windows lab tied the event to the exact process instance and request. To confirm an effect such as a file read, check the file identity and read result separately.
+    Check authorization and cause against their own evidence.
+    <a href="{{ '/lens-explorer/' | relative_url }}">Try the Lens Explorer</a>
+    or <a href="{{ '/research/' | relative_url }}">read the study results</a>.
+  </p>
+
   <!-- ══════ SECTION 1: THE 6 STEPS ══════ -->
   <div class="fw-section six-step-section">
     <h2>The 6-Step Process</h2>
@@ -673,5 +681,5 @@ window.__GRAPH_DATA = (function() {
   return { nodes: nodes, links: links };
 })();
 </script>
-<script src="https://d3js.org/d3.v7.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="{{ '/assets/js/framework-graph.js' | relative_url }}"></script>

@@ -15,6 +15,9 @@ on:
       - "_data/**"
       - "scripts/validate_schema.py"
       - "schema/chokepoint-schema.yml"
+      - "assets/data/detection-lens-explorer.v1.json"
+      - "schema/detection-lens-explorer.v1.schema.json"
+      - "scripts/validate_lens_explorer.py"
   workflow_dispatch:
 
 permissions:
@@ -37,3 +40,6 @@ jobs:
 
       - name: Validate chokepoint + trends data
         run: python scripts/validate_schema.py
+
+      - name: Validate Lens Explorer projection
+        run: python scripts/validate_lens_explorer.py

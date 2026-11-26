@@ -1,0 +1,223 @@
+{% assign php_threat_source = 'https://www.microsoft.com/en-us/security/blog/2026/04/02/cookie-controlled-php-webshells-tradecraft-linux-hosting-environments/' %}
+<div class="lens-explorer" data-lens-explorer data-dataset="{{ include.dataset | relative_url }}" data-catalog-root="{{ '/chokepoints/' | relative_url }}">
+  <header class="hero lens-hero py-16 px-6 text-center overflow-hidden relative">
+    <div class="lens-hero-inner max-w-2xl mx-auto relative">
+      <h1 class="hero-title mb-2">Detection Lens Explorer<span class="lens-cursor" aria-hidden="true">_</span></h1>
+      <p class="hero-sub">Start with a threat. Follow the attack path, then check what the lab evidence can confirm.</p>
+      <div class="lens-hero-actions">
+        <a href="#explorer" id="lens-open-explorer" hidden>Open the explorer</a>
+        <a href="{{ '/research/' | relative_url }}">Research studies</a>
+        <button type="button" class="filter-chip" id="lens-present" aria-haspopup="dialog" hidden>Presentation mode</button>
+      </div>
+    </div>
+  </header>
+  <div class="lens-shell">
+    <p id="lens-load-status" class="load-status" role="status">Enable JavaScript to use the explorer. <a href="{{ '/research/' | relative_url }}">Read the study results.</a></p>
+    <div id="lens-home">
+      <section id="explorer" aria-label="Explorer" tabindex="-1" hidden>
+        <section class="panel lesson" aria-labelledby="lesson-heading">
+          <div class="panel-title"><h2 id="lesson-heading">Guided lessons</h2></div>
+          <div class="lesson-body">
+            <div class="lesson-nav">
+              <div id="lesson-tabs" class="lesson-tablist" role="tablist" aria-label="Threat lessons"></div>
+              <button id="free-explore" type="button">Explore studies</button>
+            </div>
+            <div id="lesson-panel" class="lesson-panel" role="tabpanel" hidden>
+              <div class="walk-lesson-content" id="walk-lesson-content">
+                <h3 id="lesson-threat-title"></h3>
+                <div class="walk-objective"><strong id="walk-objective-label">Objective</strong><span id="lesson-objective"></span></div>
+                <div id="walk-threat" class="walk-context">
+                  <p id="lesson-threat"></p>
+                  <p class="lesson-sources"><span class="tag source-reported">Source-reported</span> <a id="lesson-source" href="{{ php_threat_source }}">Microsoft · April 2, 2026</a></p>
+                </div>
+                <section id="walk-map-section" class="walk-map-section" aria-labelledby="walk-map-title" hidden>
+                  <div class="walk-map-heading">
+                    <h4 id="walk-map-title">Attack path</h4>
+                    <span class="tag">Illustrative path</span>
+                  </div>
+                  <div id="walk-map" class="walk-map" role="group" aria-label="Revealed attack path"></div>
+                  <p id="walk-map-key" class="walk-map-key" hidden></p>
+                  <ul id="walk-relationships" class="walk-sr" aria-label="Revealed relationships"></ul>
+                </section>
+                <section class="walk-step" aria-labelledby="walk-step-title">
+                  <p id="walk-progress" class="walk-progress"></p>
+                  <div aria-live="polite" aria-atomic="true">
+                    <h4 id="walk-step-title" tabindex="-1"></h4>
+                    <p id="walk-copy"></p>
+                  </div>
+                  <a id="lesson-catalog" href="{{ '/chokepoints/web-shells/' | relative_url }}" hidden>Web Shell Persistence catalog entry</a>
+                  <button id="walk-hint" type="button" aria-expanded="false" aria-controls="walk-answer" hidden>Show explanation</button>
+                  <p id="walk-answer" hidden></p>
+                  <button id="walk-placement" type="button" hidden>Try graph placement</button>
+                  <div id="walk-evidence" class="walk-evidence" hidden>
+                    <div id="walk-evidence-controls"></div>
+                    <div id="walk-proof" aria-live="polite" aria-atomic="true"></div>
+                  </div>
+                  <div id="walk-findings" class="walk-findings" hidden>
+                    <div id="walk-results"></div>
+                    <p id="walk-limits"></p>
+                    <p id="walk-application"></p>
+                  </div>
+                  <div class="walk-nav" aria-label="Walkthrough controls" role="group">
+                    <button id="walk-back" type="button">Back</button>
+                    <button id="walk-next" type="button">Continue</button>
+                    <button id="walk-replay" type="button">Replay</button>
+                    <button id="walk-skip" type="button">Skip to findings</button>
+                  </div>
+                </section>
+              </div>
+              <section id="php-placement" class="placement stack" aria-labelledby="place-heading" hidden>
+                <div class="placement-row between">
+                  <button id="place-exit" type="button">Back to the PHP lesson</button>
+                  <a id="place-source" href="{{ php_threat_source }}">Microsoft threat report</a>
+                </div>
+                <div class="placement-objective"><strong>Example objective</strong><span>Make the designated data available to the executing code.</span></div>
+                <div class="placement-card">
+                  <div class="board-top stack">
+                    <div class="placement-row between"><p id="place-progress"></p><button id="place-explore" type="button" aria-pressed="false">Explore placements</button></div>
+                    <h3 id="place-heading" tabindex="-1"></h3>
+                    <p id="place-copy"></p>
+                    <p class="hint" id="place-hint"></p>
+                    <div id="place-modes" class="placement-row" role="group" aria-label="Placement mode" hidden>
+                      <button id="place-detect" type="button" aria-pressed="true">Detect</button>
+                      <button id="place-prevent" type="button" aria-pressed="false">Prevent</button>
+                      <button id="place-clear" type="button">Clear placement</button>
+                    </div>
+                  </div>
+                  <section id="place-board" class="placement-board stack" aria-labelledby="place-graph-title" hidden>
+                    <div class="placement-row between"><strong id="place-graph-title">Behavioral graph</strong><span class="tag">Illustrative paths</span></div>
+                    <div class="placement-map" id="place-map" role="group" aria-label="Graph interactions and placement points"></div>
+                    <ul id="place-relationships" class="walk-sr" aria-label="Revealed relationships"></ul>
+                    <ul class="placement-legend" id="place-key" aria-label="Graph legend" hidden>
+                      <li><span class="placement-marker is-detect" aria-hidden="true">D</span> Detector</li>
+                      <li><span class="placement-marker is-prevent" aria-hidden="true">P</span> Simulated block</li>
+                      <li><span class="placement-marker is-minimum" aria-hidden="true">M</span> Smallest set</li>
+                      <li><span class="placement-dash" aria-hidden="true"></span> Hypothetical route</li>
+                    </ul>
+                  </section>
+                  <div class="board-bottom stack">
+                    <div id="place-readout" class="stack" hidden>
+                      <p id="place-status" class="status" role="status" aria-atomic="true"></p>
+                      <ul id="place-routes" class="routes" aria-label="Modeled path results"></ul>
+                    </div>
+                    <div id="place-variant-controls" class="stack" hidden>
+                      <button id="place-variant" type="button" aria-expanded="false" aria-controls="place-prerequisites">Consider a cached copy</button>
+                      <div id="place-prerequisites" class="prereqs stack" hidden>
+                        <strong>Hypothetical route · Both conditions must hold</strong>
+                        <label><input id="place-sameCopy" type="checkbox" checked> The cache already holds an exact copy of the designated data.</label>
+                        <label><input id="place-cacheAccess" type="checkbox" checked> The executing PHP code can read that copy.</label>
+                        <button id="place-variant-add" type="button" aria-pressed="false">Add hypothetical route</button>
+                        <p id="place-variant-note"></p>
+                      </div>
+                    </div>
+                    <div id="place-cut-tools" class="stack" hidden>
+                      <div class="placement-row">
+                        <button id="place-cuts" type="button" aria-expanded="false" aria-controls="place-cut-note">Show smallest sets</button>
+                        <button id="place-next-cut" type="button" hidden>Next set</button>
+                      </div>
+                      <p id="place-cut-note" role="status"></p>
+                    </div>
+                    <details id="place-analysis" class="stack" hidden>
+                      <summary>Graph analysis and assumptions</summary>
+                      <p>The start assumes a PHP request can run code. Under the baseline conditions a child can start, and the child and worker can each read the designated file.</p>
+                      <p id="place-dominance"></p>
+                      <p id="place-cut-detail"></p>
+                      <p>Reachability asks whether any enabled route reaches the objective. A simulated block removes an interaction or transition from that calculation. Start and objective states and completion-only transitions are outside the placement choices.</p>
+                    </details>
+                    <details id="place-advanced" class="stack" hidden>
+                      <summary>Advanced placement</summary>
+                      <div class="placement-row"><label for="place-kind">Place at</label><select id="place-kind"><option value="nodes">Interactions</option><option value="edges">Transitions</option></select></div>
+                      <fieldset><legend id="place-advanced-legend">Detector locations</legend><div id="place-advanced-options"></div></fieldset>
+                    </details>
+                    <div id="place-nav" class="placement-row between" aria-label="Walkthrough controls" role="group">
+                      <div class="placement-row"><button id="place-back" type="button">Back</button><button id="place-next" type="button">Continue</button></div>
+                      <div class="placement-row"><button id="place-replay" type="button">Replay</button><button id="place-skip" type="button">Skip to lab findings</button></div>
+                    </div>
+                  </div>
+                </div>
+                <section id="place-lab" class="placement-card lab stack" aria-labelledby="place-lab-title" hidden>
+                  <div class="placement-row between"><h3 id="place-lab-title" tabindex="-1">What the lab measured</h3><span class="tag measured">Measured comparison</span></div>
+                  <p>The canary study tested completed file reads through PHP-FPM. The hypothetical cache route was outside the study.</p>
+                  <label class="placement-row"><input id="place-evidence-on" type="checkbox" checked> Show measured findings</label>
+                  <p class="map-key">The study reports documented observations. This switch changes what is displayed. The study did not replay telemetry subsets.</p>
+                  <div id="place-evidence">
+                    <section class="lab-section stack" aria-labelledby="place-aggregate-title">
+                      <h4 id="place-aggregate-title">Study total</h4>
+                      <p id="place-lab-count"></p>
+                    </section>
+                    <section class="lab-section stack" aria-labelledby="place-case-title">
+                      <h4 id="place-case-title">Selected case</h4>
+                      <div class="placement-row"><label for="place-evidence-case">Case</label><select id="place-evidence-case"></select></div>
+                      <div id="place-evidence-graph" aria-live="polite"></div>
+                    </section>
+                  </div>
+                  <p>To support a prohibited read, tie the completed operation to the specific file and actor, then check the applicable policy. An approved request can also complete the read.</p>
+                  <p class="map-key" id="place-study-revision"></p>
+                </section>
+              </section>
+            </div>
+          </div>
+        </section>
+        <div id="lens-lab" hidden>
+        <div class="input-grid">
+          <label class="pair">Study<select id="study"></select></label>
+          <label class="pair">Objective<select id="objective-filter"></select></label>
+          <label class="pair">Scenario<select id="case"></select></label>
+          <label class="pair">Evidence profile<select id="profile"></select></label>
+          <label class="pair">Receipt cutoff<select id="cutoff"></select></label>
+        </div>
+        <div class="guides"><span>Jump to a case</span><button data-guide="delay">Missing upstream (synthetic)</button><button data-guide="gap">Linux write capture (measured)</button><button data-guide="arms">Synthetic A/B comparison</button></div>
+        <div class="workspace">
+          <section id="lab-graph" class="panel graph-panel" aria-labelledby="lab-graph-title" tabindex="-1">
+              <div class="panel-title"><div><h2 id="lab-graph-title">Lab attack path and evidence</h2><p id="description"></p></div><span id="class" class="tag"></span></div>
+              <div class="graph-body">
+                <div class="graph-context"><strong id="objective-name"></strong><span class="tag" id="path-label"></span><span id="path-box" hidden><label class="pair">Switch path<select id="path"></select></label></span><span id="arm-box" hidden><label class="pair">Synthetic arm<select id="arm"></select></label></span></div>
+                <details class="bowtie" id="objective-map">
+                  <summary>Objective map</summary>
+                  <p class="bowtie-note">Pick a path or an effect to load a study case. The middle step depends on the path.</p>
+                  <div id="bowtie" class="bowtie-grid"></div>
+                </details>
+                <div id="graph" class="graph" role="group" aria-label="Scenario evidence graph"></div>
+                <p id="graph-note" class="legend"></p>
+                <p class="graph-jumps"><a href="#lens-controls">Telemetry lenses</a><a href="#lens-inspector">Evidence inspector</a></p>
+              </div>
+            </section>
+          <aside aria-label="Telemetry and coverage controls">
+            <section id="lens-controls" class="panel lens-panel" aria-labelledby="lens-control-title" tabindex="-1">
+              <div class="panel-title"><div><h2 id="lens-control-title">Telemetry lenses</h2><p id="lens-context"></p></div></div>
+              <div class="body"><div class="lens-toolbar" id="lens-toolbar"><button id="all" type="button">All lenses</button><button id="clear" type="button">Clear</button></div><div class="lens-list" id="lenses"></div></div>
+            </section>
+            <section class="panel coverage">
+              <div class="panel-title"><div><h2>Coverage and minimum set</h2><p>Coverage uses the selected cohort and claim.</p></div></div>
+              <div class="body">
+                <div class="cov-select"><label class="pair">Cohort<select id="cohort"></select></label><label class="pair">Claim<select id="claim"></select></label></div>
+                <div id="coverage" aria-live="polite"></div>
+              </div>
+            </section>
+          </aside>
+          <section id="lens-inspector" class="panel detail" aria-labelledby="inspect-title" tabindex="-1">
+              <div class="panel-title"><div aria-live="polite" aria-atomic="true"><h2 id="inspect-title">Evidence inspector</h2><p id="inspect-status"></p></div></div>
+              <div class="body detail-cols" id="inspection"></div>
+            </section>
+          <section id="diagnostic" class="panel diagnostic" hidden></section>
+        </div>
+        </div>
+      </section>
+      <section id="studies" class="atlas" hidden><div class="atlas-inner"><h2>Studies</h2><div id="atlas" class="atlas-grid"></div><p class="source-info" id="provenance"></p>
+        <details class="source-info">
+          <summary>Evidence labels</summary>
+          <p><strong>Source-reported</strong> covers behavior described in outside research. It helps explain possible attack paths and stays out of the lab counts.</p>
+          <p><strong>Measured</strong> comes from a controlled lab. <strong>Synthetic</strong> comes from replaying modeled evidence. Depending on the study, supplemental telemetry can add actor or object identity, policy, transaction records, or an independent record of the outcome.</p>
+          <p>A <strong>confirmed effect</strong> tells you what happened. A <strong>confirmed causal link</strong> takes separate evidence tying that effect to an earlier action.</p>
+        </details>
+      </div></section>
+    </div>
+  </div>
+  <dialog id="lens-presentation" class="presentation" aria-labelledby="lens-presentation-title">
+    <header class="presentation-bar">
+      <h2 id="lens-presentation-title">Detection Lens Explorer</h2>
+      <button type="button" class="filter-chip" id="lens-exit-present" autofocus>Exit presentation</button>
+    </header>
+    <div class="lens-shell" id="lens-presentation-content"></div>
+  </dialog>
+</div>
