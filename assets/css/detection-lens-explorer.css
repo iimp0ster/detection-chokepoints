@@ -129,7 +129,7 @@
   border-top: 1px solid var(--border);
   padding-top: .65rem;
 }
-.lens-explorer .lesson-panel > * + * { margin-top: .5rem; }
+.lens-explorer .walk-lesson-content > * + * { margin-top: .5rem; }
 .lens-explorer .lesson-sources {
   display: flex;
   align-items: center;
@@ -137,7 +137,7 @@
   gap: .45rem;
 }
 /* Stable path layout. Evidence lives separately from the modeled interactions. */
-.lens-explorer .walk-objective {
+.lens-explorer :is(.walk-objective, .placement-objective) {
   position: sticky;
   top: calc(var(--nav-h) + .25rem);
   z-index: 2;
@@ -149,7 +149,7 @@
   border-inline-start: 3px solid var(--lens-heading);
   background: var(--bg-card);
 }
-.lens-explorer .walk-objective strong { color: var(--lens-heading); }
+.lens-explorer :is(.walk-objective, .placement-objective) strong { color: var(--lens-heading); }
 .lens-explorer .walk-map-section {
   background: var(--bg-code);
   border: 1px solid var(--border-strong);
@@ -272,7 +272,7 @@
 .lens-explorer p.walk-result-line { color: var(--text); font-weight: 700; }
 .lens-explorer #walk-next { border-color: var(--lens-title); }
 .lens-explorer #walk-back:disabled { opacity: .6; cursor: default; }
-.lens-explorer .presentation .walk-objective { top: calc(var(--nav-h) + .5rem); }
+.lens-explorer .presentation :is(.walk-objective, .placement-objective) { top: calc(var(--nav-h) + .5rem); }
 @media (max-width: 640px) {
   .lens-explorer #walk-map[data-lesson="minimum"] { height: 20rem; }
   .lens-explorer #walk-map[data-lesson="observation"] { height: 21rem; }
@@ -437,6 +437,200 @@
 .lens-explorer .presentation-bar button { flex-shrink: 0; }
 .lens-explorer .presentation .lens-shell { max-width: 1280px; }
 
+/* PHP placement exercise. These styles belong to the optional graph only. */
+.lens-explorer .placement {
+  --placement-detect: var(--lens-observed);
+  --placement-prevent: var(--lens-attempt);
+  --placement-minimum: var(--lens-heading);
+}
+.lens-explorer :is(.placement, .placement .stack) > * + * { margin-top: .55rem; }
+.lens-explorer .placement-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem .7rem;
+}
+.lens-explorer .placement-row.between { justify-content: space-between; }
+.lens-explorer .placement-row select { width: auto; max-width: 100%; }
+.lens-explorer .placement :is(.placement-card, .placement-board, .lab-section) {
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+.lens-explorer .placement :is(.board-top, .board-bottom, .lab) { padding: .65rem .85rem; }
+.lens-explorer .placement .placement-board {
+  container-type: inline-size;
+  margin: 0 .75rem;
+  padding: .5rem .7rem;
+  background: var(--bg-code);
+}
+.lens-explorer .placement-map {
+  --placement-flow: horizontal;
+  --placement-column-gap: clamp(42px, 6vw, 100px);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 86px);
+  gap: 60px var(--placement-column-gap);
+  padding: 1rem .25rem;
+  align-items: center;
+}
+.lens-explorer .placement-connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.lens-explorer .placement-connectors path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.lens-explorer .placement-connectors .inproc { color: var(--lens-title); }
+.lens-explorer .placement-connectors .whatif { color: var(--placement-detect); }
+.lens-explorer .placement-connectors :is(.whatif, .block-point, .unavailable) .placement-wire { stroke-dasharray: 6 4; }
+.lens-explorer .placement-connectors .placement-head { stroke-linecap: round; }
+.lens-explorer .placement-connectors :is(.dim, .unavailable) { opacity: .9; }
+.lens-explorer .placement-connectors .hit { color: var(--placement-detect); }
+.lens-explorer .placement-map[data-mode="prevent"] .edge.hit { color: var(--placement-prevent); }
+.lens-explorer .placement-connectors .edge.cut { color: var(--placement-minimum); }
+.lens-explorer .placement-map .tile {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: 1fr 1.18rem;
+  justify-items: center;
+  gap: .12rem;
+  width: 100%;
+  height: 86px;
+  min-width: 0;
+  padding: .38rem .4rem;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text);
+  text-align: center;
+  line-height: 1.25;
+}
+.lens-explorer .placement-map .tile strong {
+  align-self: center;
+  font-size: .96rem;
+  overflow-wrap: anywhere;
+}
+.lens-explorer .placement-map .tile .placement-role {
+  grid-row: 2;
+  align-self: center;
+  color: var(--text-muted);
+  font-size: .77rem;
+}
+.lens-explorer .placement-map .tile:has(.placement-role) .placement-marks:empty { display: none; }
+.lens-explorer .placement-map .tile[data-id="cache"] { border-style: dashed; }
+.lens-explorer .placement-map .tile.current { border-color: var(--lens-title); }
+.lens-explorer .placement-map .tile[aria-pressed="true"] { box-shadow: none; border-color: var(--placement-detect); }
+.lens-explorer .placement-map[data-mode="prevent"] .tile[aria-pressed="true"] { border-color: var(--placement-prevent); }
+.lens-explorer .placement-map .tile:disabled { cursor: default; }
+.lens-explorer .placement-map .tile:not(:disabled):hover { border-color: var(--lens-heading); }
+.lens-explorer .placement-map .tile:focus-visible { outline: 2px solid var(--lens-heading); outline-offset: -4px; }
+.lens-explorer .placement-map .tile[data-id="start"] { grid-area: 1 / 1 / span 2; }
+.lens-explorer .placement-map .tile[data-id="child"] { grid-area: 1 / 2; }
+.lens-explorer .placement-map .tile[data-id="inproc"] { grid-area: 2 / 2; }
+.lens-explorer .placement-map .tile[data-id="file"] { grid-area: 1 / 3; }
+.lens-explorer .placement-map .tile[data-id="cache"] { grid-area: 2 / 3; }
+.lens-explorer .placement-map .tile[data-id="goal"] { grid-area: 1 / 4 / span 2; }
+.lens-explorer .placement :is(.placement-marks, .placement-legend, .routes) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .32rem .5rem;
+}
+.lens-explorer .placement .placement-marks { grid-row: 2; justify-content: center; }
+.lens-explorer .placement :is(.placement-legend, .routes) { list-style: none; margin: .4rem 0 0; padding-inline-start: 0; }
+.lens-explorer .placement-legend {
+  border-top: 1px solid var(--border);
+  padding-top: .45rem;
+  color: var(--text-muted);
+  font-size: .8rem;
+}
+.lens-explorer .placement-legend li { display: inline-flex; align-items: center; gap: .26rem; }
+.lens-explorer .placement-marker {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15rem;
+  min-height: 1.05rem;
+  border: 1px solid currentColor;
+  background: var(--bg-code);
+  font-size: .77rem;
+  line-height: 1;
+}
+.lens-explorer .placement-marker.is-detect { color: var(--placement-detect); }
+.lens-explorer .placement-marker.is-prevent { color: var(--placement-prevent); }
+.lens-explorer .placement-marker.is-minimum { color: var(--placement-minimum); border-style: dashed; }
+.lens-explorer .placement-dash { width: 1.3rem; border-top: 2px dashed var(--placement-detect); }
+.lens-explorer .placement-unavailable { font-size: .77rem; color: var(--text-muted); }
+.lens-explorer .placement :is(#place-progress, .map-key) { color: var(--text-muted); font-size: .85rem; }
+.lens-explorer .placement :is(.status, .prereqs) {
+  border-inline-start: 3px solid var(--placement-detect);
+  background: var(--bg-code);
+  padding: .4rem .6rem;
+}
+.lens-explorer .placement .status { color: var(--text); font-weight: 700; }
+.lens-explorer .placement .status[data-mode="prevent"] { border-color: var(--placement-prevent); }
+.lens-explorer .placement .routes li {
+  display: grid;
+  padding: .3rem .48rem;
+  border: 1px solid var(--border-strong);
+  font-size: .84rem;
+  color: var(--text-muted);
+}
+.lens-explorer .placement .routes li.hit { color: var(--text); border-color: var(--placement-detect); }
+.lens-explorer .placement .routes[data-mode="prevent"] li.hit { border-color: var(--placement-prevent); }
+.lens-explorer .placement .routes li.hypothetical { border-style: dashed; }
+.lens-explorer .placement .routes small { font-size: inherit; }
+.lens-explorer .placement :is(.prereqs, #place-advanced-options) label {
+  display: flex;
+  align-items: flex-start;
+  gap: .4rem;
+  padding-block: .18rem;
+}
+.lens-explorer .placement input[type="checkbox"] {
+  appearance: auto;
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--lens-title);
+}
+.lens-explorer .placement :is(details, .claim) { border-top: 1px solid var(--border); padding-top: .45rem; }
+.lens-explorer .placement .lab-section { margin-top: .4rem; padding: .45rem .6rem; background: var(--bg-code); }
+.lens-explorer .placement .claim .confirmed { color: var(--lens-confirmed); }
+.lens-explorer #place-study-revision { overflow-wrap: anywhere; }
+.lens-explorer .placement :is(button, select, summary, input) { scroll-margin-top: calc(var(--nav-h) + 5.8rem); }
+
+@container (max-width: 650px) {
+  .lens-explorer .placement-map {
+    --placement-flow: vertical;
+    --placement-column-gap: clamp(16px, 6vw, 48px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(4, 76px);
+    row-gap: 42px;
+  }
+  .lens-explorer .placement-map .tile { height: 76px; }
+  .lens-explorer .placement-map .tile strong { font-size: .9rem; }
+  .lens-explorer .placement-map .tile:is([data-id="start"], [data-id="goal"]) {
+    width: calc((100% - var(--placement-column-gap)) / 2);
+    justify-self: center;
+  }
+  .lens-explorer .placement-map .tile[data-id="start"] { grid-area: 1 / 1 / 2 / span 2; }
+  .lens-explorer .placement-map .tile[data-id="child"] { grid-area: 2 / 1; }
+  .lens-explorer .placement-map .tile[data-id="inproc"] { grid-area: 2 / 2; }
+  .lens-explorer .placement-map .tile[data-id="file"] { grid-area: 3 / 1; }
+  .lens-explorer .placement-map .tile[data-id="cache"] { grid-area: 3 / 2; }
+  .lens-explorer .placement-map .tile[data-id="goal"] { grid-area: 4 / 1 / 5 / span 2; }
+}
+
 @media (max-width: 900px) {
   .lens-explorer .workspace { grid-template-columns: minmax(0, 1fr); }
   .lens-explorer .workspace > aside { grid-area: auto; }
@@ -452,6 +646,8 @@
   .lens-explorer .input-grid > label:has(#study) { grid-column: 1 / -1; }
   .lens-explorer button, .lens-explorer select { min-height: 2.6rem; }
   .lens-explorer .atlas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lens-explorer .placement .placement-board { margin-inline: .35rem; padding-inline: .35rem; }
+  .lens-explorer .placement :is(.board-top, .board-bottom, .lab) { padding-inline: .5rem; }
 }
 @media (max-width: 440px) {
   .lens-explorer :is(.bowtie-grid, .downstream, .detail-cols) { grid-template-columns: 1fr; }

@@ -1,3 +1,489 @@
+// Behavioral placement model. The source projection is used only by the lab panel.
+// Model facts belong to the behavioral graph. Study verdicts are read separately below.
+const behavior = {
+  start:"start", goal:"goal", sourceRefs:{
+    lab:{label:"Accepted PHP-FPM canary comparison",maturity:"Illustrative structure from measured cases"},
+    definition:{label:"Prototype start and goal boundaries",maturity:"Modeled"},
+    counterfactual:{label:"Cached copy outside the report and lab",maturity:"Hypothetical"},
+  },
+  startingFacts:{phpCode:true,canStartChild:true,workerFileRead:true,childFileRead:true},
+  nodes: [
+    {id:"start", label:"PHP request runs", role:"Starting state", source:"definition", wide:[10,48], mobile:[50,10], reveal:1},
+    {id:"child", label:"Start a child", role:"Execution interaction", source:"lab", wide:[33,23], mobile:[24,33], reveal:1, place:true},
+    {id:"inproc", label:"Run inside PHP", role:"Alternative interaction", source:"lab", wide:[33,74], mobile:[76,33], reveal:3, place:true},
+    {id:"file", label:"Read the file", role:"Data access interaction", source:"lab", wide:[61,30], mobile:[24,59], reveal:2, place:true},
+    {id:"cache", label:"Read the cached copy", role:"Hypothetical interaction", source:"counterfactual", wide:[61,77], mobile:[76,59], reveal:5, variant:true, place:true},
+    {id:"goal", label:"Data available to code", role:"Objective state", source:"definition", wide:[89,48], mobile:[50,86], reveal:2}
+  ],
+  edges: [
+    {id:"start-child", from:"start", to:"child", label:"Request starts a child", requiresAll:["phpCode","canStartChild"], place:true, source:"lab"},
+    {id:"start-inproc", from:"start", to:"inproc", label:"Request stays inside PHP", requiresAll:["phpCode"], branch:"inproc", place:true, source:"lab"},
+    {id:"child-file", from:"child", to:"file", label:"Child route reaches file read", requiresAll:["childFileRead"], place:true, source:"lab"},
+    {id:"inproc-file", from:"inproc", to:"file", label:"PHP route reaches file read", requiresAll:["workerFileRead"], branch:"inproc", place:true, source:"lab"},
+    {id:"inproc-cache", from:"inproc", to:"cache", label:"PHP route reads cached copy", requiresAll:["sameCopy","cacheAccess"], branch:"whatif", place:true, source:"counterfactual"},
+    {id:"file-goal", from:"file", to:"goal", label:"File read supplies the data", requiresAll:[], source:"definition"},
+    {id:"cache-goal", from:"cache", to:"goal", label:"Cached copy supplies the same data", requiresAll:[], branch:"whatif", source:"counterfactual"}
+  ],
+};
+
+function reachable(graph, removedNodes=new Set(), removedEdges=new Set()){
+  if(removedNodes.has(graph.start))return new Set();
+  const reached=new Set([graph.start]), queue=[graph.start];
+  for(const vertex of queue){
+    for(const edge of graph.edges){
+      if(edge.from!==vertex||reached.has(edge.to)||removedNodes.has(edge.to)||removedEdges.has(edge.id))continue;
+      reached.add(edge.to);
+      queue.push(edge.to);
+    }
+  }
+  return reached;
+}
+function pathList(graph){
+  const result=[];
+  function visit(vertices,edges){
+    const last=vertices.at(-1);
+    if(last===graph.goal){result.push({nodes:vertices,edges});return;}
+    for(const edge of graph.edges){
+      if(edge.from===last&&!vertices.includes(edge.to))visit([...vertices,edge.to],[...edges,edge.id]);
+    }
+  }
+  visit([graph.start],[]);
+  return result;
+}
+function* combinations(ids,size,position=0,prefix=[]){
+  if(size===0){yield prefix;return;}
+  for(let i=position;i<=ids.length-size;i++)yield* combinations(ids,size-1,i+1,[...prefix,ids[i]]);
+}
+function reachesGoal(graph,kind,removed){
+  return (kind==="nodes"?reachable(graph,removed):reachable(graph,new Set(),removed)).has(graph.goal);
+}
+function smallestCuts(graph,kind){
+  if(!reachable(graph).has(graph.goal))return null;
+  const eligible=graph[kind].filter(item=>item.place).map(item=>item.id);
+  for(let size=1;size<=eligible.length;size++){
+    const cuts=[];
+    for(const part of combinations(eligible,size))if(!reachesGoal(graph,kind,new Set(part)))cuts.push(part);
+    if(cuts.length)return cuts;
+  }
+  return [];
+}
+function analyze(model,step,variant,facts,kind,detectors,blocks){
+  const nodes=model.nodes.filter(node=>node.reveal<=step&&(!node.variant||variant));
+  const present=new Set(nodes.map(item=>item.id));
+  const drawn=model.edges.filter(edge=>present.has(edge.from)&&present.has(edge.to));
+  const edges=drawn.filter(edge=>edge.requiresAll.every(fact=>facts[fact]===true));
+  const graph={start:model.start,goal:model.goal,nodes,edges};
+  const paths=pathList(graph);
+  const dom=paths.length?nodes.filter(item=>item.place&&!reachesGoal(graph,"nodes",new Set([item.id]))):[];
+  return {nodes,drawn,edges,paths,dom,
+    hits:paths.filter(path=>path[kind].some(id=>detectors.has(id))).length,
+    reachable:reachesGoal(graph,kind,blocks),
+    nodeCuts:smallestCuts(graph,"nodes"),edgeCuts:smallestCuts(graph,"edges")};
+}
+
+function initializePlacement(container, projection, onExit){
+  const lesson=[
+    {level:0,title:"Recall the threat",copy:"Microsoft reported web shells that activated when a PHP request carried the expected cookie.",hint:"The exercise starts after code is already running for a request. It follows a narrower data-access objective."},
+    {level:2,title:"Follow the child route",copy:"The request starts a child process. The child reads the designated file and makes the data available to that code.",hint:"",focus:["child","file"]},
+    {level:3,title:"Find the shared interaction",copy:"The same file can be read inside the PHP worker. Select a node to see which routes pass through it.",hint:"Try the child start first. Clear it, then select the file read.",focus:["file","inproc"]},
+    {level:5,title:"Challenge the file read",copy:"Both original routes need the file read. Consider an alternative that gives the code the same data.",hint:"Open the hypothetical route, check its two assumptions, then add it.",focus:["cache"]},
+    {level:6,title:"Cover the routes with a set",copy:"With the cached copy available, the file read misses one route. Select another location to cover that route.",hint:"Use the smallest sets when you want to compare placements.",focus:["file","cache"]},
+    {level:7,title:"Try blocking an interaction",copy:"Switch between Detect and Prevent. Try blocking the file read, then block the cached-copy read too.",hint:"Detect marks where you could look. Prevent simulates what happens when an interaction is blocked.",focus:["file","cache"]},
+    {level:7,title:"Check what the evidence supports",copy:"A location on a modeled route tells you where to look. Verify the operation, actor and policy before calling it a prohibited read.",hint:"The measured results below use a separate canary comparison.",focus:["file"]}
+  ];
+  const make=(tag,text="",className="")=>{
+    const element=document.createElement(tag);
+    element.textContent=text;
+    element.className=className;
+    return element;
+  };
+  const byId=id=>container.querySelector("#place-"+id);
+  const start=()=>({index:0,explore:false,mode:"detect",kind:"nodes",openVariant:false,variant:false,
+    sameCopy:true,cacheAccess:true,showCuts:false,cutIndex:0,
+    detect:{nodes:new Set(),edges:new Set()},prevent:{nodes:new Set(),edges:new Set()}});
+  let state=start();
+  const empty=new Set();
+  const titles=Object.fromEntries(["nodes","edges"].map(kind=>[kind,Object.fromEntries(behavior[kind].map(x=>[x.id,x.label]))]));
+  const routeName=path=>path.nodes.includes("cache")?"Cached-copy route":path.nodes.includes("child")?"Child-process route":"In-process file route";
+  const using=(path,kind,selection)=>path[kind].some(id=>selection.has(id));
+
+  const map=byId("map");
+  const tiles=new Map(), connectors=new Map();
+  const roleText={start:"Starting state",goal:"Objective"};
+  const symbols={detect:["D","Detector placed"],prevent:["P","Simulated block"],minimum:["M","Part of smallest set"]};
+  const ports={
+    "start-child":[[-10,0,-6],[-16,0,-6]],
+    "start-inproc":[[10,0,6],[16,0,6]],
+    "child-file":[[-9,-9,0],[-10,-10,0]],
+    "inproc-file":[[-9,9,0],[-14,14,0]],
+    "inproc-cache":[[9,9,0],[10,10,0]],
+    "file-goal":[[0,-10,-6],[0,-16,-6]],
+    "cache-goal":[[0,10,6],[0,16,6]]
+  };
+
+  function initGraph(){
+    const ns="http://www.w3.org/2000/svg";
+    const svg=document.createElementNS(ns,"svg");
+    svg.classList.add("placement-connectors");
+    svg.setAttribute("aria-hidden","true");
+    svg.setAttribute("preserveAspectRatio","none");
+    for(const edge of behavior.edges){
+      const group=document.createElementNS(ns,"g");
+      group.setAttribute("class","edge "+(edge.branch||""));
+      group.dataset.edge=edge.id;
+      const line=document.createElementNS(ns,"path"), head=document.createElementNS(ns,"path");
+      line.classList.add("placement-wire");
+      head.classList.add("placement-head");
+      group.append(line,head);
+      svg.append(group);
+      connectors.set(edge.id,{line,head});
+    }
+    map.append(svg);
+    for(const n of behavior.nodes){
+      const item=make(n.place?"button":"div","","tile");
+      item.dataset.id=n.id;
+      item.append(make("strong",n.label));
+      if(roleText[n.id])item.append(make("small",roleText[n.id],"placement-role"));
+      item.append(make("span","","placement-marks"));
+      if(n.place){
+        item.type="button";
+        item.addEventListener("click",()=>togglePlacement(n.id));
+      }
+      map.append(item);
+      tiles.set(n.id,item);
+    }
+    return svg;
+  }
+
+  let frame=0;
+  function scheduleConnectors(){
+    if(!frame)frame=requestAnimationFrame(()=>{
+      frame=0;
+      drawConnectors();
+    });
+  }
+
+  function drawConnectors(){
+    const rect=map.getBoundingClientRect();
+    if(!rect.width||!rect.height)return;
+    const vertical=getComputedStyle(map).getPropertyValue("--placement-flow").trim()==="vertical";
+    const scale=window.devicePixelRatio||1;
+    const snap=value=>Math.round(value*scale)/scale;
+    svg.setAttribute("viewBox",`0 0 ${rect.width} ${rect.height}`);
+    const anchors=new Map();
+    for(const [id,item] of tiles){
+      if(item.hidden)continue;
+      const {left,right,top,bottom}=item.getBoundingClientRect();
+      anchors.set(id,vertical?
+        {start:bottom-rect.top,end:top-rect.top,cross:(left+right)/2-rect.left}:
+        {start:right-rect.left,end:left-rect.left,cross:(top+bottom)/2-rect.top});
+    }
+    // Every branch has a reserved position and a separate port where routes converge.
+    // Express bends in the gap between levels so the paths never run through a tile.
+    for(const edge of behavior.edges){
+      const from=anchors.get(edge.from), to=anchors.get(edge.to);
+      if(!from||!to)continue;
+      const [fromPort,toPort,lane]=ports[edge.id][vertical?1:0];
+      const start=snap(from.start+1), end=snap(to.end-8);
+      const mid=snap((start+end)/2+lane);
+      const first=snap(from.cross+fromPort), last=snap(to.cross+toPort);
+      const point=(along,cross)=>vertical?`${cross} ${along}`:`${along} ${cross}`;
+      const {line,head}=connectors.get(edge.id);
+      line.setAttribute("d",`M ${point(start,first)} L ${point(mid,first)} L ${point(mid,last)} L ${point(end,last)}`);
+      head.setAttribute("d",`M ${point(end-6,last-3.5)} L ${point(end,last)} L ${point(end-6,last+3.5)}`);
+    }
+  }
+
+  function renderMarks(item,markers){
+    const signature=markers.join(" ");
+    const holder=item.querySelector(".placement-marks");
+    if(holder.dataset.markers===signature)return;
+    holder.dataset.markers=signature;
+    holder.replaceChildren(...markers.map(kind=>{
+      if(kind==="unavailable")return make("span","Unavailable","placement-unavailable");
+      const [letter,description]=symbols[kind];
+      const mark=make("span",letter,"placement-marker is-"+kind);
+      mark.setAttribute("aria-hidden","true");
+      const text=make("span",description,"walk-sr");
+      const wrap=make("span");
+      wrap.append(mark,text);
+      return wrap;
+    }));
+  }
+
+  function context(){
+    const step=lesson[state.index];
+    const canPlace=state.explore||state.index>=2;
+    const canPrevent=state.explore||state.index>=5;
+    const mode=canPrevent?state.mode:"detect";
+    const kind=state.explore?state.kind:"nodes";
+    const variant=(state.explore||state.index>=3)&&state.variant;
+    const level=state.explore?7:step.level;
+    const result=analyze(behavior,level,variant,{...behavior.startingFacts,sameCopy:state.sameCopy,cacheAccess:state.cacheAccess},
+      kind,canPlace?state.detect[kind]:empty,canPrevent?state.prevent[kind]:empty);
+    const selection=canPlace?state[mode][kind]:empty;
+    const cuts=kind==="nodes"?result.nodeCuts:result.edgeCuts;
+    const cut=state.showCuts&&cuts?.length?cuts[state.cutIndex%cuts.length]:null;
+    return {step,canPlace,canPrevent,mode,kind,variant,result,selection,cuts,cut};
+  }
+
+  function togglePlacement(id){
+    const {selection}=context();
+    if(selection.has(id))selection.delete(id);
+    else selection.add(id);
+    render();
+  }
+
+  function renderGraph(view){
+    const {step,canPlace,mode,kind,result,selection,cut}=view;
+    const shown=new Set(result.nodes.map(n=>n.id)), drawn=new Set(result.drawn.map(e=>e.id));
+    const enabled=new Set(result.edges.map(e=>e.id));
+    const affected=result.paths.filter(path=>using(path,kind,selection));
+    const hits=new Set(affected.flatMap(path=>path.edges));
+    const anyHits=affected.length>0;
+    map.dataset.mode=mode;
+    for(const item of map.querySelectorAll(".tile")){
+      const id=item.dataset.id;
+      const chosen=kind==="nodes"&&selection.has(id);
+      const suggested=kind==="nodes"&&Boolean(cut?.includes(id));
+      const unavailable=id==="cache"&&!enabled.has("inproc-cache");
+      item.hidden=!shown.has(id);
+      item.classList.toggle("current",Boolean(step.focus?.includes(id)));
+      item.classList.toggle("cut",suggested);
+      item.classList.toggle("unavailable",unavailable);
+      renderMarks(item,[chosen?mode:"",suggested?"minimum":"",unavailable?"unavailable":""].filter(Boolean));
+      if(item instanceof HTMLButtonElement){
+        item.disabled=!canPlace||kind!=="nodes"||unavailable;
+        item.setAttribute("aria-pressed",String(chosen));
+      }
+    }
+    for(const item of map.querySelectorAll("[data-edge]")){
+      const id=item.dataset.edge;
+      item.style.visibility=drawn.has(id)?"visible":"hidden";
+      item.classList.toggle("hit",hits.has(id));
+      item.classList.toggle("dim",anyHits&&!hits.has(id));
+      item.classList.toggle("cut",kind==="edges"&&Boolean(cut?.includes(id)));
+      item.classList.toggle("unavailable",!enabled.has(id));
+      item.classList.toggle("block-point",mode==="prevent"&&kind==="edges"&&selection.has(id));
+    }
+    byId("key").hidden=!canPlace;
+    byId("relationships").replaceChildren(...result.drawn.map(edge=>make("li",edge.label+
+      (enabled.has(edge.id)?"":" · Preconditions unmet"))));
+  }
+
+  function renderResults(view){
+    const {mode,result,kind,variant,selection,cuts,cut}=view;
+    const total=result.paths.length;
+    const affected=result.paths.filter(path=>using(path,kind,selection)).length;
+    const matchingMinimum=Boolean(cuts?.some(set=>set.length===selection.size&&set.every(id=>selection.has(id))));
+    const suffix=matchingMinimum?" · Smallest qualifying set":"";
+    const status=byId("status");
+    status.dataset.mode=mode;
+    status.textContent=mode==="detect"?affected+" of "+total+" modeled paths pass a selected location"+suffix:
+      "Objective "+(result.reachable?"reachable":"unreachable")+" in simulation · "+affected+" of "+total+" modeled paths blocked"+suffix;
+    const routes=byId("routes");
+    routes.dataset.mode=mode;
+    const chips=result.paths.map(path=>{
+      const active=using(path,kind,selection);
+      const className=[active?"hit":"",path.nodes.includes("cache")?"hypothetical":""].filter(Boolean).join(" ");
+      const item=make("li","",className);
+      item.append(make("strong",routeName(path)),make("small",mode==="detect"?
+        (active?"Intersects selection":"No selected location"):(active?"Blocked in simulation":"Open in simulation")));
+      return item;
+    });
+    if(variant&&!result.paths.some(path=>path.nodes.includes("cache"))){
+      const item=make("li","","hypothetical");
+      item.append(make("strong","Cached-copy route"),make("small","Unavailable · A prerequisite is missing"));
+      chips.push(item);
+    }
+    routes.replaceChildren(...chips);
+    const choices=cut?cuts.length:0;
+    byId("cuts").textContent=state.showCuts?"Hide smallest sets":"Show smallest sets";
+    byId("cuts").setAttribute("aria-expanded",String(state.showCuts));
+    byId("next-cut").hidden=choices<2;
+    byId("cut-note").textContent=cut?"Set "+(state.cutIndex%choices+1)+" of "+choices+" · "+cut.map(id=>titles[kind][id]).join(" + "):
+      state.showCuts?"No set qualifies under these conditions.":"";
+    byId("dominance").textContent=result.dom.length?
+      "An interaction that every route to the objective must pass is a dominator. Here that is "+result.dom.map(n=>n.label.toLowerCase()).join(", ")+
+      ".":"No eligible interaction dominates the objective. Each can be skipped on at least one modeled route.";
+    const list=sets=>sets?.length?sets[0].length:"none";
+    byId("cut-detail").textContent="A minimum cut is the smallest eligible set that intersects every route. Size "+
+      list(result.nodeCuts)+" for interactions and "+list(result.edgeCuts)+" for transitions.";
+  }
+
+  function renderAdvanced({mode,kind,result,selection,cut}){
+    const available=kind==="nodes"?result.nodes:result.drawn;
+    byId("kind").value=state.kind;
+    byId("advanced-legend").textContent=mode==="detect"?"Detector locations":"Simulated blocks";
+    const container=byId("advanced-options");
+    const items=available.filter(item=>item.place);
+    const signature=kind+":"+items.map(item=>item.id).join(",");
+    if(container.dataset.signature!==signature){
+      container.dataset.signature=signature;
+      container.replaceChildren(...items.map(item=>{
+        const label=make("label");
+        const input=make("input");
+        input.type="checkbox";input.value=item.id;
+        input.addEventListener("change",()=>togglePlacement(item.id));
+        label.append(input,make("span",item.label),make("small","","min-mark"));
+        return label;
+      }));
+    }
+    for(const input of container.querySelectorAll("input")){
+      input.checked=selection.has(input.value);
+      input.disabled=input.value==="cache"&&!result.edges.some(x=>x.id==="inproc-cache")||
+        kind==="edges"&&!result.edges.some(x=>x.id===input.value);
+      input.closest("label").querySelector(".min-mark").textContent=cut?.includes(input.value)?"· Smallest set":"";
+    }
+  }
+
+  const evidenceNames={C:"Confirmed",O:"Observed",N:"No match","-":"Not adjudicated"};
+  function renderLab(){
+    byId("evidence").hidden=!byId("evidence-on").checked;
+    const row=projection.cases[byId("evidence-case").value];
+    const labels={operation:"Operation visibility",effect:"Completed designated file read",attribution:"Exact attribution",authorization:"Authorization violation"};
+    byId("evidence-graph").replaceChildren(...Object.entries(labels).map(([key,label])=>{
+      const line=make("p","","claim placement-row between");
+      const code=row.verdicts[key];
+      line.append(make("span",label),make("strong",evidenceNames[code],code==="C"?"confirmed":""));
+      return line;
+    }));
+  }
+
+  function render(){
+    const view=context(), {step,canPlace,canPrevent,mode,result}=view;
+    const showVariant=state.explore||state.index>=3;
+    const showCuts=state.explore||state.index>=4;
+    byId("progress").textContent=state.explore?"Explore placements":"Step "+(state.index+1)+" of "+lesson.length;
+    byId("heading").textContent=state.explore?"Compare placements":step.title;
+    const cacheEnabled=result.paths.some(path=>path.nodes.includes("cache"));
+    let copy=step.copy;
+    if(state.index===4&&!cacheEnabled){
+      copy="Both current routes pass the file read. Enable the hypothetical route to try a placement that spans multiple interactions.";
+    }else if(state.index===4&&result.hits===result.paths.length){
+      copy="Every modeled route intersects a selected location. Compare your placement with the smallest sets.";
+    }else if(state.index===4&&!state.detect.nodes.has("file")){
+      copy="Select Read the file to mark the two file-read routes, then add a location for the cached-copy route.";
+    }
+    if(state.index===5&&!cacheEnabled){
+      copy="Try blocking the file read. Enable the hypothetical route to see what stays reachable when it is blocked.";
+    }
+    byId("copy").textContent=state.explore?"Select an interaction on the graph, or open advanced placement to try transitions.":copy;
+    byId("hint").textContent=state.explore?"Switch modes to keep observations and simulated blocks separate.":step.hint;
+    byId("explore").textContent=state.explore?"Return to the walkthrough":"Explore placements";
+    byId("explore").setAttribute("aria-pressed",String(state.explore));
+    byId("board").hidden=result.nodes.length===0;
+    byId("modes").hidden=!canPlace;
+    byId("prevent").hidden=!canPrevent;
+    byId("detect").setAttribute("aria-pressed",String(mode==="detect"));
+    byId("prevent").setAttribute("aria-pressed",String(mode==="prevent"));
+    byId("clear").disabled=view.selection.size===0;
+    byId("readout").hidden=!canPlace;
+    byId("variant-controls").hidden=!showVariant;
+    byId("variant").textContent=state.openVariant?"Hide route assumptions":"Consider a cached copy";
+    byId("variant").setAttribute("aria-expanded",String(state.openVariant));
+    byId("prerequisites").hidden=!state.openVariant;
+    byId("variant-add").textContent=state.variant?"Remove hypothetical route":"Add hypothetical route";
+    byId("variant-add").setAttribute("aria-pressed",String(state.variant));
+    byId("sameCopy").checked=state.sameCopy;
+    byId("cacheAccess").checked=state.cacheAccess;
+    byId("variant-note").textContent=state.variant?
+      (state.sameCopy&&state.cacheAccess?"Both assumptions hold. The modeled route is enabled.":"The modeled route is unavailable while either assumption is missing."):
+      "The report and the PHP lab did not establish this route.";
+    byId("cut-tools").hidden=!showCuts;
+    byId("analysis").hidden=!showCuts;
+    byId("advanced").hidden=!state.explore;
+    byId("nav").hidden=state.explore;
+    byId("back").disabled=state.index===0;
+    byId("next").hidden=state.index===lesson.length-1;
+    byId("skip").hidden=state.index===lesson.length-1;
+    byId("lab").hidden=!state.explore&&state.index!==lesson.length-1;
+    renderGraph(view);
+    renderResults(view);
+    scheduleConnectors();
+    if(state.explore)renderAdvanced(view);
+  }
+
+  function focus(id){
+    const element=byId(id);
+    element.focus({preventScroll:true});
+    const goal=container.querySelector(".placement-objective");
+    element.style.scrollMarginTop=(goal.offsetHeight+parseFloat(getComputedStyle(goal).top)+12)+"px";
+    element.scrollIntoView({block:"start"});
+  }
+  function go(index){
+    if(!state.explore&&index===5&&state.index<5)state.mode="prevent";
+    state.index=index;
+    state.showCuts=false;
+    state.cutIndex=0;
+    render();
+    focus(index===lesson.length-1?"lab-title":"heading");
+  }
+  const on=(id,fn,type="click")=>byId(id).addEventListener(type,fn);
+  const svg=initGraph();
+  new ResizeObserver(scheduleConnectors).observe(map);
+  for(const [id,entry] of Object.entries(projection.cases)){
+    const option=make("option",entry.label);option.value=id;byId("evidence-case").append(option);
+  }
+  byId("lab-count").textContent=projection.confirmed+" of "+projection.eligible+" prohibited canary reads confirmed across the study.";
+  byId("study-revision").textContent="PHP study revision "+projection.revision;
+  on("exit",onExit);
+  on("explore",()=>{state.explore=!state.explore;state.showCuts=false;state.cutIndex=0;render();});
+  on("detect",()=>{state.mode="detect";render();});
+  on("prevent",()=>{state.mode="prevent";render();});
+  on("clear",()=>{context().selection.clear();render();byId(context().mode).focus();});
+  on("variant",()=>{state.openVariant=!state.openVariant;render();});
+  on("variant-add",()=>{
+    state.variant=!state.variant;
+    state.cutIndex=0;
+    if(!state.variant){
+      for(const mode of ["detect","prevent"]){
+        state[mode].nodes.delete("cache");
+        state[mode].edges.delete("inproc-cache");
+      }
+    }
+    render();
+  });
+  for(const key of ["sameCopy","cacheAccess"]){
+    on(key,event=>{
+      state[key]=event.target.checked;
+      if(!state.sameCopy||!state.cacheAccess){
+        for(const mode of ["detect","prevent"]){
+          state[mode].nodes.delete("cache");
+          state[mode].edges.delete("inproc-cache");
+        }
+      }
+      state.cutIndex=0;
+      render();
+    },"change");
+  }
+  on("cuts",()=>{state.showCuts=!state.showCuts;state.cutIndex=0;render();});
+  on("next-cut",()=>{state.cutIndex++;render();});
+  on("kind",event=>{state.kind=event.target.value;state.cutIndex=0;render();},"change");
+  on("back",()=>go(state.index-1));
+  on("next",()=>go(state.index+1));
+  on("skip",()=>go(lesson.length-1));
+  on("replay",()=>{
+    state=start();byId("evidence-on").checked=true;byId("evidence-case").selectedIndex=0;byId("analysis").open=false;byId("advanced").open=false;
+    renderLab();go(0);
+  });
+  on("evidence-on",renderLab,"change");
+  on("evidence-case",renderLab,"change");
+  renderLab();
+  return {
+    open(){
+      state=start();
+      byId("evidence-on").checked=true;
+      byId("evidence-case").selectedIndex=0;
+      byId("analysis").open=false;
+      byId("advanced").open=false;
+      renderLab();
+      render();
+      focus("heading");
+    }
+  };
+}
+
 // Load the same versioned evidence projection served by the report. Rendering
 // selects recorded results for the current controls without changing verdicts.
 async function initialize(root) {
@@ -239,8 +725,9 @@ async function initialize(root) {
     a:[[47,82],[76,34]], b:[[82,82],[76,58]], s:[[82,50],[50,84]]
   };
   let walkthrough=null;
+  let placementOpen=false, placement;
 
-  function updateEntry(lesson){
+  function updateEntry(lesson, exercise=false){
     const url=new URL(location.href);
     if(lesson){
       url.searchParams.delete("view");
@@ -249,10 +736,13 @@ async function initialize(root) {
       url.searchParams.delete("lesson");
       url.searchParams.set("view","studies");
     }
+    if(exercise)url.searchParams.set("exercise","placement");
+    else url.searchParams.delete("exercise");
     history.replaceState(history.state,"",url);
   }
   function selectLesson(id,updateUrl=false){
     if(updateUrl)updateEntry(id);
+    placementOpen=false;
     walkthrough={lesson:lessons.find(item=>item.id===id),index:0,hint:false,php:"",
       cutoff:250,lenses:"PWKDAH",observer:"",claim:"",minimumLenses:"P"};
     render();
@@ -266,6 +756,30 @@ async function initialize(root) {
     const goal=objective.getBoundingClientRect();
     title.style.scrollMarginTop=(goal.height+parseFloat(getComputedStyle(objective).top)+12)+"px";
     title.scrollIntoView({block:"nearest"});
+  }
+  function openPlacement(){
+    if(!placement){
+      const baseline=reset("php");
+      const {study,metrics}=view(baseline);
+      const cases=Object.fromEntries([["child","Child process"],["worker","In-process worker"],["admin","Approved read"]].map(([id,label])=>{
+        const {assessment}=view(change(baseline,{case:id}));
+        const verdicts=Object.fromEntries(["operation","effect","attribution","authorization"].map(key=>[key,claimValue(assessment,key)[0]]));
+        return [id,{label,verdicts}];
+      }));
+      $("place-source").href=walkthrough.lesson.source[1];
+      placement=initializePlacement($("php-placement"),{
+        revision:study.revision,confirmed:metrics.effect[0],eligible:metrics.effect[1],cases
+      },()=>{
+        placementOpen=false;
+        updateEntry(walkthrough.lesson.id);
+        renderWalkthrough();
+        $("walk-placement").focus();
+      });
+    }
+    placementOpen=true;
+    updateEntry(walkthrough.lesson.id,true);
+    renderWalkthrough();
+    placement.open();
   }
   function lessonTabs(){
     const tabs=$("lesson-tabs");
@@ -288,6 +802,7 @@ async function initialize(root) {
       $("lesson-tab-"+lessons[ix].id).focus();
     });
     $("free-explore").addEventListener("click",()=>openStudy());
+    $("walk-placement").addEventListener("click",openPlacement);
     $("walk-back").addEventListener("click",()=>goToStep(walkthrough.index-1));
     $("walk-next").addEventListener("click",()=>goToStep(walkthrough.index+1));
     $("walk-skip").addEventListener("click",()=>goToStep(walkthrough.lesson.steps.length-1));
@@ -303,6 +818,7 @@ async function initialize(root) {
   function openStudy(patch){
     if(patch)state=change(reset(patch.study),patch);
     walkthrough=null;
+    placementOpen=false;
     updateEntry();
     render();
     $("study").focus();
@@ -543,8 +1059,11 @@ async function initialize(root) {
     }
     panel.hidden=!lesson;
     $("lens-lab").hidden=Boolean(lesson);
-    if(!lesson)return;
+    $("walk-lesson-content").hidden=placementOpen;
+    $("php-placement").hidden=!placementOpen;
+    if(!lesson||placementOpen)return;
     const {index,hint}=walkthrough, step=lesson.steps[index], last=lesson.steps.length-1;
+    $("walk-placement").hidden=lesson.id!=="convergence"||index!==4;
     const revealed=lesson.steps.slice(0,index+1);
     const known=new Set(revealed.flatMap(item=>(item.show||"").split(" ").filter(Boolean)));
     const phase=revealed.findLast(item=>item.phase)?.phase||0;
@@ -856,6 +1375,10 @@ async function initialize(root) {
   showPresentation.hidden=false;
   $("lens-open-explorer").hidden=false;
   $("lens-load-status").hidden=true;
+  if(walkthrough?.lesson.id==="convergence"&&entry.get("exercise")==="placement"){
+    walkthrough.index=4;
+    openPlacement();
+  }
 }
 
 const root = document.querySelector("[data-lens-explorer]");

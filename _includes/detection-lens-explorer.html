@@ -22,45 +22,137 @@
               <button id="free-explore" type="button">Explore studies</button>
             </div>
             <div id="lesson-panel" class="lesson-panel" role="tabpanel" hidden>
-              <h3 id="lesson-threat-title"></h3>
-              <div class="walk-objective"><strong id="walk-objective-label">Objective</strong><span id="lesson-objective"></span></div>
-              <div id="walk-threat" class="walk-context">
-                <p id="lesson-threat"></p>
-                <p class="lesson-sources"><span class="tag source-reported">Source-reported</span> <a id="lesson-source"></a></p>
+              <div class="walk-lesson-content" id="walk-lesson-content">
+                <h3 id="lesson-threat-title"></h3>
+                <div class="walk-objective"><strong id="walk-objective-label">Objective</strong><span id="lesson-objective"></span></div>
+                <div id="walk-threat" class="walk-context">
+                  <p id="lesson-threat"></p>
+                  <p class="lesson-sources"><span class="tag source-reported">Source-reported</span> <a id="lesson-source"></a></p>
+                </div>
+                <section id="walk-map-section" class="walk-map-section" aria-labelledby="walk-map-title" hidden>
+                  <div class="walk-map-heading">
+                    <h4 id="walk-map-title">Attack path</h4>
+                    <span class="tag">Illustrative path</span>
+                  </div>
+                  <div id="walk-map" class="walk-map" role="group" aria-label="Revealed attack path"></div>
+                  <p id="walk-map-key" class="walk-map-key" hidden></p>
+                  <ul id="walk-relationships" class="walk-sr" aria-label="Revealed relationships"></ul>
+                </section>
+                <section class="walk-step" aria-labelledby="walk-step-title">
+                  <p id="walk-progress" class="walk-progress"></p>
+                  <div aria-live="polite" aria-atomic="true">
+                    <h4 id="walk-step-title" tabindex="-1"></h4>
+                    <p id="walk-copy"></p>
+                  </div>
+                  <a id="lesson-catalog" hidden></a>
+                  <button id="walk-hint" type="button" aria-expanded="false" aria-controls="walk-answer" hidden>Show explanation</button>
+                  <p id="walk-answer" hidden></p>
+                  <button id="walk-placement" type="button" hidden>Try graph placement</button>
+                  <div id="walk-evidence" class="walk-evidence" hidden>
+                    <div id="walk-evidence-controls"></div>
+                    <div id="walk-proof" aria-live="polite" aria-atomic="true"></div>
+                  </div>
+                  <div id="walk-findings" class="walk-findings" hidden>
+                    <div id="walk-results"></div>
+                    <p id="walk-limits"></p>
+                    <p id="walk-application"></p>
+                  </div>
+                  <div class="walk-nav" aria-label="Walkthrough controls" role="group">
+                    <button id="walk-back" type="button">Back</button>
+                    <button id="walk-next" type="button">Continue</button>
+                    <button id="walk-replay" type="button">Replay</button>
+                    <button id="walk-skip" type="button">Skip to findings</button>
+                  </div>
+                </section>
               </div>
-              <section id="walk-map-section" class="walk-map-section" aria-labelledby="walk-map-title" hidden>
-                <div class="walk-map-heading">
-                  <h4 id="walk-map-title">Attack path</h4>
-                  <span class="tag">Illustrative path</span>
+              <section id="php-placement" class="placement stack" aria-labelledby="place-heading" hidden>
+                <div class="placement-row between">
+                  <button id="place-exit" type="button">Back to the PHP lesson</button>
+                  <a id="place-source">Microsoft threat report</a>
                 </div>
-                <div id="walk-map" class="walk-map" role="group" aria-label="Revealed attack path"></div>
-                <p id="walk-map-key" class="walk-map-key" hidden></p>
-                <ul id="walk-relationships" class="walk-sr" aria-label="Revealed relationships"></ul>
-              </section>
-              <section class="walk-step" aria-labelledby="walk-step-title">
-                <p id="walk-progress" class="walk-progress"></p>
-                <div aria-live="polite" aria-atomic="true">
-                  <h4 id="walk-step-title" tabindex="-1"></h4>
-                  <p id="walk-copy"></p>
+                <div class="placement-objective"><strong>Example objective</strong><span>Make the designated data available to the executing code.</span></div>
+                <div class="placement-card">
+                  <div class="board-top stack">
+                    <div class="placement-row between"><p id="place-progress"></p><button id="place-explore" type="button" aria-pressed="false">Explore placements</button></div>
+                    <h3 id="place-heading" tabindex="-1"></h3>
+                    <p id="place-copy"></p>
+                    <p class="hint" id="place-hint"></p>
+                    <div id="place-modes" class="placement-row" role="group" aria-label="Placement mode" hidden>
+                      <button id="place-detect" type="button" aria-pressed="true">Detect</button>
+                      <button id="place-prevent" type="button" aria-pressed="false">Prevent</button>
+                      <button id="place-clear" type="button">Clear placement</button>
+                    </div>
+                  </div>
+                  <section id="place-board" class="placement-board stack" aria-labelledby="place-graph-title" hidden>
+                    <div class="placement-row between"><strong id="place-graph-title">Behavioral graph</strong><span class="tag">Illustrative paths</span></div>
+                    <div class="placement-map" id="place-map" role="group" aria-label="Graph interactions and placement points"></div>
+                    <ul id="place-relationships" class="walk-sr" aria-label="Revealed relationships"></ul>
+                    <ul class="placement-legend" id="place-key" aria-label="Graph legend" hidden>
+                      <li><span class="placement-marker is-detect" aria-hidden="true">D</span> Detector</li>
+                      <li><span class="placement-marker is-prevent" aria-hidden="true">P</span> Simulated block</li>
+                      <li><span class="placement-marker is-minimum" aria-hidden="true">M</span> Smallest set</li>
+                      <li><span class="placement-dash" aria-hidden="true"></span> Hypothetical route</li>
+                    </ul>
+                  </section>
+                  <div class="board-bottom stack">
+                    <div id="place-readout" class="stack" hidden>
+                      <p id="place-status" class="status" role="status" aria-atomic="true"></p>
+                      <ul id="place-routes" class="routes" aria-label="Modeled path results"></ul>
+                    </div>
+                    <div id="place-variant-controls" class="stack" hidden>
+                      <button id="place-variant" type="button" aria-expanded="false" aria-controls="place-prerequisites">Consider a cached copy</button>
+                      <div id="place-prerequisites" class="prereqs stack" hidden>
+                        <strong>Hypothetical route · Both conditions must hold</strong>
+                        <label><input id="place-sameCopy" type="checkbox" checked> The cache already holds an exact copy of the designated data.</label>
+                        <label><input id="place-cacheAccess" type="checkbox" checked> The executing PHP code can read that copy.</label>
+                        <button id="place-variant-add" type="button" aria-pressed="false">Add hypothetical route</button>
+                        <p id="place-variant-note"></p>
+                      </div>
+                    </div>
+                    <div id="place-cut-tools" class="stack" hidden>
+                      <div class="placement-row">
+                        <button id="place-cuts" type="button" aria-expanded="false" aria-controls="place-cut-note">Show smallest sets</button>
+                        <button id="place-next-cut" type="button" hidden>Next set</button>
+                      </div>
+                      <p id="place-cut-note" role="status"></p>
+                    </div>
+                    <details id="place-analysis" class="stack" hidden>
+                      <summary>Graph analysis and assumptions</summary>
+                      <p>The start assumes a PHP request can run code. Under the baseline conditions a child can start, and the child and worker can each read the designated file.</p>
+                      <p id="place-dominance"></p>
+                      <p id="place-cut-detail"></p>
+                      <p>Reachability asks whether any enabled route reaches the objective. A simulated block removes an interaction or transition from that calculation. Start and objective states and completion-only transitions are outside the placement choices.</p>
+                    </details>
+                    <details id="place-advanced" class="stack" hidden>
+                      <summary>Advanced placement</summary>
+                      <div class="placement-row"><label for="place-kind">Place at</label><select id="place-kind"><option value="nodes">Interactions</option><option value="edges">Transitions</option></select></div>
+                      <fieldset><legend id="place-advanced-legend">Detector locations</legend><div id="place-advanced-options"></div></fieldset>
+                    </details>
+                    <div id="place-nav" class="placement-row between" aria-label="Walkthrough controls" role="group">
+                      <div class="placement-row"><button id="place-back" type="button">Back</button><button id="place-next" type="button">Continue</button></div>
+                      <div class="placement-row"><button id="place-replay" type="button">Replay</button><button id="place-skip" type="button">Skip to lab findings</button></div>
+                    </div>
+                  </div>
                 </div>
-                <a id="lesson-catalog" hidden></a>
-                <button id="walk-hint" type="button" aria-expanded="false" aria-controls="walk-answer" hidden>Show explanation</button>
-                <p id="walk-answer" hidden></p>
-                <div id="walk-evidence" class="walk-evidence" hidden>
-                  <div id="walk-evidence-controls"></div>
-                  <div id="walk-proof" aria-live="polite" aria-atomic="true"></div>
-                </div>
-                <div id="walk-findings" class="walk-findings" hidden>
-                  <div id="walk-results"></div>
-                  <p id="walk-limits"></p>
-                  <p id="walk-application"></p>
-                </div>
-                <div class="walk-nav" aria-label="Walkthrough controls" role="group">
-                  <button id="walk-back" type="button">Back</button>
-                  <button id="walk-next" type="button">Continue</button>
-                  <button id="walk-replay" type="button">Replay</button>
-                  <button id="walk-skip" type="button">Skip to findings</button>
-                </div>
+                <section id="place-lab" class="placement-card lab stack" aria-labelledby="place-lab-title" hidden>
+                  <div class="placement-row between"><h3 id="place-lab-title" tabindex="-1">What the lab measured</h3><span class="tag measured">Measured comparison</span></div>
+                  <p>The canary study tested completed file reads through PHP-FPM. The hypothetical cache route was outside the study.</p>
+                  <label class="placement-row"><input id="place-evidence-on" type="checkbox" checked> Show measured findings</label>
+                  <p class="map-key">The study reports documented observations. This switch changes what is displayed. The study did not replay telemetry subsets.</p>
+                  <div id="place-evidence">
+                    <section class="lab-section stack" aria-labelledby="place-aggregate-title">
+                      <h4 id="place-aggregate-title">Study total</h4>
+                      <p id="place-lab-count"></p>
+                    </section>
+                    <section class="lab-section stack" aria-labelledby="place-case-title">
+                      <h4 id="place-case-title">Selected case</h4>
+                      <div class="placement-row"><label for="place-evidence-case">Case</label><select id="place-evidence-case"></select></div>
+                      <div id="place-evidence-graph" aria-live="polite"></div>
+                    </section>
+                  </div>
+                  <p>To support a prohibited read, tie the completed operation to the specific file and actor, then check the applicable policy. An approved request can also complete the read.</p>
+                  <p class="map-key" id="place-study-revision"></p>
+                </section>
               </section>
             </div>
           </div>
