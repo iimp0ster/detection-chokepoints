@@ -1,0 +1,93 @@
+<div class="lens-explorer" data-lens-explorer data-dataset="{{ include.dataset | relative_url }}">
+  <header class="hero lens-hero py-16 px-6 text-center overflow-hidden relative">
+    <div class="lens-hero-inner max-w-2xl mx-auto relative">
+      <h1 class="hero-title mb-2">Detection Lens Explorer<span class="lens-cursor" aria-hidden="true">_</span></h1>
+      <p class="hero-sub">Follow an objective through alternative paths. Change the evidence to see which operations, effects, and relationships each study supports.</p>
+      <div class="lens-hero-actions">
+        <a href="#explorer" id="lens-open-explorer" hidden>Explore the evidence</a>
+        <a href="{{ '/research/' | relative_url }}">Research studies</a>
+        <button type="button" class="filter-chip" id="lens-present" aria-haspopup="dialog" hidden>Presentation mode</button>
+      </div>
+    </div>
+  </header>
+  <div class="lens-shell">
+    <p id="lens-load-status" class="load-status" role="status">The interactive explorer requires JavaScript. <a href="{{ '/research/' | relative_url }}">Read the study findings.</a></p>
+    <div id="lens-home">
+      <section id="explorer" aria-label="Explorer" tabindex="-1" hidden>
+        <section class="panel lesson" aria-labelledby="lesson-heading">
+          <div class="panel-title">
+            <div><h2 id="lesson-heading">Guided demonstrations</h2><p>Choose a lesson, then change the evidence in the explorer.</p></div>
+            <button id="free-explore" type="button" hidden>Exit lesson</button>
+          </div>
+          <div class="lesson-body">
+            <div id="lesson-tabs" class="lesson-tablist" role="tablist" aria-label="Research lessons"></div>
+            <div id="lesson-panel" class="lesson-panel" role="tabpanel" tabindex="0" hidden>
+              <h3 id="lesson-question"></h3>
+              <p id="lesson-context"></p>
+              <div id="lesson-steps" class="lesson-steps" role="group" aria-label="Lesson steps"></div>
+              <p id="lesson-proof" class="lesson-proof" aria-live="polite"></p>
+              <p id="lesson-conclusion"></p>
+            </div>
+          </div>
+        </section>
+        <div class="input-grid">
+          <label class="pair">Study<select id="study"></select></label>
+          <label class="pair">Objective<select id="objective-filter"></select></label>
+          <label class="pair">Scenario<select id="case"></select></label>
+          <label class="pair">Evidence profile<select id="profile"></select></label>
+          <label class="pair">Receipt cutoff<select id="cutoff"></select></label>
+        </div>
+        <div class="guides"><span>Explore</span><button data-guide="delay">Downstream survives missing upstream</button><button data-guide="gap">Measured capture gap</button><button data-guide="arms">Synthetic A/B comparison</button></div>
+        <div class="workspace">
+          <section class="panel graph-panel">
+              <div class="panel-title"><div><h2>Behavior and evidence graph</h2><p id="description"></p></div><span id="class" class="tag"></span></div>
+              <div class="graph-body">
+                <div class="graph-context"><strong id="objective-name"></strong><span class="tag" id="path-label"></span><span id="path-box" hidden><label class="pair">Switch path<select id="path"></select></label></span><span id="arm-box" hidden><label class="pair">Synthetic arm<select id="arm"></select></label></span></div>
+                <details class="bowtie" id="objective-map">
+                  <summary>Objective map</summary>
+                  <p class="bowtie-note">This bow-tie groups modeled alternatives. Select a path or effect to load a recorded case.</p>
+                  <div id="bowtie" class="bowtie-grid"></div>
+                </details>
+                <div id="graph" class="graph" role="group" aria-label="Scenario evidence graph"></div>
+                <p id="graph-note" class="legend"></p>
+                <p class="graph-jumps"><a href="#lens-controls">Telemetry lenses</a><a href="#lens-inspector">Evidence inspector</a></p>
+              </div>
+            </section>
+          <aside aria-label="Telemetry and coverage controls">
+            <section id="lens-controls" class="panel lens-panel" aria-labelledby="lens-control-title" tabindex="-1">
+              <div class="panel-title"><div><h2 id="lens-control-title">Telemetry lenses</h2><p id="lens-context"></p></div></div>
+              <div class="body"><div class="lens-toolbar" id="lens-toolbar"><button id="all" type="button">All lenses</button><button id="clear" type="button">Clear</button></div><div class="lens-list" id="lenses"></div></div>
+            </section>
+            <section class="panel coverage">
+              <div class="panel-title"><div><h2>Coverage and minimum set</h2><p>Counts use this study’s own denominator.</p></div></div>
+              <div class="body">
+                <div class="cov-select"><label class="pair">Cohort<select id="cohort"></select></label><label class="pair">Claim<select id="claim"></select></label></div>
+                <div id="coverage" aria-live="polite"></div>
+              </div>
+            </section>
+          </aside>
+          <section id="lens-inspector" class="panel detail" aria-labelledby="inspect-title" tabindex="-1">
+              <div class="panel-title"><div aria-live="polite" aria-atomic="true"><h2 id="inspect-title">Evidence inspector</h2><p id="inspect-status"></p></div></div>
+              <div class="body detail-cols" id="inspection"></div>
+            </section>
+          <section id="diagnostic" class="panel diagnostic" hidden></section>
+        </div>
+      </section>
+      <section id="studies" class="atlas" hidden><div class="atlas-inner"><h2>Study atlas</h2><div id="atlas" class="atlas-grid"></div><p class="source-info" id="provenance"></p>
+        <details class="source-info">
+          <summary>How to read the evidence labels</summary>
+          <p><strong>Source-reported</strong> means behavior described by an outside source. It informs the objective model and alternative paths and stays outside lab coverage.</p>
+          <p><strong>Measured</strong> means observed in a bounded lab. <strong>Synthetic</strong> means replay of modeled evidence. Augmented profiles add explicitly instrumented identity, authorization, transaction, or independent outcome evidence, as defined by each study.</p>
+          <p><strong>Confirmed effect</strong> and <strong>confirmed causal edge</strong> are separate verdicts. An independently confirmed downstream effect cannot fill a missing edge.</p>
+        </details>
+      </div></section>
+    </div>
+  </div>
+  <dialog id="lens-presentation" class="presentation" aria-labelledby="lens-presentation-title">
+    <header class="presentation-bar">
+      <h2 id="lens-presentation-title">Detection Lens Explorer</h2>
+      <button type="button" class="filter-chip" id="lens-exit-present" autofocus>Exit presentation</button>
+    </header>
+    <div class="lens-shell" id="lens-presentation-content"></div>
+  </dialog>
+</div>

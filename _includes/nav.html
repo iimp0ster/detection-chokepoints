@@ -1,28 +1,38 @@
+{% if page.url contains '/lens-explorer/' %}
+<a id="lens-skip" href="#main-content"
+   class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-6 focus:z-[9999] focus:p-2 focus:bg-[var(--bg-card)] focus:text-[var(--text)]">
+  Skip to explorer
+</a>
+{% endif %}
+{% assign desktop_link_spacing = "px-1 min-[1360px]:px-3" %}
+{% if page.url == '/' or page.url == '/index.html' %}
+  {% assign desktop_link_spacing = "px-1 min-[1360px]:px-2" %}
+{% endif %}
 <nav class="site-nav" role="navigation" aria-label="Main navigation">
-  <div class="max-w-[1280px] mx-auto px-6 w-full min-h-[var(--nav-h)] flex flex-wrap items-center justify-between gap-y-1">
+  <div class="max-w-[1280px] mx-auto px-6 min-[901px]:max-[1359px]:px-4 w-full min-h-[var(--nav-h)] flex flex-wrap items-center justify-between gap-y-1">
     <a class="nav-logo flex items-center gap-2 font-bold text-base flex-shrink-0" href="{{ '/' | relative_url }}">
       <img class="nav-logo-pixel" src="{{ '/assets/img/pixel/logo.png' | relative_url }}" alt="" width="24" height="24" aria-hidden="true" />
-      <span>Detection Chokepoints</span>
+      <span class="text-[.7rem] min-[1360px]:text-base">Detection Chokepoints</span>
     </a>
 
     <div class="nav-end flex flex-1 min-w-0 min-[901px]:flex-none min-[901px]:ml-auto min-[901px]:w-auto
                 flex-wrap items-center justify-end gap-x-1 gap-y-0">
       <ul class="nav-links flex-1 list-none w-full min-[901px]:w-auto
-                 order-2 min-[901px]:order-1 min-w-0" id="site-nav-menu">
+                 order-2 min-[901px]:order-1 min-[901px]:max-[1359px]:gap-0 min-w-0" id="site-nav-menu">
         <li>
-          <a class="text-sm px-3 py-2 rounded transition-colors
+          <a class="text-sm {{ desktop_link_spacing }} py-2 rounded transition-colors
                     {% if page.url == '/' or page.url == '/index.html' %}active{% endif %}"
              href="{{ '/' | relative_url }}">
             <img src="{{ '/assets/img/pixel/chokepoint.png' | relative_url }}" alt="" width="18" height="18" class="nav-pixel-icon" />Chokepoints
           </a>
         </li>
         <li>
-          <a class="text-sm px-3 py-2 rounded transition-colors
+          <a class="text-sm {{ desktop_link_spacing }} py-2 rounded transition-colors
                     {% if page.url contains '/attack-chains' %}active{% endif %}"
              href="{{ '/attack-chains/' | relative_url }}"><img src="{{ '/assets/img/pixel/attack-chain.png' | relative_url }}" alt="" width="18" height="18" class="nav-pixel-icon" />Attack Chains</a>
         </li>
         <li class="relative nav-trends-group">
-          <a class="text-sm px-3 py-2 rounded transition-colors
+          <a class="text-sm {{ desktop_link_spacing }} py-2 rounded transition-colors
                     {% if page.url contains '/trends' %}active{% endif %}"
              href="{{ '/trends/' | relative_url }}"
              aria-haspopup="true"
@@ -43,12 +53,22 @@
           </ul>
         </li>
         <li>
-          <a class="text-sm px-3 py-2 rounded transition-colors
+          <a class="text-sm {{ desktop_link_spacing }} py-2 rounded transition-colors
                     {% if page.url contains '/framework' %}active{% endif %}"
              href="{{ '/framework/' | relative_url }}"><img src="{{ '/assets/img/pixel/framework.png' | relative_url }}" alt="" width="18" height="18" class="nav-pixel-icon" />Framework</a>
         </li>
         <li>
-          <a class="text-sm px-3 py-2 rounded transition-colors"
+          <a class="text-sm {{ desktop_link_spacing }} py-2 rounded transition-colors {% if page.url contains '/lens-explorer/' %}active{% endif %}"
+             {% if page.url contains '/lens-explorer/' %}aria-current="page"{% endif %}
+             href="{{ '/lens-explorer/' | relative_url }}">Lens Explorer</a>
+        </li>
+        <li>
+          <a class="text-sm {{ desktop_link_spacing }} py-2 rounded transition-colors {% if page.url contains '/research/' %}active{% endif %}"
+             {% if page.url contains '/research/' %}aria-current="page"{% endif %}
+             href="{{ '/research/' | relative_url }}">Research</a>
+        </li>
+        <li>
+          <a class="text-sm {{ desktop_link_spacing }} py-2 rounded transition-colors"
              href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md"
              target="_blank" rel="noopener">Contribute</a>
         </li>
@@ -143,6 +163,16 @@
 
       <a class="m-item {% if page.url contains '/framework' %}active{% endif %}" href="{{ '/framework/' | relative_url }}">
         <span class="m-ic"><img src="{{ '/assets/img/pixel/framework.png' | relative_url }}" alt="" width="20" height="20" /></span>Framework
+      </a>
+      <a class="m-item {% if page.url contains '/lens-explorer/' %}active{% endif %}"
+         {% if page.url contains '/lens-explorer/' %}aria-current="page"{% endif %}
+         href="{{ '/lens-explorer/' | relative_url }}">
+        <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg></span>Lens Explorer
+      </a>
+      <a class="m-item {% if page.url contains '/research/' %}active{% endif %}"
+         {% if page.url contains '/research/' %}aria-current="page"{% endif %}
+         href="{{ '/research/' | relative_url }}">
+        <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3h8M10 3v7l-5 8a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-8V3M8 15h8"/></svg></span>Research
       </a>
       <a class="m-item" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">
         <span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>Contribute<span class="m-ext" aria-hidden="true">&#8599;</span>

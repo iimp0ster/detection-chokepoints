@@ -1,0 +1,294 @@
+/* Layout and evidence states for the explorer. All visual values come from
+   the site theme and stay within the explorer, including its dialog. */
+:is(.lens-explorer, .lens-research) {
+  --lens-title: var(--accent);
+  --lens-heading: var(--high);
+  --lens-confirmed: var(--medium);
+  --lens-observed: var(--low);
+  --lens-limited: var(--high);
+  --lens-attempt: var(--critical);
+  color-scheme: dark;
+}
+
+[data-theme="light"] :is(.lens-explorer, .lens-research) {
+  color-scheme: light;
+  --lens-title: color-mix(in srgb, var(--accent), var(--text) 48%);
+  --lens-heading: color-mix(in srgb, var(--high), var(--text) 61%);
+  --lens-confirmed: color-mix(in srgb, var(--medium), var(--text) 61%);
+  --lens-observed: color-mix(in srgb, var(--low), var(--text) 50%);
+  --lens-limited: var(--lens-heading);
+  --lens-attempt: color-mix(in srgb, var(--critical), var(--text) 45%);
+}
+
+.lens-explorer [hidden] { display: none !important; }
+.lens-explorer p { color: var(--text-muted); }
+:is(.lens-explorer, .lens-research) a { color: var(--lens-title); }
+:is(.lens-explorer h1, .ac-index-hero.lens-research h1) { color: var(--lens-title) !important; }
+:is(.lens-explorer, .lens-research) h2 { color: var(--lens-heading) !important; }
+.lens-explorer .hero-title::after { content: none; }
+.lens-explorer .lens-cursor {
+  color: var(--lens-heading);
+  margin-inline-start: .18em;
+  animation: dc-retro-cursor .9s steps(2, jump-none) infinite;
+}
+.lens-explorer .lens-hero-inner { max-width: 680px; margin: auto; }
+.lens-explorer .lens-hero-actions,
+.lens-explorer .graph-jumps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem 1rem;
+  margin-top: 1rem;
+}
+.lens-explorer .lens-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+.lens-explorer :is(#explorer, #lens-controls, #lens-inspector) {
+  scroll-margin-top: calc(var(--nav-h) + 1rem);
+}
+
+.lens-explorer :is(button, select) {
+  min-width: 0;
+  min-height: 2.35rem;
+  padding: .35rem .65rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+.lens-explorer button { cursor: pointer; }
+.lens-explorer button:hover, .lens-explorer select:hover { border-color: var(--accent); }
+.lens-explorer select { width: 100%; }
+.lens-explorer select:disabled { opacity: .88; cursor: default; }
+:is(.lens-explorer, .lens-research) :is(button, select, summary, a):focus-visible {
+  outline-color: var(--lens-heading) !important;
+}
+
+.lens-explorer .panel {
+  min-width: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--hard-shadow);
+}
+.lens-explorer .panel-title {
+  display: flex;
+  gap: .65rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.lens-explorer .panel-title > .tag { flex: none; white-space: nowrap; }
+.lens-explorer .panel-title h2 { margin-bottom: .18rem; }
+.lens-explorer :is(.body, .graph-body, .lesson-body) { padding: .75rem 1rem; }
+.lens-explorer .workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.lens-explorer .workspace > aside { min-width: 0; grid-area: 1 / 2 / span 3; }
+.lens-explorer :is(.graph-panel, .detail, .diagnostic) { grid-column: 1; }
+.lens-explorer .coverage { margin-top: 1rem; }
+.lens-explorer .panel + .input-grid { margin-top: 1.25rem; }
+.lens-explorer .input-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .7fr) minmax(0, 1.8fr) minmax(0, 1fr) minmax(0, .65fr);
+  gap: .6rem;
+}
+.lens-explorer .pair { display: grid; gap: .32rem; min-width: 0; color: var(--text-muted); }
+.lens-explorer .guides { margin: .7rem 0 1rem; }
+
+.lens-explorer :is(.guides, .lesson-tablist, .lesson-steps, .badge-row, .lens-toolbar, .detail-refs, .minimum) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+.lens-explorer :is(.guides > span, .source-info, .legend, .muted, .lens .delta) { color: var(--text-muted); }
+.lens-explorer :is(button[aria-pressed="true"], [role="tab"][aria-selected="true"]) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-card));
+  box-shadow: inset 3px 0 var(--accent);
+}
+.lens-explorer .lesson-panel {
+  margin-top: .75rem;
+  border-top: 1px solid var(--border);
+  padding-top: .65rem;
+}
+.lens-explorer .lesson-panel > * + * { margin-top: .5rem; }
+.lens-explorer p.lesson-proof { color: var(--text); font-weight: 700; }
+
+.lens-explorer .graph-context {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: .6rem 1rem;
+  margin-bottom: .75rem;
+}
+.lens-explorer .graph-context strong { flex: 1 1 10rem; }
+.lens-explorer .bowtie {
+  margin-bottom: .8rem;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-code);
+  padding: .5rem .7rem;
+}
+.lens-explorer summary { cursor: pointer; font-weight: 700; }
+.lens-explorer .bowtie-note { margin: .45rem 0; }
+.lens-explorer :is(.upstream, .downstream, .bowtie-grid) { display: grid; gap: .4rem; align-items: stretch; }
+.lens-explorer .upstream { grid-template-columns: 1fr auto 1fr; }
+.lens-explorer :is(.downstream, .bowtie-grid) { grid-template-columns: 1fr auto 1fr auto 1fr; }
+.lens-explorer .graph {
+  border: 1px solid var(--border);
+  background: var(--bg-code);
+  padding: .65rem;
+}
+.lens-explorer .bowtie-stack { display: grid; align-content: center; gap: .35rem; min-width: 0; }
+.lens-explorer .bowtie article {
+  align-self: center;
+  border: 1px dashed var(--border-strong);
+  padding: .35rem .5rem;
+  color: var(--text-muted);
+}
+.lens-explorer .arrow { align-self: center; justify-self: center; color: var(--text-muted); }
+.lens-explorer .node {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: start;
+  gap: .25rem;
+  border-inline-start: 3px solid var(--signal, var(--border-strong));
+  background: var(--bg-card);
+  overflow-wrap: anywhere;
+}
+.lens-explorer .node[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--accent); }
+.lens-explorer .node-title {
+  color: var(--text);
+  font: 400 clamp(1.18rem, 1.95vw, 1.45rem)/1.05 var(--font-crt);
+}
+.lens-explorer .node .role { color: var(--text-muted); font-size: .85em; }
+.lens-explorer .node .state { font-size: .9em; }
+.lens-explorer [data-v="C"] { --signal: var(--lens-confirmed); }
+.lens-explorer [data-v="O"] { --signal: var(--lens-observed); }
+.lens-explorer [data-v="L"] { --signal: var(--lens-limited); }
+.lens-explorer [data-v="T"] { --signal: var(--lens-attempt); }
+.lens-explorer .state { color: var(--signal, var(--text-muted)); }
+.lens-explorer :is(button.state, .node .state) { font-weight: 700; }
+.lens-explorer .edge-shell {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .4rem 0;
+}
+.lens-explorer .edge-shell::before,
+.lens-explorer .edge-shell::after {
+  content: "";
+  flex: 1;
+  border-top: 1px dashed var(--signal, var(--border-strong));
+}
+.lens-explorer .edge-shell[data-v="C"]::before,
+.lens-explorer .edge-shell[data-v="C"]::after { border-top-style: solid; }
+.lens-explorer .edge-shell button { text-align: center; }
+.lens-explorer .badge-row, .lens-explorer .legend { margin-top: .6rem; }
+.lens-explorer .graph-jumps { display: none; justify-content: flex-start; }
+
+.lens-explorer .tag {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: .14rem .4rem;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  background: var(--bg-input);
+  font-size: .88em;
+}
+.lens-explorer .tag.measured { color: var(--lens-confirmed); border-color: currentColor; }
+.lens-explorer .tag.synthetic { color: var(--lens-limited); border-color: currentColor; }
+.lens-explorer .tag.source-reported { color: var(--lens-observed); border-color: currentColor; }
+.lens-explorer .lens-list { display: grid; gap: .38rem; margin-top: .55rem; }
+.lens-explorer .lens { display: grid; grid-template-columns: 1.45rem 1fr auto; align-items: center; gap: .45rem; }
+.lens-explorer .lens .symbol { border: 1px solid var(--border-strong); background: var(--bg-code); text-align: center; }
+.lens-explorer .lens[aria-pressed="true"] .symbol { border-color: var(--accent); }
+.lens-explorer .lens .delta { white-space: nowrap; }
+.lens-explorer :is(.cov-select, .detail-cols) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+.lens-explorer .stat-block { padding: .65rem 0; }
+.lens-explorer .stat-big { font: 400 2.2rem/1 var(--font-crt); color: var(--lens-confirmed); }
+.lens-explorer .stat-big span { font: .85rem var(--font-mono); color: var(--text-muted); }
+.lens-explorer .bar { height: .35rem; background: var(--border); margin: .4rem 0 .28rem; }
+.lens-explorer .bar span { display: block; height: 100%; background: var(--lens-confirmed); }
+.lens-explorer .minimum { padding-top: .55rem; border-top: 1px solid var(--border); }
+.lens-explorer .detail :is(h3, p) { margin-bottom: .25rem; }
+.lens-explorer .detail ul { list-style: disc; padding-left: 1.2rem; }
+.lens-explorer .diagram-table { width: 100%; border-collapse: collapse; margin-bottom: .5rem; }
+.lens-explorer .diagram-table :is(th, td) { border-bottom: 1px solid var(--border); text-align: left; padding: .35rem; }
+.lens-explorer .diagram-table th, .lens-research table th { color: var(--lens-title) !important; }
+.lens-explorer .diagram-table .selected td { background: color-mix(in srgb, var(--accent) 12%, var(--bg-card)); }
+.lens-explorer .diagram-table .tag { margin-inline-start: .4rem; }
+
+.lens-explorer .atlas { margin: 2rem 0 1rem; }
+.lens-explorer .atlas h2 { border-bottom: 1px solid var(--border); padding-bottom: .3rem; margin-bottom: .65rem; }
+.lens-explorer .atlas-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
+.lens-explorer .study-card { display: grid; justify-items: start; align-content: start; gap: .32rem; padding: .65rem; }
+.lens-explorer .source-info { margin-top: .65rem; }
+.lens-explorer .source-info code {
+  color: var(--lens-heading) !important;
+  overflow-wrap: anywhere;
+}
+.lens-explorer .source-info > p { margin-top: .45rem; }
+
+.lens-explorer .presentation {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  overflow: auto;
+  background: var(--bg);
+  color: var(--text);
+}
+.lens-explorer .presentation-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem 1rem;
+  min-height: var(--nav-h);
+  padding: .45rem 1.5rem;
+  background: var(--bg-nav);
+  border-bottom: 2px solid var(--border-strong);
+}
+.lens-explorer .presentation-bar button { flex-shrink: 0; }
+.lens-explorer .presentation .lens-shell { max-width: 1280px; }
+
+@media (max-width: 900px) {
+  .lens-explorer .workspace { grid-template-columns: minmax(0, 1fr); }
+  .lens-explorer .workspace > aside { grid-area: auto; }
+  .lens-explorer .input-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lens-explorer .input-grid > label:has(#case) { grid-column: 1 / -1; }
+  .lens-explorer .graph-jumps { display: flex; }
+}
+@media (max-width: 640px) {
+  .lens-explorer .lens-shell { padding: 1rem; }
+  .lens-explorer .lens-hero { padding-block: 2.5rem; }
+  .lens-explorer .presentation-bar { padding-inline: 1rem; }
+  .lens-explorer .node-title { font-size: 1.25rem; }
+  .lens-explorer .input-grid > label:has(#study) { grid-column: 1 / -1; }
+  .lens-explorer button, .lens-explorer select { min-height: 2.6rem; }
+  .lens-explorer .atlas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 440px) {
+  .lens-explorer :is(.bowtie-grid, .downstream, .detail-cols) { grid-template-columns: 1fr; }
+  .lens-explorer :is(.bowtie-grid, .downstream) .arrow { transform: rotate(90deg); }
+}
+@media (max-width: 360px) {
+  .lens-explorer :is(.input-grid, .cov-select, .atlas-grid) { grid-template-columns: 1fr; }
+}

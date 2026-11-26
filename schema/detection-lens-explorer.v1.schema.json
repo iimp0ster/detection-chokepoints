@@ -1,0 +1,481 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Detection Lens Explorer v1 review projection",
+  "type": "object",
+  "required": [
+    "schema",
+    "purpose",
+    "claims",
+    "lenses",
+    "objectives",
+    "paths",
+    "studies",
+    "sourceDigests",
+    "pendingMeasuredStudies"
+  ],
+  "properties": {
+    "schema": {
+      "const": "detection-lens-explorer/v1"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claims": {
+      "const": [
+        "capture",
+        "operation",
+        "effect",
+        "attribution",
+        "authorization",
+        "boundary",
+        "causal",
+        "objective"
+      ]
+    },
+    "lenses": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/lens"
+      }
+    },
+    "objectives": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/objective"
+      }
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "studies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/study"
+      },
+      "minItems": 1
+    },
+    "sourceDigests": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "pendingMeasuredStudies": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "measurement": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "assertion": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "enum": [
+            "C",
+            "O",
+            "L",
+            "N",
+            "T",
+            "-"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "objective": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "lens": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "case": {
+      "type": "object",
+      "required": [
+        "path",
+        "objective",
+        "title",
+        "cohort"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cohort": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "group": {
+      "type": "object",
+      "required": [
+        "profile",
+        "cutoff",
+        "arm",
+        "rows",
+        "minimum"
+      ],
+      "properties": {
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cutoff": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "arm": {
+          "enum": [
+            "A",
+            "B",
+            null
+          ]
+        },
+        "rows": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^P?W?K?D?A?H?$"
+          },
+          "additionalProperties": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/measurement"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "minimum": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^P?W?K?D?A?H?$"
+              },
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": [
+        "title",
+        "labels",
+        "reference",
+        "observed",
+        "denominator",
+        "note"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reference": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "observed": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "denominator": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "study": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "evidenceClass",
+        "source",
+        "revision",
+        "description",
+        "limit",
+        "lenses",
+        "claims",
+        "mode",
+        "cases",
+        "cohorts",
+        "groups",
+        "assessments",
+        "evidence",
+        "initialCase"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceClass": {
+          "enum": [
+            "Measured",
+            "Synthetic"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lenses": {
+          "type": "string",
+          "pattern": "^P?W?K?D?A?H?$"
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "capture",
+              "operation",
+              "effect",
+              "attribution",
+              "authorization",
+              "boundary",
+              "causal",
+              "objective"
+            ]
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "mode": {
+          "enum": [
+            "ablation",
+            "comparison"
+          ]
+        },
+        "cases": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/case"
+          }
+        },
+        "cohorts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/group"
+          },
+          "minItems": 1
+        },
+        "assessments": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/assertion"
+            },
+            "minItems": 8,
+            "maxItems": 8
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "initialCase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arms": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "profileLabels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "caseNotes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cohortEffectLabels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "diagnostic": {
+          "$ref": "#/$defs/diagnostic"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

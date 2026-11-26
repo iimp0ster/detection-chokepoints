@@ -9,6 +9,17 @@ on:
       - "scripts/aggregate.py"
       - "scripts/check_chokepoint_regression.py"
       - "tests/**"
+      - "lens-explorer/**"
+      - "research/**"
+      - "_includes/detection-lens-explorer.html"
+      - "_includes/nav.html"
+      - "assets/css/detection-lens-explorer.css"
+      - "assets/js/detection-lens-explorer.mjs"
+      - "assets/data/detection-lens-explorer.v1.json"
+      - "schema/detection-lens-explorer.v1.schema.json"
+      - "scripts/validate_lens_explorer.py"
+      - "framework/index.html"
+      - "index.html"
       - ".github/workflows/chokepoint-regression.yml"
   workflow_dispatch:
 
