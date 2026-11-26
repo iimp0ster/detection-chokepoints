@@ -144,8 +144,23 @@ async function initialize(root) {
   function set(patch){state=change(state,patch);render();}
 
   const lessons = [
-    {id:"convergence", label:"Same objective", heading:"Two ways to read the same file",
-     context:"Start with the child process. Switch to the in-process PHP worker, then check the approved route. All three read the same canary.",
+    {id:"convergence", label:"PHP web shells", heading:"Cookie-controlled PHP web shells",
+     source:{
+       label:"Microsoft · April 2, 2026",
+       url:"https://www.microsoft.com/en-us/security/blog/2026/04/02/cookie-controlled-php-webshells-tradecraft-linux-hosting-environments/"
+     },
+     threat:"Microsoft reported PHP web shells that activated when a request carried an expected cookie. In one hosting compromise, a cron job restored the loader after removal.",
+     objective:"Microsoft described an effort to keep remote code execution available under the compromised hosting account.",
+     problem:"A detector that only looks for a shell child can miss PHP code running inside a worker. A child-process event also leaves the eventual file or network effect to be verified.",
+     paths:[
+       {type:"Source-reported", label:"Cookie-triggered execution", stages:["HTTP request", "Cookie check in PHP", "PHP code runs"]},
+       {type:"Source-reported", label:"Persistence in one incident", stages:["Compromised hosting account", "Scheduled job", "PHP loader restored"]},
+       {type:"Lab comparison", label:"File-read comparison", stages:["Canary request", "Child process or PHP worker", "Same canary read"]}
+     ],
+     observation:"For the lab's file-read objective, the necessary step is access to the designated file. Look for the file identity and read result. Process lineage covers the child route.",
+     catalog:{slug:"web-shells", label:"Web Shell Persistence catalog entry"},
+     experiment:"Compare the child process, the in-process PHP worker, and the approved read. This lab used a canary file and did not reproduce the cookie trigger or cron persistence.",
+     application:"Keep the child-process hunt for the branch it covers. When investigating an in-process read, look for a record tied to the request and the file. Check authorization before treating the access as malicious.",
      steps:[
        {name:"Inspect the child process", point:{study:"php",case:"child",selected:"effect"}},
        {name:"Switch to in-process", point:{study:"php",case:"worker",selected:"effect"}},
@@ -158,8 +173,21 @@ async function initialize(root) {
        return ["Canary read "+states[outcome]+" · Authorization violation "+states[policy],
          "The read can look the same on an approved route. Use evidence about the request and the applicable policy before treating the read as a violation."];
      }},
-    {id:"resilience", label:"Missing upstream", heading:"You can confirm the effect before you can link it",
-     context:"In this measured helper case, start at 250 ms. Check the link again in the final replay, then turn off the lenses that tie the effect to the upstream action.",
+    {id:"resilience", label:"Container credential access", heading:"Two routes to credential material",
+     source:{
+       label:"Sysdig · June 4, 2026",
+       url:"https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape"
+     },
+     threat:"Sysdig observed a compromised application workload use Docker management access to read host credential files. It also reported the workload's service-account token being used to read Kubernetes Secrets.",
+     objective:"The returned data supports credential collection as the immediate objective. Later use of those credentials is outside this lesson.",
+     problem:"A recorded read can be actionable before the events that tie it to the original workload arrive. A Kubernetes Secret read alone leaves host access unresolved.",
+     paths:[
+       {type:"Source-reported", label:"Host credential read", stages:["Compromised workload", "Docker management access", "Host credential files"]},
+       {type:"Source-reported", label:"Kubernetes API path", stages:["Workload service account", "Kubernetes API request", "Namespace Secrets"]}
+     ],
+     observation:"Look for an independent outcome at the resource. To tie it to the initiating workload, correlate the caller with the runtime action or API request on that specific path.",
+     experiment:"Use a measured helper case from Gate C.2. It changes an inert host record. Start at 250 ms, include later records, then keep only the effect evidence. The lab did not access real credentials or test Docker or Kubernetes access.",
+     application:"Investigate a confirmed sensitive read on its own merits. Report the originating workload or a boundary crossing when you have records that bind it to the access.",
      steps:[
        {name:"Check at 250 ms", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:250,selected:"causal"}},
        {name:"Include later records", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,selected:"causal"}},
@@ -182,8 +210,21 @@ async function initialize(root) {
          reading
        ];
      }},
-    {id:"observation", label:"Behavior vs. sensor", heading:"The write completed. The hook missed it.",
-     context:"Compare what reference tracing and the runtime hook saw in separate runs of the same write variants. Then check what an extra observation could add in the synthetic comparison.",
+    {id:"observation", label:"Linux process hiding", heading:"Process hiding after a container compromise",
+     source:{
+       label:"Aqua Nautilus · August 26, 2021",
+       url:"https://www.aquasec.com/blog/advanced-persistent-threat-techniques-container-attacks/"
+     },
+     threat:"Aqua analyzed a container campaign whose scripts included a kernel rootkit and a user-space fallback. The fallback was written to replace process-listing utilities and conceal mining activity.",
+     objective:"Aqua described concealment of a miner. Replacing utilities is one way the scripts tried to keep it out of process listings.",
+     problem:"The file change matters on the replacement branch. A collector that covers one write path can miss another, and a file-write rule does not cover process hiding that leaves those utilities intact.",
+     paths:[
+       {type:"Source-reported", label:"First branch in the script", stages:["Host foothold", "Kernel module branch", "Process hiding"]},
+       {type:"Source-reported", label:"Fallback in the analyzed script", stages:["Host foothold", "Process utility replacement", "Filtered process listing"]}
+     ],
+     observation:"Replacing a utility requires a change to the host's files. File integrity and completed-write records are candidates for that branch. A single runtime hook shows only what it captures.",
+     experiment:"Compare reference tracing and the selected Tetragon hook on harmless writes in Gate C.2. The two observers ran separately. Gate C.3 models an added return observation. The lab used no rootkit and the report does not establish which write variant the campaign used.",
+     application:"Verify file-change coverage with known-good canary writes. Check that you can tell expected package updates from unexplained utility changes, then check the actor evidence before attributing a write.",
      steps:[
        {name:"Inspect vectored writes", point:{study:"gate-c2",case:"C2-03",profile:"augmented",cutoff:null,selected:"operation"}, diagnostic:1},
        {name:"Compare the scalar control", point:{study:"gate-c2",case:"C2-03",profile:"augmented",cutoff:null,selected:"operation"}, diagnostic:2},
@@ -202,8 +243,22 @@ async function initialize(root) {
          i===2?"Both observers captured the scalar control in their own runs. The capture gap in this test was in the vectored writes.":
            "Reference tracing confirmed 2 of 2 writes for each vectored variant. In separate runs, the selected Tetragon hook captured 0 of 2 for each."];
      }},
-    {id:"minimum", label:"Minimum evidence", heading:"Find the smallest set of lenses for the job",
-     context:"Use the final replay of the measured helper cases. Check which lenses meet the study's coverage and negative-control criteria for the effect, then check the causal link.",
+    {id:"minimum", label:"Docker SSH backdoors", heading:"Linking SSH trust changes to a Docker intrusion",
+     source:{
+       label:"Datadog Security Labs · February 1, 2024",
+       url:"https://securitylabs.datadoghq.com/articles/analysis-of-teamtnt-doppelganger/"
+     },
+     threat:"Datadog reported a campaign targeting exposed Docker APIs. It analyzed persistence scripts that added SSH keys and changed SSH settings. Some tooling came from TeamTNT, according to Datadog.",
+     objective:"The reported changes support an objective of keeping access over SSH. The script analysis leaves any later successful login unresolved.",
+     problem:"Key rotation can change SSH trust during normal administration. An alert on the file change leaves the actor and authorization open until you can tie the write to a request or process.",
+     paths:[
+       {type:"Source-reported", label:"Reported entry", stages:["Exposed Docker API", "Daemon-created container"]},
+       {type:"Source-reported", label:"Behavior in the analyzed payload", stages:["Persistence script", "SSH trust and configuration changes"]},
+       {type:"Defender comparison", label:"Benign change", stages:["Authorized administrator", "Key rotation", "SSH trust changes"]}
+     ],
+     observation:"This persistence path requires a change to SSH trust or configuration. Verify the changed state, then check the caller and policy if you need to attribute it. The report does not bind every script write to an exact Docker caller.",
+     experiment:"Use the final replay of the measured Gate C.2 helper cohort. The selected case changes an inert account record, and the cohort includes several fixture types. Compare the smallest set for the effect with the smallest set for a causal link. The lab did not test SSH login.",
+     application:"Define the alert claim before choosing sources. A host-state alert can start with verified state and completion evidence. For attribution, add caller, workload, and authorization records, and test the set against approved changes.",
      steps:[
        {name:"Use the smallest set for the effect", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
                                                  cohort:"path/workload_delegated",claim:"effect",selected:"effect"}, applyMinimum:"effect"},
@@ -262,11 +317,43 @@ async function initialize(root) {
       $("lesson-tab-"+lessons[ix].id).focus();
     });
     $("free-explore").addEventListener("click",()=>{
-      const previous=activeLesson;
       activeLesson=null;
       render();
-      $("lesson-tab-"+previous).focus();
+      $("study").focus();
     });
+  }
+  function renderLessonBackground(lesson) {
+    $("lesson-threat-title").textContent=lesson.heading;
+    for(const key of ["threat","objective","problem","observation","experiment","application"]){
+      $("lesson-"+key).textContent=lesson[key];
+    }
+    const source=$("lesson-source");
+    source.href=lesson.source.url;
+    source.textContent=lesson.source.label;
+
+    const catalog=$("lesson-catalog");
+    catalog.hidden=!lesson.catalog;
+    if(lesson.catalog){
+      catalog.href=root.dataset.catalogRoot+lesson.catalog.slug+"/";
+      catalog.textContent=lesson.catalog.label;
+    }
+
+    $("lesson-paths").replaceChildren(...lesson.paths.map(path=>{
+      const row=node("div","lesson-path");
+      const type=node("span","tag"+(path.type==="Source-reported"?" source-reported":""),path.type);
+      const flow=node("ol","lesson-flow");
+      flow.setAttribute("role","list");
+      flow.setAttribute("aria-label",path.label);
+      path.stages.forEach((stage,index)=>{
+        const item=node("li","");
+        if(index) item.append(arrow());
+        item.append(node("span","lesson-stage",stage));
+        flow.append(item);
+      });
+      const label=node("span","lesson-path-label",path.label);
+      row.append(type,label,flow);
+      return row;
+    }));
   }
   function renderLesson(current){
     const panel=$("lesson-panel");
@@ -279,11 +366,10 @@ async function initialize(root) {
     panel.hidden=!lesson;$("free-explore").hidden=!lesson;
     if(!lesson)return;
     panel.setAttribute("aria-labelledby","lesson-tab-"+lesson.id);
-    $("lesson-question").textContent=lesson.heading;
-    $("lesson-context").textContent=lesson.context;
     const container=$("lesson-steps");
     if(container.dataset.lesson!==lesson.id){
       container.dataset.lesson=lesson.id;
+      renderLessonBackground(lesson);
       container.replaceChildren(...lesson.steps.map((item,ix)=>{
         const b=node("button","",item.name);
         b.type="button";b.addEventListener("click",()=>applyLessonStep(ix));
@@ -542,7 +628,13 @@ async function initialize(root) {
     set(choice);
   }));
   lessonTabs();
-  render();
+  const entry=new URLSearchParams(location.search);
+  if(entry.get("view")==="studies"){
+    render();
+  }else{
+    const requested=lessons.find(lesson=>lesson.id===entry.get("lesson"));
+    selectLesson((requested || lessons[0]).id);
+  }
 
   const explorer=$("explorer");
   const presentation=$("lens-presentation");
@@ -558,7 +650,7 @@ async function initialize(root) {
     $("lens-home").prepend(explorer);
     showPresentation.focus({preventScroll:true});
   });
-  for(const link of root.querySelectorAll("#lens-open-explorer, .graph-jumps a")){
+  for(const link of root.querySelectorAll("#lens-open-explorer, .graph-jumps a, .lesson-jump")){
     link.addEventListener("click",() => $(link.hash.slice(1)).focus({preventScroll:true}));
   }
   const skip = document.querySelector("#lens-skip");

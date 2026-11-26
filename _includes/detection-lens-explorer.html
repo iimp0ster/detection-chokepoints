@@ -1,8 +1,8 @@
-<div class="lens-explorer" data-lens-explorer data-dataset="{{ include.dataset | relative_url }}">
+<div class="lens-explorer" data-lens-explorer data-dataset="{{ include.dataset | relative_url }}" data-catalog-root="{{ '/chokepoints/' | relative_url }}">
   <header class="hero lens-hero py-16 px-6 text-center overflow-hidden relative">
     <div class="lens-hero-inner max-w-2xl mx-auto relative">
       <h1 class="hero-title mb-2">Detection Lens Explorer<span class="lens-cursor" aria-hidden="true">_</span></h1>
-      <p class="hero-sub">Pick a study case and remove an evidence lens. Check which operations you can still see, which effects you can confirm, and whether you can link them.</p>
+      <p class="hero-sub">Start with a threat. Follow the attack path, then check what the lab evidence can confirm.</p>
       <div class="lens-hero-actions">
         <a href="#explorer" id="lens-open-explorer" hidden>Open the explorer</a>
         <a href="{{ '/research/' | relative_url }}">Research studies</a>
@@ -15,18 +15,44 @@
     <div id="lens-home">
       <section id="explorer" aria-label="Explorer" tabindex="-1" hidden>
         <section class="panel lesson" aria-labelledby="lesson-heading">
-          <div class="panel-title">
-            <div><h2 id="lesson-heading">Guided lessons</h2></div>
-            <button id="free-explore" type="button" hidden>Exit lesson</button>
-          </div>
+          <div class="panel-title"><h2 id="lesson-heading">Guided lessons</h2></div>
           <div class="lesson-body">
-            <div id="lesson-tabs" class="lesson-tablist" role="tablist" aria-label="Research lessons"></div>
+            <div class="lesson-nav">
+              <div id="lesson-tabs" class="lesson-tablist" role="tablist" aria-label="Threat lessons"></div>
+              <button id="free-explore" type="button" hidden>Browse studies directly</button>
+            </div>
             <div id="lesson-panel" class="lesson-panel" role="tabpanel" tabindex="0" hidden>
-              <h3 id="lesson-question"></h3>
-              <p id="lesson-context"></p>
-              <div id="lesson-steps" class="lesson-steps" role="group" aria-label="Lesson steps"></div>
-              <p id="lesson-proof" class="lesson-proof" aria-live="polite"></p>
-              <p id="lesson-conclusion"></p>
+              <h3 id="lesson-threat-title"></h3>
+              <p id="lesson-threat"></p>
+              <p class="lesson-sources"><span class="tag source-reported">Source-reported</span> <a id="lesson-source"></a></p>
+              <dl class="lesson-questions">
+                <div><dt>Objective</dt><dd id="lesson-objective"></dd></div>
+                <div><dt>Detection problem</dt><dd id="lesson-problem"></dd></div>
+              </dl>
+              <section class="lesson-block" aria-labelledby="lesson-path-title">
+                <h4 id="lesson-path-title">Attack paths and controls</h4>
+                <div id="lesson-paths" class="lesson-paths"></div>
+              </section>
+              <section class="lesson-block" aria-labelledby="lesson-observation-title">
+                <h4 id="lesson-observation-title">Where to look</h4>
+                <p id="lesson-observation"></p>
+                <a id="lesson-catalog" hidden></a>
+              </section>
+              <section class="lesson-block" aria-labelledby="lesson-experiment-title">
+                <h4 id="lesson-experiment-title">Lab experiment</h4>
+                <p id="lesson-experiment"></p>
+                <div id="lesson-steps" class="lesson-steps" role="group" aria-label="Lesson steps"></div>
+                <a class="lesson-jump" href="#lab-graph">Inspect the lab graph</a>
+              </section>
+              <section class="lesson-block" aria-labelledby="lesson-findings-title">
+                <h4 id="lesson-findings-title">Findings</h4>
+                <p id="lesson-proof" class="lesson-proof" aria-live="polite"></p>
+                <p id="lesson-conclusion"></p>
+              </section>
+              <section class="lesson-block" aria-labelledby="lesson-application-title">
+                <h4 id="lesson-application-title">Apply it</h4>
+                <p id="lesson-application"></p>
+              </section>
             </div>
           </div>
         </section>
@@ -39,8 +65,8 @@
         </div>
         <div class="guides"><span>Jump to a case</span><button data-guide="delay">Missing upstream (synthetic)</button><button data-guide="gap">Linux write capture (measured)</button><button data-guide="arms">Synthetic A/B comparison</button></div>
         <div class="workspace">
-          <section class="panel graph-panel">
-              <div class="panel-title"><div><h2>Attack path and evidence</h2><p id="description"></p></div><span id="class" class="tag"></span></div>
+          <section id="lab-graph" class="panel graph-panel" aria-labelledby="lab-graph-title" tabindex="-1">
+              <div class="panel-title"><div><h2 id="lab-graph-title">Lab attack path and evidence</h2><p id="description"></p></div><span id="class" class="tag"></span></div>
               <div class="graph-body">
                 <div class="graph-context"><strong id="objective-name"></strong><span class="tag" id="path-label"></span><span id="path-box" hidden><label class="pair">Switch path<select id="path"></select></label></span><span id="arm-box" hidden><label class="pair">Synthetic arm<select id="arm"></select></label></span></div>
                 <details class="bowtie" id="objective-map">

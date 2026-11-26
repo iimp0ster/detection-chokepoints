@@ -46,7 +46,7 @@
   margin: 0 auto;
   padding: 1.5rem;
 }
-.lens-explorer :is(#explorer, #lens-controls, #lens-inspector) {
+.lens-explorer :is(#explorer, #lab-graph, #lens-controls, #lens-inspector) {
   scroll-margin-top: calc(var(--nav-h) + 1rem);
 }
 
@@ -117,13 +117,71 @@
   background: color-mix(in srgb, var(--accent) 12%, var(--bg-card));
   box-shadow: inset 3px 0 var(--accent);
 }
+.lens-explorer .lesson-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+}
 .lens-explorer .lesson-panel {
   margin-top: .75rem;
   border-top: 1px solid var(--border);
   padding-top: .65rem;
 }
 .lens-explorer .lesson-panel > * + * { margin-top: .5rem; }
+.lens-explorer .lesson-sources {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+.lens-explorer .lesson-questions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem 1.2rem;
+}
+.lens-explorer .lesson-questions dt { font-weight: 700; }
+.lens-explorer .lesson-questions dd { margin: .15rem 0 0; color: var(--text-muted); }
+.lens-explorer .lesson-block {
+  padding-top: .55rem;
+  border-top: 1px solid var(--border);
+}
+.lens-explorer .lesson-block > * + * { margin-top: .3rem; }
+.lens-explorer .lesson-block h4 { color: var(--lens-heading); }
+.lens-explorer .lesson-paths { display: grid; gap: .35rem; }
+.lens-explorer .lesson-path {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: .35rem .65rem;
+  padding: .4rem .5rem;
+  border: 1px solid var(--border);
+  background: var(--bg-code);
+}
+.lens-explorer .lesson-flow, .lens-explorer .lesson-flow li {
+  display: flex;
+  align-items: baseline;
+  gap: .35rem;
+  min-width: 0;
+}
+.lens-explorer .lesson-flow {
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lens-explorer .lesson-path-label { color: var(--text-muted); font-weight: 700; }
+.lens-explorer .lesson-stage { color: var(--text); }
+.lens-explorer .lesson-jump { display: inline-block; }
 .lens-explorer p.lesson-proof { color: var(--text); font-weight: 700; }
+
+@media (max-width: 640px) {
+  .lens-explorer .lesson-questions { grid-template-columns: minmax(0, 1fr); }
+  .lens-explorer .lesson-path { flex-direction: column; }
+  .lens-explorer .lesson-flow { flex-direction: column; }
+  .lens-explorer .lesson-flow .arrow { transform: rotate(90deg); }
+}
 
 .lens-explorer .graph-context {
   display: flex;
