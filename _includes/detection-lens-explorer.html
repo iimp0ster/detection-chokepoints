@@ -1,3 +1,4 @@
+{% assign php_threat_source = 'https://www.microsoft.com/en-us/security/blog/2026/04/02/cookie-controlled-php-webshells-tradecraft-linux-hosting-environments/' %}
 <div class="lens-explorer" data-lens-explorer data-dataset="{{ include.dataset | relative_url }}" data-catalog-root="{{ '/chokepoints/' | relative_url }}">
   <header class="hero lens-hero py-16 px-6 text-center overflow-hidden relative">
     <div class="lens-hero-inner max-w-2xl mx-auto relative">
@@ -27,7 +28,7 @@
                 <div class="walk-objective"><strong id="walk-objective-label">Objective</strong><span id="lesson-objective"></span></div>
                 <div id="walk-threat" class="walk-context">
                   <p id="lesson-threat"></p>
-                  <p class="lesson-sources"><span class="tag source-reported">Source-reported</span> <a id="lesson-source"></a></p>
+                  <p class="lesson-sources"><span class="tag source-reported">Source-reported</span> <a id="lesson-source" href="{{ php_threat_source }}">Microsoft · April 2, 2026</a></p>
                 </div>
                 <section id="walk-map-section" class="walk-map-section" aria-labelledby="walk-map-title" hidden>
                   <div class="walk-map-heading">
@@ -44,7 +45,7 @@
                     <h4 id="walk-step-title" tabindex="-1"></h4>
                     <p id="walk-copy"></p>
                   </div>
-                  <a id="lesson-catalog" hidden></a>
+                  <a id="lesson-catalog" href="{{ '/chokepoints/web-shells/' | relative_url }}" hidden>Web Shell Persistence catalog entry</a>
                   <button id="walk-hint" type="button" aria-expanded="false" aria-controls="walk-answer" hidden>Show explanation</button>
                   <p id="walk-answer" hidden></p>
                   <button id="walk-placement" type="button" hidden>Try graph placement</button>
@@ -68,7 +69,7 @@
               <section id="php-placement" class="placement stack" aria-labelledby="place-heading" hidden>
                 <div class="placement-row between">
                   <button id="place-exit" type="button">Back to the PHP lesson</button>
-                  <a id="place-source">Microsoft threat report</a>
+                  <a id="place-source" href="{{ php_threat_source }}">Microsoft threat report</a>
                 </div>
                 <div class="placement-objective"><strong>Example objective</strong><span>Make the designated data available to the executing code.</span></div>
                 <div class="placement-card">

@@ -52,6 +52,8 @@ class LensExplorerTest(unittest.TestCase):
         self.assertIn('id="php-placement" class="placement stack" aria-labelledby="place-heading" hidden', explorer)
         for region in ("place-map", "place-key", "place-advanced", "place-aggregate-title", "place-case-title"):
             self.assertEqual(explorer.count(f'id="{region}"'), 1)
+        for link in ("lesson-source", "lesson-catalog", "place-source"):
+            self.assertRegex(explorer, rf'<a id="{link}" href="[^" ]+"')
         self.assertIn('<dialog id="lens-presentation"', explorer)
         self.assertIn('href="/detection-chokepoints/lens-explorer/"', research)
         self.assertIn("<table>", research)

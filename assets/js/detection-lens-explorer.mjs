@@ -635,7 +635,7 @@ async function initialize(root) {
   const lessons = [
     {
       id:"convergence", label:"PHP web shells", heading:"Cookie-controlled PHP web shells",
-      source:["Microsoft · April 2, 2026","https://www.microsoft.com/en-us/security/blog/2026/04/02/cookie-controlled-php-webshells-tradecraft-linux-hosting-environments/"],
+      source:["Microsoft · April 2, 2026",$("place-source").href],
       threat:"Microsoft reported PHP web shells that activated on a cookie in the request. In one compromise, a scheduled job restored the loader after removal, keeping remote code execution available. The lab below follows a narrower file-read objective.",
       objectiveLabel:"Lab objective",
       objective:"Read the designated file after a request reaches PHP.",
@@ -766,7 +766,6 @@ async function initialize(root) {
         const verdicts=Object.fromEntries(["operation","effect","attribution","authorization"].map(key=>[key,claimValue(assessment,key)[0]]));
         return [id,{label,verdicts}];
       }));
-      $("place-source").href=walkthrough.lesson.source[1];
       placement=initializePlacement($("php-placement"),{
         revision:study.revision,confirmed:metrics.effect[0],eligible:metrics.effect[1],cases
       },()=>{
