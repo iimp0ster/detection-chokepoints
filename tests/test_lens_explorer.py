@@ -17,6 +17,12 @@ class LensExplorerTest(unittest.TestCase):
     def test_reviewed_projection(self):
         self.assertEqual(validator.audit(), (6, 1746, 5371))
 
+    def test_frozen_explorer_dataset(self):
+        self.assertEqual(
+            sha256(validator.DATA.read_bytes()).hexdigest(),
+            "7cb327d92f11213863515aea0340cb69616a49aeea0df8ce73dd00ad58699323",
+        )
+
     def test_projection_rejects_private_reference(self):
         raw = validator.DATA.read_bytes().replace(b'"pendingMeasuredStudies":',
                 b'"sourceLink":"https://example.invalid/private","pendingMeasuredStudies":', 1)
@@ -38,6 +44,10 @@ class LensExplorerTest(unittest.TestCase):
         self.assertIn('src="/detection-chokepoints/assets/js/detection-lens-explorer.mjs"', explorer)
         self.assertIn('href="/detection-chokepoints/assets/css/detection-lens-explorer.css"', explorer)
         self.assertIn('role="tablist"', explorer)
+        for control in ("free-explore", "walk-back", "walk-next", "walk-replay", "walk-skip"):
+            self.assertIn(f'id="{control}"', explorer)
+        for region in ("walk-map", "walk-proof", "walk-findings", "lens-lab"):
+            self.assertIn(f'id="{region}"', explorer)
         self.assertIn('<dialog id="lens-presentation"', explorer)
         self.assertIn('href="/detection-chokepoints/lens-explorer/"', research)
         self.assertIn("<table>", research)

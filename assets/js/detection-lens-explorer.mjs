@@ -143,157 +143,129 @@ async function initialize(root) {
   let state=reset("gate-c2");
   function set(patch){state=change(state,patch);render();}
 
+  // Lesson frames describe behavior. Evidence selections only read the study projection.
+  const helperCase = {study:"gate-c2",case:"C2-02",profile:"augmented",
+    cohort:"path/workload_delegated",claim:"effect",selected:"effect"};
   const lessons = [
-    {id:"convergence", label:"PHP web shells", heading:"Cookie-controlled PHP web shells",
-     source:{
-       label:"Microsoft · April 2, 2026",
-       url:"https://www.microsoft.com/en-us/security/blog/2026/04/02/cookie-controlled-php-webshells-tradecraft-linux-hosting-environments/"
-     },
-     threat:"Microsoft reported PHP web shells that activated when a request carried an expected cookie. In one hosting compromise, a cron job restored the loader after removal.",
-     objective:"Microsoft described an effort to keep remote code execution available under the compromised hosting account.",
-     problem:"A detector that only looks for a shell child can miss PHP code running inside a worker. A child-process event also leaves the eventual file or network effect to be verified.",
-     paths:[
-       {type:"Source-reported", label:"Cookie-triggered execution", stages:["HTTP request", "Cookie check in PHP", "PHP code runs"]},
-       {type:"Source-reported", label:"Persistence in one incident", stages:["Compromised hosting account", "Scheduled job", "PHP loader restored"]},
-       {type:"Lab comparison", label:"File-read comparison", stages:["Canary request", "Child process or PHP worker", "Same canary read"]}
-     ],
-     observation:"For the lab's file-read objective, the necessary step is access to the designated file. Look for the file identity and read result. Process lineage covers the child route.",
-     catalog:{slug:"web-shells", label:"Web Shell Persistence catalog entry"},
-     experiment:"Compare the child process, the in-process PHP worker, and the approved read. This lab used a canary file and did not reproduce the cookie trigger or cron persistence.",
-     application:"Keep the child-process hunt for the branch it covers. When investigating an in-process read, look for a record tied to the request and the file. Check authorization before treating the access as malicious.",
-     steps:[
-       {name:"Inspect the child process", point:{study:"php",case:"child",selected:"effect"}},
-       {name:"Switch to in-process", point:{study:"php",case:"worker",selected:"effect"}},
-       {name:"Check the approved read", point:{study:"php",case:"admin",selected:"authorization"}}
-     ],
-     result({study,example,assessment}) {
-       if(study.id!=="php"||example.objective!=="file_read")return null;
-       const outcome=claimValue(assessment,"effect")[0];
-       const policy=claimValue(assessment,"authorization")[0];
-       return ["Canary read "+states[outcome]+" · Authorization violation "+states[policy],
-         "The read can look the same on an approved route. Use evidence about the request and the applicable policy before treating the read as a violation."];
-     }},
-    {id:"resilience", label:"Container credential access", heading:"Two routes to credential material",
-     source:{
-       label:"Sysdig · June 4, 2026",
-       url:"https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape"
-     },
-     threat:"Sysdig observed a compromised application workload use Docker management access to read host credential files. It also reported the workload's service-account token being used to read Kubernetes Secrets.",
-     objective:"The returned data supports credential collection as the immediate objective. Later use of those credentials is outside this lesson.",
-     problem:"A recorded read can be actionable before the events that tie it to the original workload arrive. A Kubernetes Secret read alone leaves host access unresolved.",
-     paths:[
-       {type:"Source-reported", label:"Host credential read", stages:["Compromised workload", "Docker management access", "Host credential files"]},
-       {type:"Source-reported", label:"Kubernetes API path", stages:["Workload service account", "Kubernetes API request", "Namespace Secrets"]}
-     ],
-     observation:"Look for an independent outcome at the resource. To tie it to the initiating workload, correlate the caller with the runtime action or API request on that specific path.",
-     experiment:"Use a measured helper case from Gate C.2. It changes an inert host record. Start at 250 ms, include later records, then keep only the effect evidence. The lab did not access real credentials or test Docker or Kubernetes access.",
-     application:"Investigate a confirmed sensitive read on its own merits. Report the originating workload or a boundary crossing when you have records that bind it to the access.",
-     steps:[
-       {name:"Check at 250 ms", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:250,selected:"causal"}},
-       {name:"Include later records", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,selected:"causal"}},
-       {name:"Keep only effect evidence", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
-                                                   cohort:"path/workload_delegated",claim:"effect",selected:"causal"}, applyMinimum:"effect"}
-     ],
-     result({study,assessment}) {
-       if(study.id!=="gate-c2"||state.case!=="C2-02")return null;
-       const effect = claimValue(assessment,"effect")[0];
-       const boundary = claimValue(assessment,"boundary")[0];
-       const causal = claimValue(assessment,"causal")[0];
-       let reading = "Open a node or the causal link to see what evidence is missing in this view.";
-       if (causal === "C") {
-         reading = "Select the confirmed link to see the evidence tying the downstream effect to the earlier action.";
-       } else if (effect === "C") {
-         reading = "This view confirms the downstream effect. The evidence here leaves the causal link open.";
-       }
-       return [
-         "Downstream effect "+states[effect]+" · Boundary "+states[boundary]+" · Causal link "+states[causal],
-         reading
-       ];
-     }},
-    {id:"observation", label:"Linux process hiding", heading:"Process hiding after a container compromise",
-     source:{
-       label:"Aqua Nautilus · August 26, 2021",
-       url:"https://www.aquasec.com/blog/advanced-persistent-threat-techniques-container-attacks/"
-     },
-     threat:"Aqua analyzed a container campaign whose scripts included a kernel rootkit and a user-space fallback. The fallback was written to replace process-listing utilities and conceal mining activity.",
-     objective:"Aqua described concealment of a miner. Replacing utilities is one way the scripts tried to keep it out of process listings.",
-     problem:"The file change matters on the replacement branch. A collector that covers one write path can miss another, and a file-write rule does not cover process hiding that leaves those utilities intact.",
-     paths:[
-       {type:"Source-reported", label:"First branch in the script", stages:["Host foothold", "Kernel module branch", "Process hiding"]},
-       {type:"Source-reported", label:"Fallback in the analyzed script", stages:["Host foothold", "Process utility replacement", "Filtered process listing"]}
-     ],
-     observation:"Replacing a utility requires a change to the host's files. File integrity and completed-write records are candidates for that branch. A single runtime hook shows only what it captures.",
-     experiment:"Compare reference tracing and the selected Tetragon hook on harmless writes in Gate C.2. The two observers ran separately. Gate C.3 models an added return observation. The lab used no rootkit and the report does not establish which write variant the campaign used.",
-     application:"Verify file-change coverage with known-good canary writes. Check that you can tell expected package updates from unexplained utility changes, then check the actor evidence before attributing a write.",
-     steps:[
-       {name:"Inspect vectored writes", point:{study:"gate-c2",case:"C2-03",profile:"augmented",cutoff:null,selected:"operation"}, diagnostic:1},
-       {name:"Compare the scalar control", point:{study:"gate-c2",case:"C2-03",profile:"augmented",cutoff:null,selected:"operation"}, diagnostic:2},
-       {name:"Check the synthetic comparison", point:{study:"gate-c3",case:"R01",profile:"augmented",cutoff:null,arm:"B",claim:"capture",selected:"capture"}}
-     ],
-     result({study,assessment,metrics}) {
-       if(study.id==="gate-c3"&&state.case==="R01"){
-         const count=metrics.capture;
-         return ["Modeled kernel capture "+states[claimValue(assessment,"capture")[0]]+(count?" · "+count[0]+" / "+count[1]+" eligible operations":""),
-          "The second configuration adds a modeled kernel return event. Live hook attachment and capture recovery still need a lab test."];
-       }
-       if(study.id!=="gate-c2")return null;
-       const d=study.diagnostic, i=lessons[2].steps[lessonStep].diagnostic??1;
-       return [d.labels[i]+" · Reference "+d.reference[i]+" / "+d.denominator+
-         " · Runtime hook "+d.observed[i]+" / "+d.denominator,
-         i===2?"Both observers captured the scalar control in their own runs. The capture gap in this test was in the vectored writes.":
-           "Reference tracing confirmed 2 of 2 writes for each vectored variant. In separate runs, the selected Tetragon hook captured 0 of 2 for each."];
-     }},
-    {id:"minimum", label:"Docker SSH backdoors", heading:"Linking SSH trust changes to a Docker intrusion",
-     source:{
-       label:"Datadog Security Labs · February 1, 2024",
-       url:"https://securitylabs.datadoghq.com/articles/analysis-of-teamtnt-doppelganger/"
-     },
-     threat:"Datadog reported a campaign targeting exposed Docker APIs. It analyzed persistence scripts that added SSH keys and changed SSH settings. Some tooling came from TeamTNT, according to Datadog.",
-     objective:"The reported changes support an objective of keeping access over SSH. The script analysis leaves any later successful login unresolved.",
-     problem:"Key rotation can change SSH trust during normal administration. An alert on the file change leaves the actor and authorization open until you can tie the write to a request or process.",
-     paths:[
-       {type:"Source-reported", label:"Reported entry", stages:["Exposed Docker API", "Daemon-created container"]},
-       {type:"Source-reported", label:"Behavior in the analyzed payload", stages:["Persistence script", "SSH trust and configuration changes"]},
-       {type:"Defender comparison", label:"Benign change", stages:["Authorized administrator", "Key rotation", "SSH trust changes"]}
-     ],
-     observation:"This persistence path requires a change to SSH trust or configuration. Verify the changed state, then check the caller and policy if you need to attribute it. The report does not bind every script write to an exact Docker caller.",
-     experiment:"Use the final replay of the measured Gate C.2 helper cohort. The selected case changes an inert account record, and the cohort includes several fixture types. Compare the smallest set for the effect with the smallest set for a causal link. The lab did not test SSH login.",
-     application:"Define the alert claim before choosing sources. A host-state alert can start with verified state and completion evidence. For attribution, add caller, workload, and authorization records, and test the set against approved changes.",
-     steps:[
-       {name:"Use the smallest set for the effect", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
-                                                 cohort:"path/workload_delegated",claim:"effect",selected:"effect"}, applyMinimum:"effect"},
-       {name:"Check the link with the same lenses", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
-                                                            cohort:"path/workload_delegated",claim:"causal",selected:"causal"}, applyMinimum:"effect"},
-       {name:"Use the smallest set for the link", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
-                                                 cohort:"path/workload_delegated",claim:"causal",selected:"causal"}, applyMinimum:"causal"}
-     ],
-     result({study,g,metrics}) {
-       if(study.id!=="gate-c2"||state.cohort!=="path/workload_delegated")return null;
-       const count=metrics[state.claim], recorded=g.minimum[state.cohort]?.[state.claim];
-       if(!count)return null;
-       return [shortMask(state.lenses)+" · "+count[0]+" / "+count[1]+" "+claimLabel(study,state.claim).toLowerCase()+
-         " · Minimum "+(recorded?.length?recorded.map(shortMask).join(" or "):"none qualified"),
-         !recorded?.length?"Use the final replay with supplemental evidence to compare the recorded effect and causal minimums.":
-         state.claim==="causal"?"In the final replay, the qualifying set adds workload and policy evidence to the lenses used for the effect.":
-         "The effect minimum applies to these helper cases at this cutoff. Check authorization, attribution, and cause on their own evidence."];
-     }},
-  ];
-  let activeLesson=null,lessonStep=0;
-  function applyLessonStep(step){
-    const lesson=lessons.find(item=>item.id===activeLesson);
-    lessonStep=step;
-    const data=lesson.steps[step];
-    state=change(reset(data.point.study),data.point);
-    const {g}=view(state);
-    if(data.applyMinimum){
-      const recorded=g.minimum[state.cohort]?.[data.applyMinimum];
-      if(recorded?.length) state=change(state,{lenses:recorded[0]});
+    {
+      id:"convergence", label:"PHP web shells", heading:"Cookie-controlled PHP web shells",
+      source:["Microsoft · April 2, 2026","https://www.microsoft.com/en-us/security/blog/2026/04/02/cookie-controlled-php-webshells-tradecraft-linux-hosting-environments/"],
+      threat:"Microsoft reported PHP web shells that activated on a cookie in the request. In one compromise, a scheduled job restored the loader after removal, keeping remote code execution available. The lab below follows a narrower file-read objective.",
+      objectiveLabel:"Lab objective",
+      objective:"Read the designated file after a request reaches PHP.",
+      nodes:{i:["Canary request","Lab origin"],p:["PHP worker","Request handler"],q:["Child process","Child route"],
+        a:["In-process read","Alternative route"],s:["Same file read","Shared interaction"]},
+      edges:[["i","p"],["p","q"],["q","s"],["p","a","alternative"],["a","s","alternative"]],
+      steps:[
+        {title:"Start with the web shell"},
+        {title:"Follow the request", show:"i p", copy:"Microsoft's shell checked the incoming cookie before running code. Here a canary request reaches PHP-FPM. The lab did not reproduce the cookie check."},
+        {title:"Follow the child process", show:"q", copy:"In the first route, the worker starts a child. Process lineage can show the handoff. The file access is still a separate question."},
+        {title:"Check the read completed", show:"s", copy:"The child reads the designated canary. The file identity and read result matter when the claim is a completed read."},
+        {title:"Keep the work inside PHP", show:"a s", phase:1, copy:"The worker can read the same file in-process. A detector looking for a child sees only the first route."},
+        {title:"What has to happen either way?", focus:"s", copy:"Compare the two routes to the same file.", hint:"A process can change. Both routes must successfully read the designated file to meet this objective."},
+        {title:"Name the shared interaction", focus:"s", candidate:"s", copy:"A chokepoint is an interaction the actor must complete to reach a defined objective. The designated file read is a candidate for these two paths.", catalog:true},
+        {title:"Test the detection", phase:2, focus:"s", activity:"php", copy:"Pick a type of record to see where it helps. The PHP study did not replay subsets."},
+        {title:"Review the lab results", activity:"php", findings:true, focus:"s", copy:"Compare the prohibited reads with the approved control."}
+      ],
+      catalog:["web-shells","Web Shell Persistence catalog entry"],
+      limits:"The lab used an instrumented canary file. It did not replay the incident, test cookie activation or persistence, or establish disclosure of real data.",
+      apply:"Keep the child-process hunt for the route it covers. To confirm a read, bind the event to the exact file and actor, then check the applicable policy."
+    },{
+      id:"resilience", label:"Container credential access", heading:"Two routes to credential material",
+      source:["Sysdig · June 4, 2026","https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape"],
+      threat:"Sysdig reported a compromised application workload using Docker management access to read host credential files. The workload's service account was also used to read Kubernetes Secrets.",
+      objective:"Collect credential material. The returned data supports this inference.",
+      nodes:{i:["Compromised workload","Reported origin"],p:["Docker management","Host route"],q:["Host credential files","File read"],
+        a:["Kubernetes API","Alternative route"],b:["Namespace Secrets","API read"]},
+      edges:[["i","p"],["p","q"],["i","a","alternative"],["a","b","alternative"]],
+      steps:[
+        {title:"Start with the compromised workload"},
+        {title:"Follow the runtime request", show:"i p", copy:"Sysdig documented access to Docker from the workload. The runtime action came before the read."},
+        {title:"Follow the host effect", show:"q", copy:"The operation returned host credential material. A record of the read and a record tying it to the original workload answer separate questions."},
+        {title:"Follow the management-plane route", show:"a", phase:1, copy:"The same report describes a service-account token used against the Kubernetes API. This route uses API authority."},
+        {title:"What do the routes share?", show:"b", focus:"q b", copy:"Both routes read a protected resource, through different interfaces and against different objects. The API read alone leaves host access unresolved.", hint:"Start with evidence at the resource. Add caller and route-specific records when you need attribution."},
+        {title:"Check the downstream finding", phase:2, focus:"q b", activity:"resilience", copy:"Switch the receipt cutoff, then remove upstream evidence. Watch which claims still have support."},
+        {title:"Review the lab results", activity:"resilience", findings:true, focus:"q b", copy:"Compare the effect and the causal link. Each has its own evidence."}
+      ],
+      limits:"The measured helper case changed an inert host record. It did not read credentials or test Docker or Kubernetes access. This experiment leaves the container-escape candidate unresolved.",
+      apply:"Investigate a confirmed sensitive read even when attribution is open. Report an originating workload or a boundary crossing when the records support it."
+    },{
+      id:"observation", label:"Linux process hiding", heading:"Process hiding after a container compromise",
+      source:["Aqua Nautilus · August 26, 2021","https://www.aquasec.com/blog/advanced-persistent-threat-techniques-container-attacks/"],
+      threat:"Aqua analyzed scripts from a container campaign with a kernel rootkit and a user-space fallback that changed process-listing utilities.",
+      objective:"Keep a miner out of process listings, as described by Aqua.",
+      nodes:{i:["Host foothold","Reported context"],p:["Kernel module","Kernel route"],q:["Filtered kernel results","Modeled effect"],
+        a:["Replace a utility","Fallback route"],b:["Filtered utility output","Modeled effect"]},
+      narrowSlots:{q:[24,66],b:[76,66]},
+      edges:[["i","p"],["p","q"],["i","a","alternative"],["a","b","alternative"]],
+      steps:[
+        {title:"Start with the concealment objective"},
+        {title:"Follow the kernel branch", show:"i p", copy:"The analyzed script has a kernel module branch after the host foothold."},
+        {title:"Follow the effect on process listings", show:"q", copy:"The module can change what process enumeration returns. That objective can be met while the listing utility on disk stays intact."},
+        {title:"Follow the fallback", show:"a", phase:1, copy:"The script also has a fallback that replaces process-listing utilities. The replacement is a necessary interaction for this branch."},
+        {title:"Compare the two effects", show:"b", candidate:"a", copy:"Both branches aim to alter what the operator sees. Only the replacement branch requires a change to the utility on disk."},
+        {title:"Place an observer", phase:2, activity:"observation", focus:"a", copy:"Pick a place to look before checking the diagnostic. What claim could its records support?"},
+        {title:"Review the lab results", activity:"observation", findings:true, focus:"a", copy:"The diagnostic compared two observers and four harmless write variants in separate runs."}
+      ],
+      limits:"The diagnostic used no rootkit or utility replacement. It establishes a write-capture gap for one configuration. Gate C.3 models an added return observation and remains synthetic.",
+      apply:"Verify coverage with known-good writes and validate expected package updates before attributing a utility change."
+    },{
+      id:"minimum", label:"Docker SSH backdoors", heading:"Linking SSH trust changes to a Docker intrusion",
+      source:["Datadog Security Labs · February 1, 2024","https://securitylabs.datadoghq.com/articles/analysis-of-teamtnt-doppelganger/"],
+      threat:"Datadog reported a campaign against exposed Docker APIs. The persistence scripts it analyzed added SSH keys and changed SSH settings.",
+      objective:"Keep access over SSH. This is an inference from the payload behavior.",
+      nodes:{i:["Exposed Docker API","Reported entry"],p:["Daemon creates container","Reported runtime action"],
+        q:["Persistence script","Analyzed capability"],a:["Authorized key rotation","Administrative comparison"],
+        s:["SSH trust changes","Shared state change"]},
+      edges:[["i","p"],["p","q","unresolved"],["q","s"],["a","s","alternative"]],
+      edgeNote:"The dashed link marks the unresolved caller for a given write.",
+      steps:[
+        {title:"Start with the reported Docker entry"},
+        {title:"Follow the runtime action", show:"i p", copy:"The report links Docker API access to container creation."},
+        {title:"Separate entry from payload analysis", show:"q", copy:"Datadog describes payload deployment and analyzes the SSH script. The dashed link marks the unresolved identity of the exact caller for a given write."},
+        {title:"Follow the change to trust", show:"s", copy:"The analyzed script changes SSH trust and configuration. A successful login is a separate outcome."},
+        {title:"Compare an approved change", show:"a", phase:1, copy:"An administrator rotating a key can produce the same kind of trust change."},
+        {title:"Name the necessary step", focus:"s", candidate:"s", copy:"Both modeled trust-change paths write new trust state. The changed state alone leaves actor and authorization unresolved."},
+        {title:"Choose the claim", phase:2, activity:"minimum", focus:"s", copy:"Pick a claim, then try a source set. Start with the evidence you would expect to have."},
+        {title:"Review the lab results", activity:"minimum", findings:true, focus:"s", copy:"Compare your selection with the smallest sets that qualified for the measured helper cohort."}
+      ],
+      limits:"The selected lab case changed an inert account record. The delegated cohort spans multiple fixture types and did not test SSH login.",
+      apply:"Choose sources for the claim your alert makes. Check authorization against approved changes before drawing a conclusion about the actor."
     }
+  ];
+  const activities=["Follow an attack","Change the tradecraft","Test the detection"];
+  const graphSlots={
+    i:[[15,50],[50,10]], p:[[47,18],[24,34]], q:[[82,18],[24,58]],
+    a:[[47,82],[76,34]], b:[[82,82],[76,58]], s:[[82,50],[50,84]]
+  };
+  let walkthrough=null;
+
+  function updateEntry(lesson){
+    const url=new URL(location.href);
+    if(lesson){
+      url.searchParams.delete("view");
+      url.searchParams.set("lesson",lesson);
+    }else{
+      url.searchParams.delete("lesson");
+      url.searchParams.set("view","studies");
+    }
+    history.replaceState(history.state,"",url);
+  }
+  function selectLesson(id,updateUrl=false){
+    if(updateUrl)updateEntry(id);
+    walkthrough={lesson:lessons.find(item=>item.id===id),index:0,hint:false,php:"",
+      cutoff:250,lenses:"PWKDAH",observer:"",claim:"",minimumLenses:"P"};
     render();
   }
-  function selectLesson(id){
-    activeLesson=id;
-    applyLessonStep(0);
+  function goToStep(index){
+    Object.assign(walkthrough,{index,hint:false});
+    renderWalkthrough();
+    const title=$("walk-step-title");
+    title.focus({preventScroll:true});
+    const objective=title.closest(".lesson-panel").querySelector(".walk-objective");
+    const goal=objective.getBoundingClientRect();
+    title.style.scrollMarginTop=(goal.height+parseFloat(getComputedStyle(objective).top)+12)+"px";
+    title.scrollIntoView({block:"nearest"});
   }
   function lessonTabs(){
     const tabs=$("lesson-tabs");
@@ -303,84 +275,313 @@ async function initialize(root) {
       tab.dataset.lesson=l.id;
       tab.setAttribute("role","tab");
       tab.setAttribute("aria-controls","lesson-panel");
-      tab.addEventListener("click",()=>selectLesson(l.id));
+      tab.addEventListener("click",()=>selectLesson(l.id,true));
       tabs.append(tab);
     }
     tabs.addEventListener("keydown",event=>{
-      const keys=["ArrowRight","ArrowLeft","Home","End"];
-      if(!keys.includes(event.key)||!event.target.matches('[role="tab"]'))return;
+      if(!["ArrowRight","ArrowLeft","Home","End"].includes(event.key)||!event.target.matches('[role="tab"]'))return;
       event.preventDefault();
       const at=lessons.findIndex(item=>item.id===event.target.dataset.lesson);
-      const last=lessons.length-1;
-      const ix=event.key==="Home"?0:event.key==="End"?last:(at+(event.key==="ArrowRight"?1:-1)+lessons.length)%lessons.length;
-      selectLesson(lessons[ix].id);
+      const ix=event.key==="Home"?0:event.key==="End"?lessons.length-1:
+        (at+(event.key==="ArrowRight"?1:-1)+lessons.length)%lessons.length;
+      selectLesson(lessons[ix].id,true);
       $("lesson-tab-"+lessons[ix].id).focus();
     });
-    $("free-explore").addEventListener("click",()=>{
-      activeLesson=null;
-      render();
-      $("study").focus();
+    $("free-explore").addEventListener("click",()=>openStudy());
+    $("walk-back").addEventListener("click",()=>goToStep(walkthrough.index-1));
+    $("walk-next").addEventListener("click",()=>goToStep(walkthrough.index+1));
+    $("walk-skip").addEventListener("click",()=>goToStep(walkthrough.lesson.steps.length-1));
+    $("walk-replay").addEventListener("click",()=>{
+      selectLesson(walkthrough.lesson.id);
+      goToStep(0);
+    });
+    $("walk-hint").addEventListener("click",()=>{
+      walkthrough.hint=!walkthrough.hint;
+      renderWalkthrough();
     });
   }
-  function renderLessonBackground(lesson) {
-    $("lesson-threat-title").textContent=lesson.heading;
-    for(const key of ["threat","objective","problem","observation","experiment","application"]){
-      $("lesson-"+key).textContent=lesson[key];
-    }
-    const source=$("lesson-source");
-    source.href=lesson.source.url;
-    source.textContent=lesson.source.label;
-
-    const catalog=$("lesson-catalog");
-    catalog.hidden=!lesson.catalog;
-    if(lesson.catalog){
-      catalog.href=root.dataset.catalogRoot+lesson.catalog.slug+"/";
-      catalog.textContent=lesson.catalog.label;
-    }
-
-    $("lesson-paths").replaceChildren(...lesson.paths.map(path=>{
-      const row=node("div","lesson-path");
-      const type=node("span","tag"+(path.type==="Source-reported"?" source-reported":""),path.type);
-      const flow=node("ol","lesson-flow");
-      flow.setAttribute("role","list");
-      flow.setAttribute("aria-label",path.label);
-      path.stages.forEach((stage,index)=>{
-        const item=node("li","");
-        if(index) item.append(arrow());
-        item.append(node("span","lesson-stage",stage));
-        flow.append(item);
-      });
-      const label=node("span","lesson-path-label",path.label);
-      row.append(type,label,flow);
-      return row;
-    }));
+  function openStudy(patch){
+    if(patch)state=change(reset(patch.study),patch);
+    walkthrough=null;
+    updateEntry();
+    render();
+    $("study").focus();
   }
-  function renderLesson(current){
+  function renderWalkGraph(lesson,step,known,candidate){
+    const map=$("walk-map");
+    const coordinates=(slot,size)=>size===1&&lesson.narrowSlots?.[slot]||graphSlots[slot][size];
+    if(map.dataset.lesson!==lesson.id){
+      map.dataset.lesson=lesson.id;
+      map.replaceChildren();
+      for(const [size,cls] of ["wide","narrow"].entries()){
+        const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+        svg.setAttribute("viewBox","0 0 100 100");
+        svg.setAttribute("preserveAspectRatio","none");
+        svg.setAttribute("class","walk-lines "+cls);
+        svg.setAttribute("aria-hidden","true");
+        for(const [from,to,kind="primary"] of lesson.edges){
+          const line=document.createElementNS(svg.namespaceURI,"line");
+          const [x,y]=coordinates(from,size), [tx,ty]=coordinates(to,size);
+          for(const [key,value] of Object.entries({x1:x,y1:y,x2:tx,y2:ty}))line.setAttribute(key,value);
+          Object.assign(line.dataset,{from,to,kind});
+          svg.append(line);
+        }
+        map.append(svg);
+      }
+      for(const [slot,[title,role]] of Object.entries(lesson.nodes)){
+        const tile=node("div","walk-node");
+        tile.dataset.slot=slot;
+        const [x,y]=coordinates(slot,0), [mx,my]=coordinates(slot,1);
+        for(const [key,value] of Object.entries({x,y,mx,my}))tile.style.setProperty("--walk-"+key,value+"%");
+        tile.append(node("strong","",title),node("span","walk-role",role),node("span","walk-candidate","Candidate chokepoint"));
+        map.append(tile);
+      }
+    }
+    const focus=(step.focus||step.show||"").split(" ");
+    const sensors=step.activity==="php" ? {process:["p","q"],file:["s"],policy:[]}[walkthrough.php]
+      : step.activity==="observation" ? {kernel:["p"],files:["a"],outcome:["b"]}[walkthrough.observer] : [];
+    const observed=sensors||[];
+    const compare=lesson.id==="convergence"&&known.has("a")&&known.has("s");
+    for(const tile of map.querySelectorAll("[data-slot]")){
+      const slot=tile.dataset.slot;
+      tile.hidden=!known.has(slot);
+      tile.classList.toggle("current",focus.includes(slot));
+      tile.classList.toggle("candidate",candidate.includes(slot));
+      tile.classList.toggle("sensor-focus",observed.includes(slot));
+    }
+    for(const line of map.querySelectorAll("line")){
+      const {from,to}=line.dataset;
+      line.style.visibility=known.has(from)&&known.has(to)?"visible":"hidden";
+      line.classList.toggle("current",focus.includes(to)||compare&&to==="s");
+    }
+    const unbound=lesson.edges.some(([from,to,kind])=>kind==="unresolved"&&known.has(from)&&known.has(to));
+    $("walk-map-key").hidden=!observed.length&&!unbound;
+    $("walk-map-key").textContent=unbound?lesson.edgeNote:"The dashed outline marks the selected observation point.";
+    $("walk-relationships").replaceChildren(...lesson.edges.filter(([from,to])=>known.has(from)&&known.has(to))
+      .map(([from,to,kind])=>node("li","",lesson.nodes[from][0]+" to "+lesson.nodes[to][0]+
+        (kind==="unresolved"?" · Exact causal link unresolved":kind==="alternative"?" · Alternative or administrative comparison":" · Modeled relationship"))));
+  }
+
+  function choiceButtons(title,key,options){
+    const group=node("div","walk-choice");
+    group.setAttribute("role","group");
+    group.setAttribute("aria-label",title);
+    group.append(node("strong","",title));
+    for(const [value,label] of options){
+      const b=node("button","",label);
+      b.type="button";
+      b.dataset.focus="walk-"+key+"-"+value;
+      b.setAttribute("aria-pressed",String(walkthrough[key]===value));
+      b.addEventListener("click",()=>{
+        walkthrough[key]=value;
+        renderWalkthrough();
+      });
+      group.append(b);
+    }
+    return group;
+  }
+  function claimRow(study,assessment,key,cohort){
+    const [verdict,refs,missing]=claimValue(assessment,key);
+    const item=node("div","walk-claim");
+    const title=node("div","walk-claim-title");
+    const badge=node("span","tag state",states[verdict]);
+    badge.dataset.v=verdict;
+    title.append(node("strong","",claimLabel(study,key,cohort)),badge);
+    item.append(title);
+    if(refs.length||missing.length){
+      const details=node("details");
+      details.append(node("summary","","Evidence and gaps"));
+      if(refs.length){
+        const list=node("ul");
+        for(const id of refs)list.append(node("li","",id+" · "+study.evidence[id]));
+        details.append(list);
+      }
+      if(missing.length){
+        const list=node("ul");
+        for(const gap of missing)list.append(node("li","",missingLabels[gap]||gap));
+        details.append(list);
+      }
+      item.append(details);
+    }
+    return item;
+  }
+  function studyLink(label,patch){
+    const b=node("button","",label);
+    b.type="button";
+    b.addEventListener("click",()=>openStudy(patch));
+    return b;
+  }
+  function diagnosticTable(d){
+    const table=node("table","diagram-table");
+    const header=table.createTHead().insertRow();
+    for(const label of ["Call variant","Reference trace","Runtime hook"]){
+      const cell=node("th","",label);cell.scope="col";header.append(cell);
+    }
+    const body=table.createTBody();
+    for(const [i,label] of d.labels.entries()){
+      const row=body.insertRow();
+      for(const value of [label,d.reference[i]+" / "+d.denominator,d.observed[i]+" / "+d.denominator])
+        row.insertCell().textContent=value;
+    }
+    return table;
+  }
+  function evidencePanel(activity,findings){
+    const {php,cutoff,lenses,observer,claim,minimumLenses}=walkthrough;
+    const controls=$("walk-evidence-controls"), proof=$("walk-proof"), results=$("walk-results");
+    controls.replaceChildren();proof.replaceChildren();results.replaceChildren();
+    const notes={
+      process:"Process lineage can tie the child to the PHP worker. The in-process route has no child to observe.",
+      file:"A completed read tied to the designated file speaks to either route. Check the exact file and actor.",
+      policy:"The applicable policy distinguishes the same read on an approved route from a prohibited read.",
+      kernel:"A module-load record can serve as a lead on the kernel route. A canary write test cannot measure module-load coverage.",
+      files:"File integrity can show a persisted replacement. A matching write record can identify the operation when the collector captures it.",
+      outcome:"Compare independent views of process state to investigate concealment. The canary diagnostic measures writes and does not measure concealment."
+    };
+    if(activity==="php"){
+      controls.append(choiceButtons("Pick a record to inspect","php",[["process","Process lineage"],["file","File read"],["policy","Authorization"]]));
+      if(php)proof.append(node("p","",notes[php]));
+      if(!findings)return;
+      const {study,metrics}=view(reset("php"));
+      results.append(node("p","walk-result-line",metrics.effect[0]+" / "+metrics.effect[1]+" prohibited canary reads confirmed · Measured"));
+      for(const [id,label] of [["child","Child process"],["worker","In-process worker"],["admin","Approved read"]]){
+        const {assessment}=view(change(reset("php"),{case:id}));
+        const entry=node("section","walk-claim");
+        entry.append(node("strong","",label),node("div","",[
+          "Read "+states[claimValue(assessment,"effect")[0]],"Authorization violation "+states[claimValue(assessment,"authorization")[0]]
+        ].join(" · ")));
+        results.append(entry);
+      }
+      results.append(studyLink("Explore the PHP study",{study:study.id,case:"child"}));
+    }
+    if(activity==="resilience"){
+      controls.append(choiceButtons("Receipt cutoff","cutoff",[[250,"250 ms"],[null,"Final replay"]]));
+      const patch={...helperCase,cutoff,lenses};
+      const {study,assessment}=view(change(reset(patch.study),patch));
+      const effectOnly=study.groups.find(g=>g.profile==="augmented"&&g.cutoff===null).minimum[patch.cohort].effect[0];
+      controls.append(choiceButtons("Replay evidence","lenses",[[study.lenses,"All lenses"],[effectOnly,"Keep only effect evidence"]]));
+      proof.append(node("p","", "Measured helper case · Native and supplemental evidence"));
+      for(const key of ["effect","boundary","causal"])proof.append(claimRow(study,assessment,key,patch.cohort));
+      proof.append(node("p","","Coverage limited means the selected evidence cannot establish the claim."));
+      if(findings){
+        const rows=[
+          ["250 ms, all lenses",{cutoff:250,lenses:study.lenses}],
+          ["Final replay, all lenses",{cutoff:null,lenses:study.lenses}],
+          ["Final replay, effect evidence only",{cutoff:null,lenses:effectOnly}]
+        ];
+        for(const [label,settings] of rows){
+          const current=view(change(reset(patch.study),{...patch,...settings})).assessment;
+          const row=node("div","walk-claim");
+          row.append(node("strong","",label),node("p","","Effect "+states[claimValue(current,"effect")[0]]+
+            " · Causal link "+states[claimValue(current,"causal")[0]]));
+          results.append(row);
+        }
+        results.append(studyLink("Explore this replay",patch));
+      }
+    }
+    if(activity==="observation"){
+      controls.append(choiceButtons("Observation point","observer",[
+        ["kernel","Module load"],["files","File changes"],["outcome","Process listing"]
+      ]));
+      if(observer)proof.append(node("p","",notes[observer]));
+      if(!findings)return;
+      const {study}=view(reset("gate-c2"));
+      results.append(node("p","walk-result-line","Measured diagnostic · Two runs per observer and variant"),diagnosticTable(study.diagnostic),
+        node("p","","The selected Tetragon hook captured the scalar and positional controls. Reference tracing confirmed completion for both vectored variants in separate runs."),
+        studyLink("Explore the measured diagnostic",choices.gap),
+        studyLink("Explore the synthetic A/B comparison",{...choices.arms,arm:"B"}));
+    }
+    if(activity==="minimum"){
+      controls.append(choiceButtons("Security claim","claim",[["effect","Confirm the effect"],["causal","Link it to the earlier action"]]));
+      const patch={...helperCase,cutoff:null,lenses:minimumLenses,claim:claim||"effect",selected:claim||"effect"};
+      const {study,g,metrics,assessment}=view(change(reset(patch.study),patch));
+      if(claim){
+        const group=node("div","walk-choice");
+        group.setAttribute("role","group"); group.setAttribute("aria-label","Evidence lenses");
+        group.append(node("strong","","Evidence lenses"));
+        for(const key of study.lenses){
+          const enabled=minimumLenses.includes(key);
+          const b=node("button","",key+" · "+model.lenses[key][0]);
+          b.type="button";b.setAttribute("aria-pressed",String(enabled));b.dataset.focus="walk-lens-"+key;
+          b.addEventListener("click",()=>{
+            walkthrough.minimumLenses=enabled?minimumLenses.replace(key,""):order(study,minimumLenses+key);
+            renderWalkthrough();
+          });
+          group.append(b);
+        }
+        controls.append(group);
+        const count=metrics[patch.claim];
+        const label=patch.claim==="causal"?"links confirmed":"effects confirmed";
+        proof.append(node("p","walk-result-line",count[0]+" / "+count[1]+" "+label+" · Selected evidence"),
+          claimRow(study,assessment,patch.claim,patch.cohort));
+      }
+      if(!findings)return;
+      results.append(node("p","walk-result-line","Measured helper cohort · Final replay · Native and supplemental evidence"));
+      for(const key of ["effect","causal"]){
+        const masks=g.minimum[patch.cohort][key];
+        for(const mask of masks){
+          const report=g.rows[mask][0][patch.cohort];
+          const line=node("div","walk-claim");
+          line.append(node("strong","",claimLabel(study,key)+" minimum · "+shortMask(mask)),
+            node("p","",report.effect[0]+" / "+report.effect[1]+" effects · "+
+              report.causal[0]+" / "+report.causal[1]+" causal links"),
+            studyLink("Explore "+claimLabel(study,key).toLowerCase(),{...patch,lenses:mask,claim:key,selected:key}));
+          results.append(line);
+        }
+      }
+    }
+  }
+  function renderWalkthrough(){
     const panel=$("lesson-panel");
-    const lesson=lessons.find(item=>item.id===activeLesson);
-    for(const [ix,l] of lessons.entries()){
+    const lesson=walkthrough?.lesson;
+    const retained=document.activeElement?.dataset.focus;
+    $("free-explore").hidden=!lesson;
+    $("lesson-heading").textContent=lesson?"Guided lessons":"Explore studies";
+    for(const [i,l] of lessons.entries()){
       const tab=$("lesson-tab-"+l.id);
-      tab.setAttribute("aria-selected",String(l.id===activeLesson));
-      tab.tabIndex=(activeLesson?l.id===activeLesson:ix===0)?0:-1;
+      tab.setAttribute("aria-selected",String(l===lesson));
+      tab.tabIndex=(lesson?l===lesson:i===0)?0:-1;
     }
-    panel.hidden=!lesson;$("free-explore").hidden=!lesson;
+    panel.hidden=!lesson;
+    $("lens-lab").hidden=Boolean(lesson);
     if(!lesson)return;
+    const {index,hint}=walkthrough, step=lesson.steps[index], last=lesson.steps.length-1;
+    const revealed=lesson.steps.slice(0,index+1);
+    const known=new Set(revealed.flatMap(item=>(item.show||"").split(" ").filter(Boolean)));
+    const phase=revealed.findLast(item=>item.phase)?.phase||0;
     panel.setAttribute("aria-labelledby","lesson-tab-"+lesson.id);
-    const container=$("lesson-steps");
-    if(container.dataset.lesson!==lesson.id){
-      container.dataset.lesson=lesson.id;
-      renderLessonBackground(lesson);
-      container.replaceChildren(...lesson.steps.map((item,ix)=>{
-        const b=node("button","",item.name);
-        b.type="button";b.addEventListener("click",()=>applyLessonStep(ix));
-        return b;
-      }));
+    $("lesson-threat-title").textContent=lesson.heading;
+    $("walk-objective-label").textContent=lesson.objectiveLabel||"Objective";
+    $("lesson-objective").textContent=lesson.objective;
+    $("lesson-threat").textContent=lesson.threat;
+    $("lesson-source").textContent=lesson.source[0];
+    $("lesson-source").href=lesson.source[1];
+    $("lesson-threat").hidden=index!==0;
+    $("walk-map-section").hidden=!known.size;
+    const candidate=(revealed.findLast(item=>item.candidate)?.candidate||"").split(" ");
+    renderWalkGraph(lesson,step,known,candidate);
+    $("walk-progress").textContent=activities[phase]+" · Step "+(index+1)+" of "+(last+1);
+    $("walk-step-title").textContent=step.title;
+    $("walk-copy").textContent=step.copy||"Continue to reveal the first interaction.";
+    const catalog=$("lesson-catalog");
+    catalog.hidden=!step.catalog;
+    if(step.catalog){
+      catalog.href=root.dataset.catalogRoot+lesson.catalog[0]+"/";
+      catalog.textContent=lesson.catalog[1];
     }
-    Array.from(container.children).forEach((b,i)=>b.setAttribute("aria-pressed",String(i===lessonStep)));
-    const result=lesson.result(current)||["These settings are outside this lesson.",
-      "Select a lesson step to restore its settings."];
-    $("lesson-proof").textContent=result[0];
-    $("lesson-conclusion").textContent=result[1];
+    $("walk-hint").hidden=!step.hint;
+    $("walk-hint").setAttribute("aria-expanded",String(hint));
+    $("walk-hint").textContent=hint?"Hide explanation":"Show explanation";
+    $("walk-answer").hidden=!step.hint||!hint;
+    $("walk-answer").textContent=step.hint||"";
+    $("walk-evidence").hidden=!step.activity;
+    $("walk-findings").hidden=!step.findings;
+    $("walk-limits").textContent=lesson.limits;
+    $("walk-application").textContent=lesson.apply;
+    if(step.activity)evidencePanel(step.activity,step.findings);
+    $("walk-back").disabled=index===0;
+    $("walk-next").hidden=index===last;
+    $("walk-skip").hidden=index===last;
+    if(retained)panel.querySelector(`[data-focus="${CSS.escape(retained)}"]`)?.focus({preventScroll:true});
   }
   function graphButton(role,title,key,assessment){
     const v=claimValue(assessment,key)[0];
@@ -549,9 +750,6 @@ async function initialize(root) {
     d.labels.forEach((label,i)=>{
       const row=node("tr");[label,d.reference[i]+" / "+d.denominator,d.observed[i]+" / "+d.denominator]
         .forEach(v=>row.append(node("td","",v)));
-      if(activeLesson==="observation"&&lessons[2].steps[lessonStep].diagnostic===i){
-        row.classList.add("selected"); row.cells[0].append(node("span","tag","Selected"));
-      }
       tb.append(row);
     });
     table.append(tb);
@@ -565,7 +763,7 @@ async function initialize(root) {
       const cohort=Object.keys(s.cohorts)[0];
       const stats=g.rows[s.lenses][0][cohort].effect;
       const b=node("button","study-card");
-      b.dataset.focus="study-"+s.id;b.setAttribute("aria-pressed",String(s.id===state.study));b.addEventListener("click",()=>set({study:s.id}));
+      b.dataset.focus="study-"+s.id;b.setAttribute("aria-pressed",String(s.id===state.study));b.addEventListener("click",()=>openStudy({study:s.id}));
       b.append(node("span","tag "+s.evidenceClass.toLowerCase(),s.evidenceClass),
         node("strong","",studyCopy[s.id]?.title || s.title),
         node("span","figure",stats[0]+" / "+stats[1]+" · "+claimLabel(s,"effect",cohort)),
@@ -577,7 +775,7 @@ async function initialize(root) {
     const retainedFocus=document.activeElement?.dataset.focus;
     const current=view(state);
     const {study,g,example,assessment,metrics}=current;
-    renderLesson(current);
+    renderWalkthrough();
     selection($("study"),model.studies.map(s=>[s.id,studyCopy[s.id]?.title || s.title]),state.study);
     const objectives=unique(Object.values(study.cases).map(item=>item.objective));
     selection($("objective-filter"),[["all","All objectives"],...objectives.map(k=>[k,model.objectives[k][0]])],state.objectiveFilter);
@@ -623,9 +821,7 @@ async function initialize(root) {
   $("clear").addEventListener("click",()=>set({lenses:""}));
   root.querySelectorAll("[data-guide]").forEach(b=>b.addEventListener("click",()=>{
     const choice=choices[b.dataset.guide];
-    activeLesson=null;
-    state=reset(choice.study);
-    set(choice);
+    openStudy(choice);
   }));
   lessonTabs();
   const entry=new URLSearchParams(location.search);
@@ -650,7 +846,7 @@ async function initialize(root) {
     $("lens-home").prepend(explorer);
     showPresentation.focus({preventScroll:true});
   });
-  for(const link of root.querySelectorAll("#lens-open-explorer, .graph-jumps a, .lesson-jump")){
+  for(const link of root.querySelectorAll("#lens-open-explorer, .graph-jumps a")){
     link.addEventListener("click",() => $(link.hash.slice(1)).focus({preventScroll:true}));
   }
   const skip = document.querySelector("#lens-skip");

@@ -19,43 +19,53 @@
           <div class="lesson-body">
             <div class="lesson-nav">
               <div id="lesson-tabs" class="lesson-tablist" role="tablist" aria-label="Threat lessons"></div>
-              <button id="free-explore" type="button" hidden>Browse studies directly</button>
+              <button id="free-explore" type="button">Explore studies</button>
             </div>
-            <div id="lesson-panel" class="lesson-panel" role="tabpanel" tabindex="0" hidden>
+            <div id="lesson-panel" class="lesson-panel" role="tabpanel" hidden>
               <h3 id="lesson-threat-title"></h3>
-              <p id="lesson-threat"></p>
-              <p class="lesson-sources"><span class="tag source-reported">Source-reported</span> <a id="lesson-source"></a></p>
-              <dl class="lesson-questions">
-                <div><dt>Objective</dt><dd id="lesson-objective"></dd></div>
-                <div><dt>Detection problem</dt><dd id="lesson-problem"></dd></div>
-              </dl>
-              <section class="lesson-block" aria-labelledby="lesson-path-title">
-                <h4 id="lesson-path-title">Attack paths and controls</h4>
-                <div id="lesson-paths" class="lesson-paths"></div>
+              <div class="walk-objective"><strong id="walk-objective-label">Objective</strong><span id="lesson-objective"></span></div>
+              <div id="walk-threat" class="walk-context">
+                <p id="lesson-threat"></p>
+                <p class="lesson-sources"><span class="tag source-reported">Source-reported</span> <a id="lesson-source"></a></p>
+              </div>
+              <section id="walk-map-section" class="walk-map-section" aria-labelledby="walk-map-title" hidden>
+                <div class="walk-map-heading">
+                  <h4 id="walk-map-title">Attack path</h4>
+                  <span class="tag">Illustrative path</span>
+                </div>
+                <div id="walk-map" class="walk-map" role="group" aria-label="Revealed attack path"></div>
+                <p id="walk-map-key" class="walk-map-key" hidden></p>
+                <ul id="walk-relationships" class="walk-sr" aria-label="Revealed relationships"></ul>
               </section>
-              <section class="lesson-block" aria-labelledby="lesson-observation-title">
-                <h4 id="lesson-observation-title">Where to look</h4>
-                <p id="lesson-observation"></p>
+              <section class="walk-step" aria-labelledby="walk-step-title">
+                <p id="walk-progress" class="walk-progress"></p>
+                <div aria-live="polite" aria-atomic="true">
+                  <h4 id="walk-step-title" tabindex="-1"></h4>
+                  <p id="walk-copy"></p>
+                </div>
                 <a id="lesson-catalog" hidden></a>
-              </section>
-              <section class="lesson-block" aria-labelledby="lesson-experiment-title">
-                <h4 id="lesson-experiment-title">Lab experiment</h4>
-                <p id="lesson-experiment"></p>
-                <div id="lesson-steps" class="lesson-steps" role="group" aria-label="Lesson steps"></div>
-                <a class="lesson-jump" href="#lab-graph">Inspect the lab graph</a>
-              </section>
-              <section class="lesson-block" aria-labelledby="lesson-findings-title">
-                <h4 id="lesson-findings-title">Findings</h4>
-                <p id="lesson-proof" class="lesson-proof" aria-live="polite"></p>
-                <p id="lesson-conclusion"></p>
-              </section>
-              <section class="lesson-block" aria-labelledby="lesson-application-title">
-                <h4 id="lesson-application-title">Apply it</h4>
-                <p id="lesson-application"></p>
+                <button id="walk-hint" type="button" aria-expanded="false" aria-controls="walk-answer" hidden>Show explanation</button>
+                <p id="walk-answer" hidden></p>
+                <div id="walk-evidence" class="walk-evidence" hidden>
+                  <div id="walk-evidence-controls"></div>
+                  <div id="walk-proof" aria-live="polite" aria-atomic="true"></div>
+                </div>
+                <div id="walk-findings" class="walk-findings" hidden>
+                  <div id="walk-results"></div>
+                  <p id="walk-limits"></p>
+                  <p id="walk-application"></p>
+                </div>
+                <div class="walk-nav" aria-label="Walkthrough controls" role="group">
+                  <button id="walk-back" type="button">Back</button>
+                  <button id="walk-next" type="button">Continue</button>
+                  <button id="walk-replay" type="button">Replay</button>
+                  <button id="walk-skip" type="button">Skip to findings</button>
+                </div>
               </section>
             </div>
           </div>
         </section>
+        <div id="lens-lab" hidden>
         <div class="input-grid">
           <label class="pair">Study<select id="study"></select></label>
           <label class="pair">Objective<select id="objective-filter"></select></label>
@@ -97,6 +107,7 @@
               <div class="body detail-cols" id="inspection"></div>
             </section>
           <section id="diagnostic" class="panel diagnostic" hidden></section>
+        </div>
         </div>
       </section>
       <section id="studies" class="atlas" hidden><div class="atlas-inner"><h2>Studies</h2><div id="atlas" class="atlas-grid"></div><p class="source-info" id="provenance"></p>
