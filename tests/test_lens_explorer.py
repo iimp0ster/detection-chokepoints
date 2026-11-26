@@ -61,3 +61,13 @@ class LensExplorerTest(unittest.TestCase):
             expected = (ROOT / f"assets/{asset}").read_bytes()
             built = (destination / f"assets/{asset}").read_bytes()
             self.assertEqual(sha256(built).digest(), sha256(expected).digest())
+
+    def test_built_relationship_maps_use_pinned_d3(self):
+        destination = ROOT / "_site"
+        if not destination.exists():
+            self.skipTest("Requires a Jekyll build")
+        integrity = "sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i"
+        script = f'src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" integrity="{integrity}"'
+        for page in ("framework/index.html", "attack-chains/ransomware/index.html"):
+            with self.subTest(page=page):
+                self.assertIn(script, (destination / page).read_text(encoding="utf-8"))
