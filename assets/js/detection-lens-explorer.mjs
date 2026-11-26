@@ -11,14 +11,69 @@ async function initialize(root) {
   const states = {C:"Confirmed", O:"Observed", L:"Coverage limited", N:"No match", T:"Attempt only", "-":"Not adjudicated"};
   const claimNames = {capture:"Native capture", operation:"Operation observed", effect:"Downstream effect",
     attribution:"Exact attribution", authorization:"Authorization violation", boundary:"Boundary-policy violation",
-    causal:"Causal relationship", objective:"Adversary objective"};
-  const probeNotes = {
-    "gate-b":"Synthetic controls make object, operation and policy linkage explicit.",
-    "gate-c":"The helper result is measurable even when the direct return is missing.",
-    "gate-c2":"Choose an earlier cutoff to separate a visible downstream effect from a missing upstream link.",
-    "gate-c3":"The complementary observer is modeled. There are no live C.3 results.",
-    "windows":"The process comparison uses separately documented cohorts.",
-    "php":"An authorized read can produce the same resource outcome.",
+    causal:"Causal link", objective:"Adversary objective"};
+  // Publication copy for the study cards and reader guidance. The dataset
+  // still supplies each study ID, evidence class, references, and results.
+  const studyCopy = {
+    "gate-b": {
+      title: "Host-write attribution",
+      description: "The synthetic workloads take direct and delegated paths to the same host canary write.",
+      source: "Gate B synthetic fixtures and replay",
+      limit: "The fixtures model stronger identity and completion evidence than native collectors usually provide."
+    },
+    "gate-c": {
+      title: "Host writes",
+      description: "The helper record and host readback supported the delegated effect. The direct path lacked a verified link between the operation and the change to the file.",
+      source: "Gate C canary-write lab and replay",
+      limit: "The lab could not confirm any direct-path effects. It lacked evidence tying a completed direct operation to the file change."
+    },
+    "gate-c2": {
+      title: "Linux downstream effects",
+      description: "Different paths can change the same test record. Select an effect or a causal link to check the evidence for it.",
+      source: "Gate C.2 lab runs and Linux write diagnostic",
+      diagnosticTitle: "Linux write capture",
+      diagnosticNote: "The reference trace and runtime hook ran separately, twice per variant. Reference tracing verified completion. The selected Tetragon hook missed both vectored variants.",
+      limit: "The replay scored 44 trials. C2-01 had a partial boundary effect and no downstream invocation. The lab did not establish completion of any attacker objective."
+    },
+    "gate-c3": {
+      title: "Linux write capture (A/B)",
+      description: "Compare two modeled observers under the same confirmation rules. The second adds a kernel return observation.",
+      source: "Gate C.3 synthetic A/B replay",
+      limit: "The A/B results are synthetic. Live hook attachment, field availability, and collection cost remain untested."
+    },
+    windows: {
+      title: "Windows child-process starts",
+      description: "An independent process creation event and an exact instance match tie a child process to the request that started it.",
+      source: "Measured Sysmon cohort",
+      limit: "The lab used exact instance matches and markers. The separate WMI polling run did not adjudicate exact child starts. Production coverage was outside the test scope."
+    },
+    php: {
+      title: "PHP file reads",
+      description: "A child process and an in-process PHP worker read the same canary. The delegated test linked a job to a separate destination result.",
+      source: "Instrumented PHP-FPM canary",
+      limit: "Per-process tracing covered controlled file reads. Coverage was limited for runtime-only computation and operations inside the delegated worker."
+    }
+  };
+  const lensHelp = {
+    P: "Process lifecycle events.",
+    W: "Workload lifetime and object identity.",
+    K: "Kernel events for scoped operations, including return values when captured.",
+    D: "Records of the delegated request, completion, or transaction.",
+    A: "Applicable policy and the technical access available to the actor.",
+    H: "Independent outcome evidence, such as host readback or a destination receipt."
+  };
+  const missingLabels = {
+    "bound boundary effect and downstream causation": "Evidence tying the boundary effect to the downstream action.",
+    "completed effect and applicable policy": "The completed effect and the policy that applies to it.",
+    "exact actor lifetime": "The exact actor instance and its lifetime.",
+    "exact originating workload": "The exact workload that initiated the operation.",
+    "independent matching outcome": "An independent outcome record that matches the operation.",
+    "native operation return": "A native event with the operation's return value.",
+    "node or edge observation": "An observation supporting the node or link.",
+    "separate boundary marker": "A separate marker for the boundary-policy effect.",
+    "terminal broker result": "The broker's final result.",
+    "unique completed operation": "Evidence of the specific operation and its completion.",
+    "verification of objective completion": "Evidence that the attacker objective was met."
   };
   const choices = {
     delay:{study:"gate-c3",case:"R01",profile:"augmented",cutoff:1000,arm:"B",selected:"causal"},
@@ -89,63 +144,72 @@ async function initialize(root) {
   function set(patch){state=change(state,patch);render();}
 
   const lessons = [
-    {id:"convergence", label:"Same objective", question:"Can different execution paths produce the same confirmed effect?",
-     context:"The PHP study holds the target file constant. Compare a child read, an in-process read, and the approved twin.",
+    {id:"convergence", label:"Same objective", heading:"Two ways to read the same file",
+     context:"Start with the child process. Switch to the in-process PHP worker, then check the approved route. All three read the same canary.",
      steps:[
-       {name:"Inspect the child read", point:{study:"php",case:"child",selected:"effect"}},
+       {name:"Inspect the child process", point:{study:"php",case:"child",selected:"effect"}},
        {name:"Switch to in-process", point:{study:"php",case:"worker",selected:"effect"}},
-       {name:"Check the approved twin", point:{study:"php",case:"admin",selected:"authorization"}}
+       {name:"Check the approved read", point:{study:"php",case:"admin",selected:"authorization"}}
      ],
      result({study,example,assessment}) {
        if(study.id!=="php"||example.objective!=="file_read")return null;
        const outcome=claimValue(assessment,"effect")[0];
        const policy=claimValue(assessment,"authorization")[0];
-       return [ "File effect "+states[outcome]+" · Policy "+states[policy],
-         "Both tested execution paths reached the same designated file. The approved twin preserves the effect and changes the authorization finding. The test establishes a scoped read convergence." ];
+       return ["Canary read "+states[outcome]+" · Authorization violation "+states[policy],
+         "The read can look the same on an approved route. Use evidence about the request and the applicable policy before treating the read as a violation."];
      }},
-    {id:"resilience", label:"Missing upstream", question:"What can be confirmed with the upstream evidence missing or late?",
-     context:"Use the measured C.2 delegated case. Compare the early receipt window, the final view, and the same final view with the upstream evidence unavailable.",
+    {id:"resilience", label:"Missing upstream", heading:"You can confirm the effect before you can link it",
+     context:"In this measured helper case, start at 250 ms. Check the link again in the final replay, then turn off the lenses that tie the effect to the upstream action.",
      steps:[
-       {name:"Look at 250 ms", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:250,selected:"causal"}},
-       {name:"Allow later receipts", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,selected:"causal"}},
+       {name:"Check at 250 ms", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:250,selected:"causal"}},
+       {name:"Include later records", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,selected:"causal"}},
        {name:"Keep only effect evidence", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
                                                    cohort:"path/workload_delegated",claim:"effect",selected:"causal"}, applyMinimum:"effect"}
      ],
-     result({study,g,assessment}) {
+     result({study,assessment}) {
        if(study.id!=="gate-c2"||state.case!=="C2-02")return null;
-       return ["Downstream effect "+states[claimValue(assessment,"effect")[0]]+
-         " · Boundary "+states[claimValue(assessment,"boundary")[0]]+
-         " · Causal edge "+states[claimValue(assessment,"causal")[0]],
-         g.cutoff!==null?"At an early cutoff, the completed downstream effect can have sufficient evidence while the causal record is still unavailable.":
-           "The final replay can link the measured case with its full evidence. Keep only the effect lenses to see the node survive without a confirmed edge."];
+       const effect = claimValue(assessment,"effect")[0];
+       const boundary = claimValue(assessment,"boundary")[0];
+       const causal = claimValue(assessment,"causal")[0];
+       let reading = "Open a node or the causal link to see what evidence is missing in this view.";
+       if (causal === "C") {
+         reading = "Select the confirmed link to see the evidence tying the downstream effect to the earlier action.";
+       } else if (effect === "C") {
+         reading = "This view confirms the downstream effect. The evidence here leaves the causal link open.";
+       }
+       return [
+         "Downstream effect "+states[effect]+" · Boundary "+states[boundary]+" · Causal link "+states[causal],
+         reading
+       ];
      }},
-    {id:"observation", label:"Behavior vs. sensor", question:"Does an unobserved operation establish that it did not happen?",
-     context:"Compare separate reference and runtime runs of the same fixed write variants in C.2. Then inspect the synthetic recovery arm in C.3.",
+    {id:"observation", label:"Behavior vs. sensor", heading:"The write completed. The hook missed it.",
+     context:"Compare what reference tracing and the runtime hook saw in separate runs of the same write variants. Then check what an extra observation could add in the synthetic comparison.",
      steps:[
        {name:"Inspect vectored writes", point:{study:"gate-c2",case:"C2-03",profile:"augmented",cutoff:null,selected:"operation"}, diagnostic:1},
        {name:"Compare the scalar control", point:{study:"gate-c2",case:"C2-03",profile:"augmented",cutoff:null,selected:"operation"}, diagnostic:2},
-       {name:"Inspect the modeled sensor", point:{study:"gate-c3",case:"R01",profile:"augmented",cutoff:null,arm:"B",claim:"capture",selected:"capture"}}
+       {name:"Check the synthetic comparison", point:{study:"gate-c3",case:"R01",profile:"augmented",cutoff:null,arm:"B",claim:"capture",selected:"capture"}}
      ],
      result({study,assessment,metrics}) {
        if(study.id==="gate-c3"&&state.case==="R01"){
          const count=metrics.capture;
-         return ["Synthetic native capture "+states[claimValue(assessment,"capture")[0]]+(count?" · "+count[0]+" / "+count[1]+" eligible operations":""),
-          "The complementary arm models an additional return observation. Runtime attachment and recovery are still unmeasured."];
+         return ["Modeled kernel capture "+states[claimValue(assessment,"capture")[0]]+(count?" · "+count[0]+" / "+count[1]+" eligible operations":""),
+          "The second configuration adds a modeled kernel return event. Live hook attachment and capture recovery still need a lab test."];
        }
        if(study.id!=="gate-c2")return null;
        const d=study.diagnostic, i=lessons[2].steps[lessonStep].diagnostic??1;
        return [d.labels[i]+" · Reference "+d.reference[i]+" / "+d.denominator+
          " · Runtime hook "+d.observed[i]+" / "+d.denominator,
-         "The behavior is the write. The observer is one collection point. The reference runs verified completion for the vectored variants, while the selected runtime hook missed them."];
+         i===2?"Both observers captured the scalar control in their own runs. The capture gap in this test was in the vectored writes.":
+           "Reference tracing confirmed 2 of 2 writes for each vectored variant. In separate runs, the selected Tetragon hook captured 0 of 2 for each."];
      }},
-    {id:"minimum", label:"Minimum evidence", question:"Which lenses are sufficient for the effect, and which are sufficient for the edge?",
-     context:"Inspect the measured C.2 delegated cohort in retrospective replay. The target and negative controls belong to this study.",
+    {id:"minimum", label:"Minimum evidence", heading:"Find the smallest set of lenses for the job",
+     context:"Use the final replay of the measured helper cases. Check which lenses meet the study's coverage and negative-control criteria for the effect, then check the causal link.",
      steps:[
-       {name:"Load the effect minimum", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
+       {name:"Use the smallest set for the effect", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
                                                  cohort:"path/workload_delegated",claim:"effect",selected:"effect"}, applyMinimum:"effect"},
-       {name:"Test the same lenses for causality", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
+       {name:"Check the link with the same lenses", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
                                                             cohort:"path/workload_delegated",claim:"causal",selected:"causal"}, applyMinimum:"effect"},
-       {name:"Load the causal minimum", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
+       {name:"Use the smallest set for the link", point:{study:"gate-c2",case:"C2-02",profile:"augmented",cutoff:null,
                                                  cohort:"path/workload_delegated",claim:"causal",selected:"causal"}, applyMinimum:"causal"}
      ],
      result({study,g,metrics}) {
@@ -154,8 +218,9 @@ async function initialize(root) {
        if(!count)return null;
        return [shortMask(state.lenses)+" · "+count[0]+" / "+count[1]+" "+claimLabel(study,state.claim).toLowerCase()+
          " · Minimum "+(recorded?.length?recorded.map(shortMask).join(" or "):"none qualified"),
-         state.claim==="causal"?"The edge needs more evidence than the effect. Select the recorded causal minimum or toggle lenses to observe the change.":
-         "A minimum is specific to the cohort, claim, and receipt cutoff. The selected cohort’s effect minimum may leave authorization, attribution, or causal questions unanswered."];
+         !recorded?.length?"Use the final replay with supplemental evidence to compare the recorded effect and causal minimums.":
+         state.claim==="causal"?"In the final replay, the qualifying set adds workload and policy evidence to the lenses used for the effect.":
+         "The effect minimum applies to these helper cases at this cutoff. Check authorization, attribution, and cause on their own evidence."];
      }},
   ];
   let activeLesson=null,lessonStep=0;
@@ -214,7 +279,7 @@ async function initialize(root) {
     panel.hidden=!lesson;$("free-explore").hidden=!lesson;
     if(!lesson)return;
     panel.setAttribute("aria-labelledby","lesson-tab-"+lesson.id);
-    $("lesson-question").textContent=lesson.question;
+    $("lesson-question").textContent=lesson.heading;
     $("lesson-context").textContent=lesson.context;
     const container=$("lesson-steps");
     if(container.dataset.lesson!==lesson.id){
@@ -226,8 +291,8 @@ async function initialize(root) {
       }));
     }
     Array.from(container.children).forEach((b,i)=>b.setAttribute("aria-pressed",String(i===lessonStep)));
-    const result=lesson.result(current)||["The explorer is showing other evidence.",
-      "Use a lesson step to return to the study and settings used in this demonstration."];
+    const result=lesson.result(current)||["These settings are outside this lesson.",
+      "Select a lesson step to restore its settings."];
     $("lesson-proof").textContent=result[0];
     $("lesson-conclusion").textContent=result[1];
   }
@@ -243,7 +308,7 @@ async function initialize(root) {
     return b;
   }
   function arrow(){const a=node("span","arrow","→");a.setAttribute("aria-hidden","true");return a;}
-  function shortMask(mask){return mask?mask.split("").join(" · "):"Empty set";}
+  function shortMask(mask){return mask?mask.split("").join(" · "):"No lenses";}
   function renderBowtie(study,example){
     const left=node("div","bowtie-stack"), right=node("div","bowtie-stack");
     const entries=Object.entries(study.cases);
@@ -257,7 +322,7 @@ async function initialize(root) {
       b.setAttribute("aria-pressed",String(path===example.path));
       b.addEventListener("click",()=>set({case:key,selected:"path"}));left.append(b);
     }
-    const bridge=node("article","","Conditional boundary or shared interaction");
+    const bridge=node("article","","Boundary or shared step");
     const outcomes=new Map();
     for(const [key,value] of entries)
       if((state.objectiveFilter==="all"||value.objective===example.objective)&&!outcomes.has(value.objective)) outcomes.set(value.objective,key);
@@ -279,19 +344,19 @@ async function initialize(root) {
     const upstreamSupported=["gate-c2","gate-c3"].includes(study.id);
     upper.append(graphButton("Scenario origin",model.paths[example.path]||"Observed actor","path",assessment),
       arrow(),
-      graphButton(upstreamSupported?"Conditional upstream node":"Execution path",
-      upstreamSupported?"Boundary-policy claim":example.path==="delegated"?"Helper handoff":"Request or worker",
+      graphButton(upstreamSupported?"Upstream policy":"Execution path",
+      upstreamSupported?"Boundary-policy violation":example.path==="delegated"?"Helper handoff":"Request or worker",
       upstreamSupported?"boundary":"attribution",assessment));
     graph.append(upper);
     const es=node("div","edge-shell");
     const edge=claimValue(assessment,"causal")[0];
-    const button=node("button","state","Causal edge · "+states[edge]);
+    const button=node("button","state","Causal link · "+states[edge]);
     button.dataset.focus="graph-causal";
     es.dataset.v=edge;button.dataset.v=edge;button.setAttribute("aria-pressed",String(state.selected==="causal"));
     button.addEventListener("click",()=>set({selected:"causal"}));
     es.append(button);graph.append(es);
     const lower=node("div","downstream");
-    lower.append(graphButton("Observation","Operation recorded","operation",assessment),arrow(),
+    lower.append(graphButton("Observation","Operation visibility","operation",assessment),arrow(),
       graphButton("Independent effect",objective[1],"effect",assessment),arrow(),
       graphButton("Policy", "Authorization verdict","authorization",assessment));
     graph.append(lower);
@@ -304,32 +369,32 @@ async function initialize(root) {
       b.addEventListener("click",()=>set({selected:key}));badges.append(b);
     }
     graph.append(badges);
-    $("graph-note").textContent="Solid arrows describe the scenario. The labeled causal edge carries its own evidence verdict.";
+    $("graph-note").textContent="Arrows show the modeled path. Select the causal link to check what ties the upstream action to the effect.";
     const displayed=study.caseNotes?.[state.case];
     const [status,refs,missing]=claimValue(assessment,state.selected);
-    $("inspect-title").textContent=state.selected==="path"?"Scenario alternatives":claimLabel(study,state.selected,example.cohort);
-    $("inspect-status").textContent=(state.selected==="path"?"Objective context":states[status])+(displayed?" · "+displayed:"");
+    $("inspect-title").textContent=state.selected==="path"?"Attack paths and controls":claimLabel(study,state.selected,example.cohort);
+    $("inspect-status").textContent=(state.selected==="path"?"Path context":states[status])+(displayed?" · "+displayed:"");
     const inspector=$("inspection");
-    const context=node("div");context.append(node("h3","","Objective limit"),node("p","",objective[2]));
-    const alt=node("div");alt.append(node("h3","","Other ways to reach the effect"),node("p","",objective[3]+"."));
-    const evidence=node("div");evidence.append(node("h3","","Evidence references"));
+    const context=node("div");context.append(node("h3","","Limits of this evidence"),node("p","",objective[2]));
+    const alt=node("div");alt.append(node("h3","","Other paths and controls"),node("p","",objective[3]+"."));
+    const evidence=node("div");evidence.append(node("h3","","Evidence records"));
     if(refs.length){
       const list=node("div","detail-refs");
       refs.forEach(id=>list.append(node("span","tag",id+" · "+study.evidence[id])));
       evidence.append(list);
-      if(["gate-b","gate-c"].includes(study.id)) evidence.append(node("p","","References come from the joined scenario assessment."));
-    }else evidence.append(node("p","","No references included for this verdict."));
+      if(["gate-b","gate-c"].includes(study.id)) evidence.append(node("p","","These references cover the case as a whole."));
+    }else evidence.append(node("p","",study.mode==="comparison"?"This comparison reports counts without per-case evidence references.":"The replay lists no evidence references for this verdict."));
     const gaps=node("div");gaps.append(node("h3","","Evidence gaps"));
-    if(missing.length){const list=node("ul");missing.forEach(x=>list.append(node("li","",x)));gaps.append(list);}
-    else gaps.append(node("p","",status==="-"?"This study did not independently evaluate the selected claim.":probeNotes[study.id]));
+    if(missing.length){const list=node("ul");missing.forEach(x=>list.append(node("li","",missingLabels[x] || x)));gaps.append(list);}
+    else gaps.append(node("p","",status==="-"?"This study did not assess this claim separately.":"The replay lists no missing evidence for this verdict."));
     inspector.replaceChildren(context,alt,evidence,gaps);
   }
   function renderLens(study,g,metrics){
     const controls=$("lens-toolbar");controls.hidden=study.mode==="comparison";
-    $("lens-context").textContent=study.mode==="comparison"?"Documented observations only.": "Toggle a lens to load its recorded ablation cell.";
+    $("lens-context").textContent=study.mode==="comparison"?"This comparison uses the reported observations.": "Turn lenses on or off to see what the replay confirms with that evidence.";
     const list=$("lenses");list.replaceChildren();
     if(study.mode==="comparison"){
-      list.append(node("p","","No subset estimates are available for this comparison."));
+      list.append(node("p","","The study did not replay telemetry subsets."));
       return;
     }
     for(const k of study.lenses){
@@ -338,10 +403,12 @@ async function initialize(root) {
       const n=metrics[state.claim]?.[0];
       const m=g.rows[after]?.[0][state.cohort]?.[state.claim]?.[0];
       const gain=Number.isFinite(m)&&Number.isFinite(n)?m-n:null;
-      const b=node("button","lens");b.type="button";b.title=model.lenses[k][1];
+      const b=node("button","lens");b.type="button";b.title=k==="W"&&["gate-b","gate-c"].includes(study.id)
+        ? "Workload lifetime, object identity, and policy."
+        : lensHelp[k] || model.lenses[k][1];
       const label=k==="W"&&["gate-b","gate-c"].includes(study.id)?"Workload and policy":model.lenses[k][0];
       b.setAttribute("aria-pressed",String(enabled));
-      if(gain!==null) b.setAttribute("aria-description","Change when toggled: "+gain+" for "+claimLabel(study,state.claim));
+      if(gain!==null) b.setAttribute("aria-description","Change in the count if you toggle this lens: "+gain);
       b.dataset.focus="lens-"+k;
       b.append(node("span","symbol",k),node("span","",label),
          node("span","delta",gain===null?"":(gain>0?"+":"")+gain));
@@ -351,10 +418,10 @@ async function initialize(root) {
   function renderCoverage(study,g,metrics){
     const out=$("coverage");out.replaceChildren();
     const score=metrics[state.claim];
-    if(!score){out.append(node("p","stat-block","This study has no coverage estimate for the selected claim."));return;}
+    if(!score){out.append(node("p","stat-block","This study did not report coverage for this claim."));return;}
     const [n,d,a,f]=score;
     const card=node("div","stat-block");
-    if(!d){card.append(node("strong","","No positive denominator"),node("p","","Coverage is unavailable for this cohort and claim."));}
+    if(!d){card.append(node("strong","","No eligible positive cases"),node("p","","Choose another cohort or claim to view coverage."));}
     else {
       const large=node("div","stat-big",n+" / "+d);
       const suffix=node("span",""," "+(state.claim==="capture"?"seen":"confirmed"));large.append(suffix);
@@ -364,9 +431,9 @@ async function initialize(root) {
     }
     out.append(card);
     const min=g.minimum[state.cohort]?.[state.claim];
-    const tip=node("div","minimum");tip.append(node("span","","Study minimum"));
+    const tip=node("div","minimum");tip.append(node("span","","Smallest qualifying set"));
     if(min?.length) min.forEach(v=>{
-      const b=node("button","tag",shortMask(v));b.dataset.focus="minimum-"+v;b.title="Select this recorded minimum";
+      const b=node("button","tag",shortMask(v));b.dataset.focus="minimum-"+v;b.title="Use this lens set";
       b.addEventListener("click",()=>set({lenses:v}));tip.append(b);
     });
     else tip.append(node("strong","",min?"None qualified":"Not evaluated"));
@@ -374,7 +441,7 @@ async function initialize(root) {
     if(study.arms){
       const other=study.groups.find(x=>x.profile===g.profile&&x.cutoff===g.cutoff&&x.arm!==g.arm);
       const otherScore=other?.rows[state.lenses]?.[0][state.cohort]?.[state.claim];
-      if(otherScore) out.append(node("p","source-info","Other synthetic arm ("+other.arm+") "+otherScore[0]+" / "+otherScore[1]));
+      if(otherScore) out.append(node("p","source-info", "Synthetic setup "+other.arm+" · "+otherScore[0]+" / "+otherScore[1]));
     }
   }
   function renderDiagnostic(study){
@@ -382,10 +449,11 @@ async function initialize(root) {
     if(!study.diagnostic)return;
     const d=study.diagnostic;
     const heading=node("div","panel-title");
-    heading.append(node("h2","",d.title),node("span","tag measured","Measured diagnostic"));
+    const title = studyCopy[study.id]?.diagnosticTitle || d.title;
+    heading.append(node("h2","",title),node("span","tag measured","Measured diagnostic"));
     const body=node("div","body");
     const table=node("table","diagram-table");const head=node("thead");const h=node("tr");
-    table.setAttribute("aria-label",d.title);
+    table.setAttribute("aria-label",title);
     ["Call variant","Reference trace","Selected runtime hook"].forEach(label=>{
       const cell=node("th","",label);
       cell.scope="col";
@@ -399,7 +467,10 @@ async function initialize(root) {
         row.classList.add("selected"); row.cells[0].append(node("span","tag","Selected"));
       }
       tb.append(row);
-    });table.append(tb);body.append(table,node("p","",d.note));panel.replaceChildren(heading,body);
+    });
+    table.append(tb);
+    body.append(table,node("p","",studyCopy[study.id]?.diagnosticNote || d.note));
+    panel.replaceChildren(heading,body);
   }
   function renderAtlas(){
     const atlas=$("atlas");atlas.replaceChildren();
@@ -410,7 +481,7 @@ async function initialize(root) {
       const b=node("button","study-card");
       b.dataset.focus="study-"+s.id;b.setAttribute("aria-pressed",String(s.id===state.study));b.addEventListener("click",()=>set({study:s.id}));
       b.append(node("span","tag "+s.evidenceClass.toLowerCase(),s.evidenceClass),
-        node("strong","",s.title),
+        node("strong","",studyCopy[s.id]?.title || s.title),
         node("span","figure",stats[0]+" / "+stats[1]+" · "+claimLabel(s,"effect",cohort)),
         node("span","muted",s.cohorts[cohort]+(g.arm?" · Arm "+g.arm:"")));
       atlas.append(b);
@@ -421,7 +492,7 @@ async function initialize(root) {
     const current=view(state);
     const {study,g,example,assessment,metrics}=current;
     renderLesson(current);
-    selection($("study"),model.studies.map(s=>[s.id,s.title]),state.study);
+    selection($("study"),model.studies.map(s=>[s.id,studyCopy[s.id]?.title || s.title]),state.study);
     const objectives=unique(Object.values(study.cases).map(item=>item.objective));
     selection($("objective-filter"),[["all","All objectives"],...objectives.map(k=>[k,model.objectives[k][0]])],state.objectiveFilter);
     selection($("case"),Object.entries(study.cases).filter(([,v])=>state.objectiveFilter==="all"||v.objective===state.objectiveFilter)
@@ -430,7 +501,7 @@ async function initialize(root) {
     $("path-box").hidden=paths.length<2;
     $("path-label").hidden=paths.length>1;
     selection($("path"),paths.map(k=>[k,model.paths[k]||k]),example.path);
-    const layer={native:"Native evidence",augmented:"Native + supplemental",B:"B · With attribution",C:"C · Complete research"};
+    const layer={native:"Native evidence",augmented:"Native + supplemental",B:"B · With attribution",C:"C · Full lab evidence"};
     selection($("profile"),unique(study.groups.map(r=>r.profile)).map(p=>[p,layer[p]||study.profileLabels?.[p]||p]),state.profile);
     selection($("cutoff"),unique(study.groups.filter(r=>r.profile===state.profile).map(r=>r.cutoff))
               .map(v=>[v,v===null?(study.mode==="comparison"?"Study reporting window":"Retrospective"):v<1000?v+" ms":v/1000+" s"]),state.cutoff);
@@ -440,14 +511,15 @@ async function initialize(root) {
     selection($("claim"),study.claims.map(k=>[k,claimLabel(study,k)]),state.claim);
     $("class").className="tag "+study.evidenceClass.toLowerCase();
     $("class").textContent=study.evidenceClass;
-    $("description").textContent=study.description;
+    $("description").textContent=studyCopy[study.id]?.description || study.description;
     renderGraph(study,example,assessment);
     renderLens(study,g,metrics);
     renderCoverage(study,g,metrics);
     renderDiagnostic(study);
     renderAtlas();
     const p=$("provenance");
-    p.replaceChildren(node("strong","",study.source+". "),document.createTextNode(study.limit+" Revision "),
+    const copy = studyCopy[study.id] || study;
+    p.replaceChildren(node("strong","",copy.source+". "),document.createTextNode(copy.limit+" Source revision "),
       node("code","mono",study.revision));
     if(retainedFocus) root.querySelector(`[data-focus="${CSS.escape(retainedFocus)}"]`)?.focus({preventScroll:true});
   }
@@ -501,9 +573,9 @@ async function initialize(root) {
 const root = document.querySelector("[data-lens-explorer]");
 if (root) {
   const status = root.querySelector("#lens-load-status");
-  status.textContent = "Loading study evidence…";
+  status.textContent = "Loading study results…";
   initialize(root).catch(() => {
     status.textContent =
-      "Study evidence could not be loaded. The Research page summarizes the findings.";
+      "Could not load the study results. Open Research to read the findings.";
   });
 }

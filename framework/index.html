@@ -270,10 +270,11 @@ svg text { font-family: var(--font-sans); }
 <div class="fw-content">
 
   <p class="py-5" style="color: var(--text-muted); max-width: 74ch;">
-    A chokepoint describes behavior required for a defined objective. An observation point describes what a sensor can see.
-    Confirming an effect, its authorization, or its cause can require different evidence.
-    <a href="{{ '/lens-explorer/' | relative_url }}">Compare evidence in the Lens Explorer</a>
-    or <a href="{{ '/research/' | relative_url }}">read the supporting studies</a>.
+    Pin the detection to what the tradecraft requires. An observation point is where a sensor can see part of that behavior.
+    A Sysmon Event ID 1 record can show that a child process started. The Windows lab tied the event to the exact process instance and request. To confirm an effect such as a file read, check the file identity and read result separately.
+    Check authorization and cause against their own evidence.
+    <a href="{{ '/lens-explorer/' | relative_url }}">Try the Lens Explorer</a>
+    or <a href="{{ '/research/' | relative_url }}">read the study results</a>.
   </p>
 
   <!-- ══════ SECTION 1: THE 6 STEPS ══════ -->
