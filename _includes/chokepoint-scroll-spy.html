@@ -1,0 +1,25 @@
+// Scroll spy for sidebar navigation
+(function() {
+  var navLinks = document.querySelectorAll('.sidebar-link');
+  if (!navLinks.length) return;
+  var sectionIds = [];
+  navLinks.forEach(function(link) {
+    sectionIds.push(link.getAttribute('href').slice(1));
+  });
+  var sections = sectionIds.map(function(id) { return document.getElementById(id); }).filter(Boolean);
+  if (!sections.length) return;
+
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        navLinks.forEach(function(link) {
+          link.classList.toggle('active',
+            link.getAttribute('href') === '#' + entry.target.id
+          );
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(function(section) { observer.observe(section); });
+})();

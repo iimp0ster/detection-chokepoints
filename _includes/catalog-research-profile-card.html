@@ -1,0 +1,21 @@
+{% assign catalog_profiles = site.pages | where: "catalog_kind", "research-profile" | sort: "title" %}
+{% if catalog_profiles.size > 0 %}
+<section id="catalog-research-profiles" class="max-w-[1100px] mx-auto px-6 pt-8" aria-labelledby="catalog-research-title">
+  <h2 id="catalog-research-title" class="cp-section-heading">Research profiles</h2>
+  <p class="catalog-research-note">Compare published evidence and candidates under review.</p>
+  {% for profile in catalog_profiles %}
+  <article class="chokepoint-card catalog-research-card">
+    <a class="card-link flex flex-col gap-2.5 p-5" href="{{ profile.url | relative_url }}">
+      <div class="card-header flex flex-wrap items-center gap-2">
+        <span class="det-rule-badge det-badge-research">{{ profile.profile_maturity | escape }}</span>
+        {% for technique in profile.mitre_ids %}
+        <span class="mitre-chip">{{ technique | escape }}</span>
+        {% endfor %}
+      </div>
+      <h3 class="card-title">{{ profile.title | escape }}</h3>
+      <p class="card-description">{{ profile.description | escape }}</p>
+    </a>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}

@@ -1,0 +1,6 @@
+container-escape-variations:
+  profile: /assets/data/defensive-coverage/container-escape-variations.v1.json
+  telemetry_value: /assets/data/telemetry-value/container-escape-variations.v1.json
+  sigma_bundle: container-escape-variations
+  research: /research/container-escape/
+  explorer: /lens-explorer/container-escape/

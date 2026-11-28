@@ -1,0 +1,26 @@
+title: Successful Operation Under Protected Host Read Watch
+id: e824a44d-8bf8-4671-b3d6-8095a92a2fd8
+status: experimental
+description: Matches a successful Linux Audit syscall record tagged with the local protected host read-watch
+  key. Review the associated object and audit rule before interpreting it as access.
+references:
+- https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape
+- https://man7.org/linux/man-pages/man8/auditctl.8.html
+author: '@iimp0ster'
+date: '2026-11-27'
+tags:
+- attack.t1611
+- detection.maturity.research
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    type|cased: SYSCALL
+    key|cased: ce_protected_host_read
+    success|cased: 'yes'
+  # Add a filter_legit_software selection after baselining approved activity.
+  condition: selection
+falsepositives:
+- Approved host maintenance, backups and credential-store administration.
+level: low

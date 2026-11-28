@@ -65,3 +65,7 @@ scripts/enrich_staging_domains.py
 scripts/enrich_asns.py
 scripts/hll.py
 scripts/bulletproof_asns.yml
+
+# Generated research Sigma previews and downloads
+/_data/container_escape_sigma_generated.json
+/assets/sigma/container-escape-variations/

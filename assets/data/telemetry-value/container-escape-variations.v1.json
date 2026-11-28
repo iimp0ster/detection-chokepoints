@@ -1,0 +1,1764 @@
+{
+  "format": "telemetry-value/v1",
+  "entry": "container-escape-variations",
+  "threat": "Container Escape Variations",
+  "references": [
+    {
+      "id": "gate-b",
+      "title": "Gate B • synthetic replay",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays",
+      "locator": "Published study scope and evidence status"
+    },
+    {
+      "id": "gate-c",
+      "title": "Gate C • measured replay",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays",
+      "locator": "Published study scope and evidence status"
+    },
+    {
+      "id": "gate-c2",
+      "title": "Gate C.2 • measured replay",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays",
+      "locator": "Published study scope and evidence status"
+    },
+    {
+      "id": "gate-c3",
+      "title": "Gate C.3 • synthetic",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays",
+      "locator": "Published study scope and evidence status"
+    },
+    {
+      "id": "study",
+      "title": "Gate D • public Research Studies",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays",
+      "locator": "Published study scope and evidence status"
+    },
+    {
+      "id": "hostpath",
+      "title": "Kubernetes • hostPath",
+      "url": "https://kubernetes.io/docs/concepts/storage/volumes/#hostpath",
+      "locator": "Host resource and management socket exposure"
+    },
+    {
+      "id": "sysdig",
+      "title": "Sysdig • orchestration incident",
+      "url": "https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape",
+      "locator": "Phase 1 host-file output, management and namespace fallback; Phase 2 control-plane credentials"
+    },
+    {
+      "id": "setns",
+      "title": "Linux • setns",
+      "url": "https://man7.org/linux/man-pages/man2/setns.2.html#DESCRIPTION",
+      "locator": "Namespace-specific results and PID namespace semantics"
+    },
+    {
+      "id": "shim",
+      "title": "containerd • abstract shim advisory",
+      "url": "https://github.com/containerd/containerd/security/advisories/GHSA-36xw-fx78-c5r4#impact",
+      "locator": "Impact and affected shim authority"
+    },
+    {
+      "id": "copy",
+      "title": "containerd • CRI copy advisory",
+      "url": "https://github.com/containerd/containerd/security/advisories/GHSA-crp2-qrr5-8pq7#impact",
+      "locator": "Read-only copies during image-volume setup"
+    },
+    {
+      "id": "runc",
+      "title": "runc • runtime integrity disclosure",
+      "url": "https://www.openwall.com/lists/oss-security/2019/02/11/2",
+      "locator": "Overview and runtime lifecycle starts"
+    },
+    {
+      "id": "device",
+      "title": "Wiz • NVIDIA device integration research",
+      "url": "https://www.wiz.io/blog/nvidia-ai-vulnerability-deep-dive-cve-2024-0132",
+      "locator": "Privilege escalation & RCE, from read-only mapping to socket use"
+    },
+    {
+      "id": "ssh",
+      "title": "OpenSSH • trust resolution",
+      "url": "https://man.openbsd.org/sshd_config",
+      "locator": "AuthorizedKeysFile, AuthorizedKeysCommand and Match"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "P",
+      "label": "Process context",
+      "description": "Process identity, parent and lifetime when retained.",
+      "origin": "process-capture"
+    },
+    {
+      "id": "W",
+      "label": "Workload identity",
+      "description": "Boot-scoped workload lifetime and authenticated actor-to-job binding.",
+      "origin": "workload-binding"
+    },
+    {
+      "id": "K",
+      "label": "Kernel operation",
+      "description": "Scoped operation result and resolved object identification.",
+      "origin": "operation-capture"
+    },
+    {
+      "id": "D",
+      "label": "Bound delegation receipt",
+      "description": "Authenticated request and terminal-to-target binding from the tested helper.",
+      "origin": "job-receipt"
+    },
+    {
+      "id": "A",
+      "label": "Authorization",
+      "description": "Applicable intended policy for the realized operation and exact target.",
+      "origin": "policy-record"
+    },
+    {
+      "id": "H",
+      "label": "Independent outcome witness",
+      "description": "Independently scoped readback or destination result.",
+      "origin": "destination-record"
+    },
+    {
+      "id": "proc",
+      "label": "Process EDR",
+      "description": "Process start, parent and lifetime fields vary by agent.",
+      "origin": "proc"
+    },
+    {
+      "id": "file",
+      "label": "Endpoint file and integrity",
+      "description": "Check supported object identity, access mode, write completion and generation fields.",
+      "origin": "file"
+    },
+    {
+      "id": "kernel",
+      "label": "Kernel and runtime",
+      "description": "Require the actual hook, result semantics and lifetime or incarnation fields.",
+      "origin": "kernel"
+    },
+    {
+      "id": "management",
+      "label": "Management and orchestration audit",
+      "description": "Check the retained stage, authenticated principal and runtime mapping.",
+      "origin": "management"
+    },
+    {
+      "id": "job",
+      "label": "Bound job receipts",
+      "description": "Exact authenticated request and terminal result for the named controller. Generic audit often lacks them.",
+      "origin": "job"
+    },
+    {
+      "id": "auth",
+      "label": "Authorization records",
+      "description": "Intended policy, effective interval and relevant exception or approval.",
+      "origin": "auth"
+    },
+    {
+      "id": "dest",
+      "label": "Independent outcome witness",
+      "description": "Destination-side read, state, execution or trust evidence at the specified scope.",
+      "origin": "dest"
+    },
+    {
+      "id": "containerd-topic",
+      "label": "containerd task-start topic",
+      "origin": "containerd-event-stream",
+      "description": "Exact task-start topic from a containerd envelope. This is an activity lead outside the Gate C.2 lens totals."
+    }
+  ],
+  "variations": [
+    {
+      "id": "delegation",
+      "title": "Privileged runtime delegation",
+      "objective": "Bind a host-enabled operation to its workload and result.",
+      "maturity": "measured",
+      "capabilities": [
+        "P",
+        "W",
+        "K",
+        "D",
+        "A",
+        "H",
+        "containerd-topic"
+      ],
+      "baseline": [
+        "D",
+        "H"
+      ],
+      "hunt": {
+        "P": "Look for an initiating process and its lifetime. It is context for the job.",
+        "W": "Check that the workload lifetime and authenticated requester bind to the same job.",
+        "K": "Inspect operation completion and the resolved object when the sensor retains both.",
+        "D": "Look for a trusted job terminal bound to the target or result.",
+        "A": "Compare the realized action and resource with the policy that applied at the time.",
+        "H": "Inspect the designated readback or destination result independently of the job record.",
+        "containerd-topic": "Use the matching task-start topic to orient the investigation by runtime namespace and task. Look for separate request, terminal and outcome records."
+      },
+      "claims": [
+        {
+          "id": "effect",
+          "goal": "effect",
+          "label": "Independently confirm the downstream effect",
+          "requiresAny": [
+            [
+              "D",
+              "H"
+            ]
+          ],
+          "qualification": "Bind the terminal and witness to the same result. The fixture effect is neutral.",
+          "distinctOrigins": [
+            [
+              "D",
+              "H"
+            ]
+          ]
+        },
+        {
+          "id": "authorization",
+          "goal": "fidelity",
+          "label": "Resolve authorization for the downstream action",
+          "requiresAny": [
+            [
+              "W",
+              "D",
+              "A",
+              "H"
+            ]
+          ],
+          "qualification": "Compare requester, terminal, target and valid-time policy. This supports policy qualification; production detection fidelity is unmeasured.",
+          "distinctOrigins": []
+        },
+        {
+          "id": "origin",
+          "goal": "attribution",
+          "label": "Investigate workload origin",
+          "requiresAny": [
+            [
+              "W",
+              "D"
+            ]
+          ],
+          "qualification": "Verify ownership, overlapping lifetimes and the request-to-job binding. This projection carries no standalone attribution count.",
+          "distinctOrigins": []
+        },
+        {
+          "id": "causal",
+          "goal": "causal",
+          "label": "Reconstruct the workload-to-effect relationship",
+          "requiresAny": [
+            [
+              "W",
+              "D",
+              "A",
+              "H"
+            ]
+          ],
+          "qualification": "Require the exact workload lifetime, job, policy, target and outcome; check competing operations.",
+          "distinctOrigins": [
+            [
+              "D",
+              "H"
+            ]
+          ]
+        }
+      ],
+      "refs": [
+        "gate-c2",
+        "sysdig",
+        "shim"
+      ],
+      "limitation": "Only the measured Gate C.2 delegated workload cohort under augmented replay. Inert fixtures and a fixed helper; no production escape, SSH login or collector performance measured.",
+      "legitimate": "Approved runtime maintenance or software deployment can use the same authority.",
+      "study": "gate-c2-delegated",
+      "defaultGoal": "causal",
+      "explorer": {
+        "objective": "data",
+        "route": "daemon"
+      }
+    },
+    {
+      "id": "mapping",
+      "title": "Granted host mapping",
+      "objective": "Hunt for high-risk host mappings, unusual resource access, or a workload near an independently observed host change.",
+      "maturity": "source",
+      "capabilities": [
+        "kernel",
+        "file",
+        "proc",
+        "dest",
+        "auth"
+      ],
+      "baseline": [
+        "kernel"
+      ],
+      "hunt": {
+        "kernel": "Inspect process execution, host-resource access, file and integrity changes for the selected variation.",
+        "file": "Inspect host-resource access, file and integrity changes for the selected variation.",
+        "proc": "Inspect process execution for the selected variation.",
+        "dest": "Inspect independent destination outcomes for the selected variation.",
+        "auth": "Inspect authorization context for the selected variation."
+      },
+      "claims": [
+        {
+          "id": "1",
+          "goal": "hunt",
+          "label": "Occurred on a host-owned object",
+          "requiresAny": [
+            [
+              "kernel"
+            ],
+            [
+              "file",
+              "proc"
+            ]
+          ],
+          "qualification": "The collector must retain a completed read or write and resolve the exact object, actor and version.",
+          "distinctOrigins": []
+        },
+        {
+          "id": "2",
+          "goal": "effect",
+          "label": "Designated data reached this recipient",
+          "requiresAny": [
+            [
+              "kernel",
+              "dest"
+            ],
+            [
+              "proc",
+              "file",
+              "dest"
+            ]
+          ],
+          "qualification": "Join the version-bound completed read to an independently scoped recipient.",
+          "distinctOrigins": []
+        },
+        {
+          "id": "3",
+          "goal": "fidelity",
+          "label": "This use was outside intended policy",
+          "requiresAny": [
+            [
+              "kernel",
+              "auth"
+            ],
+            [
+              "proc",
+              "file",
+              "auth"
+            ]
+          ],
+          "qualification": "Match identity, resource, action, and policy valid time.",
+          "distinctOrigins": []
+        }
+      ],
+      "refs": [
+        "hostpath",
+        "sysdig"
+      ],
+      "limitation": "Scope the claim to this route and the available records.",
+      "legitimate": "Approved host backup or a node agent.",
+      "explorer": {
+        "objective": "data",
+        "route": "mapping"
+      }
+    },
+    {
+      "id": "namespace",
+      "title": "Namespace-mediated access",
+      "objective": "Hunt for unusual namespace tools, target selectors, and container-to-host process context. Approved node debugging can look similar.",
+      "maturity": "source",
+      "capabilities": [
+        "kernel",
+        "proc",
+        "dest",
+        "auth"
+      ],
+      "baseline": [
+        "kernel"
+      ],
+      "hunt": {
+        "kernel": "Inspect process execution, namespace transitions, host-resource access for the selected variation.",
+        "proc": "Inspect process execution for the selected variation.",
+        "dest": "Inspect independent destination outcomes for the selected variation.",
+        "auth": "Inspect authorization context for the selected variation."
+      },
+      "claims": [
+        {
+          "id": "1",
+          "goal": "hunt",
+          "label": "Relevant namespace transition occurred",
+          "requiresAny": [
+            [
+              "kernel"
+            ]
+          ],
+          "qualification": "Require namespace type, real target, result, and workload lifetime. Generic process-only records cannot substitute.",
+          "distinctOrigins": []
+        },
+        {
+          "id": "2",
+          "goal": "causal",
+          "label": "Host action followed this transition",
+          "requiresAny": [
+            [
+              "kernel",
+              "proc",
+              "dest",
+              "auth"
+            ]
+          ],
+          "qualification": "Qualify actual resulting authority, resulting actor and exact action. Evaluate policy separately.",
+          "distinctOrigins": []
+        }
+      ],
+      "refs": [
+        "sysdig",
+        "setns"
+      ],
+      "limitation": "Scope the claim to this route and the available records.",
+      "legitimate": "Approved node debugging or runtime housekeeping.",
+      "explorer": {
+        "objective": "execution",
+        "route": "namespace"
+      }
+    },
+    {
+      "id": "copy",
+      "title": "Runtime-materialized copy",
+      "objective": "Hunt unusual workload creation and volume handling. Investigate local reads without assuming a new host-side read.",
+      "maturity": "source",
+      "capabilities": [
+        "file",
+        "dest",
+        "kernel"
+      ],
+      "baseline": [
+        "file"
+      ],
+      "hunt": {
+        "file": "Inspect host-resource access, file and integrity changes for the selected variation.",
+        "dest": "Inspect independent destination outcomes for the selected variation.",
+        "kernel": "Inspect process execution, host-resource access, runtime management operations, file and integrity changes for the selected variation."
+      },
+      "claims": [
+        {
+          "id": "1",
+          "goal": "effect",
+          "label": "Workload acquired a local copy",
+          "requiresAny": [
+            [
+              "file",
+              "dest"
+            ],
+            [
+              "kernel",
+              "dest"
+            ]
+          ],
+          "qualification": "Require version-scoped local read and named recipient. This does not prove host provenance.",
+          "distinctOrigins": []
+        },
+        {
+          "id": "2",
+          "goal": "causal",
+          "label": "The copy came from the designated host version",
+          "requiresAny": [
+            [
+              "kernel",
+              "file",
+              "dest"
+            ]
+          ],
+          "qualification": "A trusted materialization record must link the specific source version to the copy and recipient. Verify actual fields.",
+          "distinctOrigins": []
+        }
+      ],
+      "refs": [
+        "copy"
+      ],
+      "limitation": "Scope the claim to this route and the available records.",
+      "legitimate": "Approved projection, backup or support collection.",
+      "explorer": {
+        "objective": "data",
+        "route": "copy"
+      }
+    },
+    {
+      "id": "integrity",
+      "title": "Runtime binary replacement",
+      "objective": "Hunt unexpected runtime binary changes and nearby launches. Correlate by file generation before asserting causation.",
+      "maturity": "source",
+      "capabilities": [
+        "file",
+        "dest",
+        "proc",
+        "kernel"
+      ],
+      "baseline": [
+        "file"
+      ],
+      "hunt": {
+        "file": "Inspect file and integrity changes for the selected variation.",
+        "dest": "Inspect independent destination outcomes for the selected variation.",
+        "proc": "Inspect process execution for the selected variation.",
+        "kernel": "Inspect process execution, runtime management operations, file and integrity changes for the selected variation."
+      },
+      "claims": [
+        {
+          "id": "1",
+          "goal": "hunt",
+          "label": "A host runtime binary changed",
+          "requiresAny": [
+            [
+              "file",
+              "dest"
+            ]
+          ],
+          "qualification": "Before/after identity or trusted integrity witness must identify the same target and generation.",
+          "distinctOrigins": []
+        },
+        {
+          "id": "2",
+          "goal": "effect",
+          "label": "The affected generation ran under host authority",
+          "requiresAny": [
+            [
+              "proc",
+              "file",
+              "dest"
+            ],
+            [
+              "kernel",
+              "file",
+              "dest"
+            ]
+          ],
+          "qualification": "Prove actual consumption and qualified authority. Check the authorized upgrade twin.",
+          "distinctOrigins": []
+        }
+      ],
+      "refs": [
+        "runc"
+      ],
+      "limitation": "Scope the claim to this route and the available records.",
+      "legitimate": "Approved runtime package update or normal service restart.",
+      "explorer": {
+        "objective": "execution",
+        "route": "binary"
+      }
+    },
+    {
+      "id": "composed",
+      "title": "Device setup plus a daemon job",
+      "objective": "Hunt unusual setup changes and unexpected controller activity. Inspect separate enforcement at both boundaries.",
+      "maturity": "source",
+      "capabilities": [
+        "kernel",
+        "management",
+        "job",
+        "dest",
+        "auth"
+      ],
+      "baseline": [
+        "kernel"
+      ],
+      "hunt": {
+        "kernel": "Inspect namespace transitions, host-resource access, runtime management operations for the selected variation.",
+        "management": "Inspect runtime management operations for the selected variation.",
+        "job": "Inspect host-resource access, runtime management operations for the selected variation.",
+        "dest": "Inspect independent destination outcomes for the selected variation.",
+        "auth": "Inspect authorization context for the selected variation."
+      },
+      "claims": [
+        {
+          "id": "1",
+          "goal": "hunt",
+          "label": "Unintended mapping and daemon reach were present",
+          "requiresAny": [
+            [
+              "kernel",
+              "management"
+            ]
+          ],
+          "qualification": "Resolve actual mount scope and controller access. Read-only does not establish absence of socket activity.",
+          "distinctOrigins": []
+        },
+        {
+          "id": "2",
+          "goal": "causal",
+          "label": "A host-enabled job used this composed route",
+          "requiresAny": [
+            [
+              "kernel",
+              "job",
+              "dest",
+              "auth"
+            ]
+          ],
+          "qualification": "Join the originating setup, the authenticated job terminal, and actual host outcome.",
+          "distinctOrigins": []
+        }
+      ],
+      "refs": [
+        "device",
+        "sysdig"
+      ],
+      "limitation": "Scope the claim to this route and the available records.",
+      "legitimate": "Approved accelerator setup or node maintenance.",
+      "explorer": {
+        "objective": "data",
+        "route": "device-daemon"
+      }
+    },
+    {
+      "id": "trust",
+      "title": "Effective local SSH trust",
+      "objective": "Hunt trust source changes and destination authentication while the change origin is unresolved.",
+      "maturity": "source",
+      "capabilities": [
+        "dest",
+        "auth",
+        "proc",
+        "file",
+        "kernel",
+        "job"
+      ],
+      "baseline": [
+        "dest"
+      ],
+      "hunt": {
+        "dest": "Inspect independent destination outcomes for the selected variation.",
+        "auth": "Inspect authorization context for the selected variation.",
+        "proc": "Inspect process execution for the selected variation.",
+        "file": "Inspect file and integrity changes for the selected variation.",
+        "kernel": "Inspect process execution, file and integrity changes for the selected variation."
+      },
+      "claims": [
+        {
+          "id": "1",
+          "goal": "effect",
+          "label": "A named key became eligible for this account",
+          "requiresAny": [
+            [
+              "dest",
+              "auth"
+            ]
+          ],
+          "qualification": "Use exact account, key and connection context. Evaluate effective resolver and intended change policy separately.",
+          "distinctOrigins": []
+        },
+        {
+          "id": "2",
+          "goal": "causal",
+          "label": "The workload caused the trust change",
+          "requiresAny": [
+            [
+              "proc",
+              "file",
+              "auth",
+              "dest"
+            ],
+            [
+              "kernel",
+              "job",
+              "auth",
+              "dest"
+            ]
+          ],
+          "qualification": "Bind the exact trust input change or job to effective resolution and distinguish host-native or central issuance.",
+          "distinctOrigins": []
+        }
+      ],
+      "refs": [
+        "ssh"
+      ],
+      "limitation": "Scope the claim to this route and the available records.",
+      "legitimate": "Approved key rotation or a configured trust publisher.",
+      "explorer": {
+        "objective": "trust",
+        "route": "local"
+      }
+    },
+    {
+      "id": "diagnostic",
+      "title": "Direct write diagnostic",
+      "objective": "Investigate the verified effect and check hook coverage across the applicable operation classes.",
+      "maturity": "measured",
+      "capabilities": [
+        "dest"
+      ],
+      "baseline": [
+        "dest"
+      ],
+      "hunt": {
+        "dest": "Inspect independent destination outcomes for the selected variation."
+      },
+      "claims": [
+        {
+          "id": "1",
+          "goal": "effect",
+          "label": "A controlled downstream state change was observed",
+          "requiresAny": [
+            [
+              "dest"
+            ]
+          ],
+          "qualification": "An independent scoped witness can support the fixture change even with the tested hook gap.",
+          "distinctOrigins": []
+        },
+        {
+          "id": "2",
+          "goal": "hunt",
+          "label": "Exact vectored completion from the selected hook",
+          "requiresAny": [],
+          "qualification": "Unavailable in the measured vectored arm. Selecting a generic kernel source cannot recover the missed record.",
+          "distinctOrigins": []
+        }
+      ],
+      "refs": [
+        "gate-c2",
+        "study"
+      ],
+      "limitation": "Scope the claim to this route and the available records.",
+      "legitimate": "An approved application that uses a different write implementation."
+    },
+    {
+      "id": "synthetic-direct",
+      "title": "Direct canary model • Gate B",
+      "objective": "Use the synthetic cases to test reasoning about missing evidence. Gate C found no qualifying direct measured combination.",
+      "maturity": "synthetic",
+      "capabilities": [
+        "kernel",
+        "auth",
+        "dest"
+      ],
+      "baseline": [
+        "kernel"
+      ],
+      "hunt": {
+        "kernel": "Inspect process execution for the selected variation.",
+        "auth": "Inspect authorization context for the selected variation."
+      },
+      "claims": [
+        {
+          "id": "1",
+          "goal": "effect",
+          "label": "Direct canary effect can be confirmed in this model",
+          "requiresAny": [
+            [
+              "kernel",
+              "auth",
+              "dest"
+            ]
+          ],
+          "qualification": "The Gate B modeled W/K/H set also requires exact workload incarnation. This profile choice only illustrates the evidence categories.",
+          "distinctOrigins": []
+        }
+      ],
+      "refs": [
+        "gate-b",
+        "study"
+      ],
+      "limitation": "Scope the claim to this route and the available records.",
+      "legitimate": "An authorized change can produce the same observed host state."
+    }
+  ],
+  "sourceAppendix": "container-approved",
+  "defaultVariation": "delegation",
+  "relevanceMatrix": {
+    "format": "telemetry-relevance/v1",
+    "rows": [
+      {
+        "id": "outcome.witness",
+        "label": "Independent outcome",
+        "definition": "A distinct readback or destination witness for a scoped result."
+      },
+      {
+        "id": "runtime.job",
+        "label": "Bound runtime job",
+        "definition": "A management job with a qualified request or terminal binding."
+      },
+      {
+        "id": "os.operation",
+        "label": "Kernel / runtime operation",
+        "definition": "Subject, object, operation and result, as captured by the named collector."
+      },
+      {
+        "id": "file.change",
+        "label": "File / integrity",
+        "definition": "Creation, write or state-change observations for a resolved object and generation."
+      },
+      {
+        "id": "process.execution",
+        "label": "Process context",
+        "definition": "Process, image, interpreter, parent or lifetime observations scoped to a host."
+      },
+      {
+        "id": "workload.identity",
+        "label": "Workload identity",
+        "definition": "Runtime workload identity and authenticated workload lifetime binding."
+      },
+      {
+        "id": "policy.authorization",
+        "label": "Authorization",
+        "definition": "Intended authorization or approved change evidence for the principal, action, resource and valid time."
+      },
+      {
+        "id": "management.audit",
+        "label": "Management audit",
+        "definition": "Control-plane, runtime management or orchestration activity records."
+      }
+    ],
+    "columns": [
+      {
+        "variation": "delegation",
+        "label": "Delegated job",
+        "kind": "tradecraft"
+      },
+      {
+        "variation": "mapping",
+        "label": "Host mapping",
+        "kind": "tradecraft"
+      },
+      {
+        "variation": "namespace",
+        "label": "Namespace",
+        "kind": "tradecraft"
+      },
+      {
+        "variation": "copy",
+        "label": "Runtime copy",
+        "kind": "tradecraft"
+      },
+      {
+        "variation": "integrity",
+        "label": "Binary change",
+        "kind": "tradecraft"
+      },
+      {
+        "variation": "composed",
+        "label": "Composed route",
+        "kind": "tradecraft"
+      },
+      {
+        "variation": "trust",
+        "label": "SSH trust",
+        "kind": "tradecraft"
+      },
+      {
+        "variation": "diagnostic",
+        "label": "Write test",
+        "kind": "diagnostic"
+      },
+      {
+        "variation": "synthetic-direct",
+        "label": "Direct model",
+        "kind": "synthetic"
+      }
+    ],
+    "defaultRow": "outcome.witness",
+    "cells": [
+      {
+        "row": "outcome.witness",
+        "variation": "delegation",
+        "role": "primary",
+        "basis": "measured",
+        "capabilities": [
+          "H"
+        ],
+        "claims": [
+          "effect",
+          "causal"
+        ],
+        "refs": [
+          "gate-c2"
+        ],
+        "rationale": "The independent witness is one part of the measured outcome minimum.",
+        "requiredFields": [
+          "Scoped destination or host readback",
+          "Target or result identity distinct from the runtime job record"
+        ],
+        "limitation": "D/H confirms 9/9 neutral fixture effects and 0/7 causal relationships at final replay. An outcome alone does not establish a qualified job or cause."
+      },
+      {
+        "row": "runtime.job",
+        "variation": "delegation",
+        "role": "primary",
+        "basis": "measured",
+        "capabilities": [
+          "D"
+        ],
+        "claims": [
+          "effect",
+          "origin",
+          "causal"
+        ],
+        "refs": [
+          "gate-c2",
+          "shim"
+        ],
+        "rationale": "A matched helper terminal supplies the operation side of the delegated effect claim.",
+        "requiredFields": [
+          "Authenticated request or transaction",
+          "Completed terminal",
+          "Target or result binding"
+        ],
+        "limitation": "D must join independently to H in this measured helper fixture. A request-only record is insufficient."
+      },
+      {
+        "row": "workload.identity",
+        "variation": "delegation",
+        "role": "complementary",
+        "basis": "measured",
+        "capabilities": [
+          "W"
+        ],
+        "claims": [
+          "causal",
+          "authorization"
+        ],
+        "refs": [
+          "gate-c2"
+        ],
+        "rationale": "The workload lifetime contributes to causal reconstruction when joined with authorization, the job and the effect.",
+        "requiredFields": [
+          "Boot-scoped workload lifetime",
+          "Authenticated requester-to-job binding"
+        ],
+        "limitation": "From D/H, W alone adds zero confirmed causal relationships. Adding W and A together adds seven of seven in this cohort."
+      },
+      {
+        "row": "policy.authorization",
+        "variation": "delegation",
+        "role": "complementary",
+        "basis": "measured",
+        "capabilities": [
+          "A"
+        ],
+        "claims": [
+          "causal",
+          "authorization"
+        ],
+        "refs": [
+          "gate-c2"
+        ],
+        "rationale": "Applicable policy complements workload identity for the attributed job and effect.",
+        "requiredFields": [
+          "Intended policy",
+          "Principal, realized action and exact target",
+          "Policy valid time"
+        ],
+        "limitation": "From D/H, A alone adds zero confirmed causal relationships. A policy record alone establishes no effect, and production fidelity remains unmeasured."
+      },
+      {
+        "row": "os.operation",
+        "variation": "delegation",
+        "role": "limited",
+        "basis": "measured",
+        "capabilities": [
+          "K"
+        ],
+        "claims": [],
+        "refs": [
+          "gate-c2"
+        ],
+        "rationale": "The measured delegated final replay shows no additional effect or causal confirmations from K over the qualifying sets.",
+        "requiredFields": [
+          "Exact operation, resolved object and result"
+        ],
+        "limitation": "This result applies to the instrumented helper and the selected claims. Kernel telemetry can be central on other routes."
+      },
+      {
+        "row": "process.execution",
+        "variation": "delegation",
+        "role": "context",
+        "basis": "source",
+        "capabilities": [
+          "P"
+        ],
+        "claims": [],
+        "refs": [
+          "sysdig"
+        ],
+        "rationale": "The initiating process can orient an investigation around the workload lifetime.",
+        "requiredFields": [
+          "Parent or process identity and workload lifetime"
+        ],
+        "limitation": "Process context does not establish that a controller completed a job. No production coverage estimate follows."
+      },
+      {
+        "row": "management.audit",
+        "variation": "delegation",
+        "role": "context",
+        "basis": "source",
+        "capabilities": [
+          "management"
+        ],
+        "claims": [],
+        "refs": [
+          "sysdig",
+          "shim"
+        ],
+        "rationale": "Daemon or orchestration activity can identify a request or an actor to pivot on.",
+        "requiredFields": [
+          "Operation, subject, control-plane object and time"
+        ],
+        "limitation": "A generic audit entry is not the bound terminal used in the measured replay."
+      },
+      {
+        "row": "os.operation",
+        "variation": "mapping",
+        "role": "primary",
+        "basis": "source",
+        "capabilities": [
+          "kernel"
+        ],
+        "claims": [
+          "1",
+          "2"
+        ],
+        "refs": [
+          "hostpath",
+          "sysdig"
+        ],
+        "rationale": "A scoped access operation can establish activity against a mapped object when its identity and scope are retained.",
+        "requiredFields": [
+          "Host object or mount identity",
+          "Workload identity and operation result"
+        ],
+        "limitation": "Exposure and access are different. Outcome delivery and intended policy require additional evidence."
+      },
+      {
+        "row": "file.change",
+        "variation": "mapping",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "file"
+        ],
+        "claims": [
+          "1",
+          "2",
+          "3"
+        ],
+        "refs": [
+          "hostpath",
+          "sysdig"
+        ],
+        "rationale": "File telemetry can corroborate a host mapping when joined to an initiating process.",
+        "requiredFields": [
+          "Resolved host object",
+          "Writer or accessing actor if retained",
+          "Same workload and time"
+        ],
+        "limitation": "A file path or state change alone does not bind an operation to a workload."
+      },
+      {
+        "row": "process.execution",
+        "variation": "mapping",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "proc"
+        ],
+        "claims": [
+          "1",
+          "2",
+          "3"
+        ],
+        "refs": [
+          "hostpath",
+          "sysdig"
+        ],
+        "rationale": "An exact process binding complements the file observation when a kernel operation record is unavailable.",
+        "requiredFields": [
+          "Same host and workload lifetime",
+          "Process or parent identity linked to the object evidence"
+        ],
+        "limitation": "An image name or path argument is a lead and can be reused or stale."
+      },
+      {
+        "row": "policy.authorization",
+        "variation": "mapping",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "auth"
+        ],
+        "claims": [
+          "3"
+        ],
+        "refs": [
+          "hostpath"
+        ],
+        "rationale": "Authorization identifies whether the observed object access was permitted.",
+        "requiredFields": [
+          "Applicable workload policy, principal and object"
+        ],
+        "limitation": "Policy grants and operation completion are separate."
+      },
+      {
+        "row": "outcome.witness",
+        "variation": "mapping",
+        "role": "complementary",
+        "basis": "hypothesis",
+        "capabilities": [
+          "dest"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "hostpath",
+          "sysdig"
+        ],
+        "rationale": "A scoped witness could establish delivery to the designated recipient.",
+        "requiredFields": [
+          "Recipient identity",
+          "Same object version or readback tied to observed access"
+        ],
+        "limitation": "The prior assessment treats this witness as an opportunity. There is no measured general detection coverage."
+      },
+      {
+        "row": "os.operation",
+        "variation": "namespace",
+        "role": "primary",
+        "basis": "source",
+        "capabilities": [
+          "kernel"
+        ],
+        "claims": [
+          "1",
+          "2"
+        ],
+        "refs": [
+          "setns",
+          "sysdig"
+        ],
+        "rationale": "A matching kernel record can show a namespace transition with its subject and result.",
+        "requiredFields": [
+          "Caller identity",
+          "Target namespace identity and type",
+          "Operation result"
+        ],
+        "limitation": "A successful transition does not establish a later host action."
+      },
+      {
+        "row": "process.execution",
+        "variation": "namespace",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "proc"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "setns",
+          "sysdig"
+        ],
+        "rationale": "Process lineage can help bind the actor that performed a later action to the namespace transition.",
+        "requiredFields": [
+          "Host PID and lifetime",
+          "Process lineage across the transition"
+        ],
+        "limitation": "Scope lineage to the namespace type and actual process. A process event alone adds no namespace proof."
+      },
+      {
+        "row": "policy.authorization",
+        "variation": "namespace",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "auth"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "setns"
+        ],
+        "rationale": "Policy helps distinguish approved transitions from the modeled route once actor and result are established.",
+        "requiredFields": [
+          "Intended caller permission and applicable namespace or host policy"
+        ],
+        "limitation": "Permission alone does not establish activity."
+      },
+      {
+        "row": "outcome.witness",
+        "variation": "namespace",
+        "role": "complementary",
+        "basis": "hypothesis",
+        "capabilities": [
+          "dest"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "sysdig",
+          "setns"
+        ],
+        "rationale": "A separate destination or host witness could support the modeled later host action.",
+        "requiredFields": [
+          "Independent result, resolved host target and qualifying actor/time link"
+        ],
+        "limitation": "The proposed join is distinct from source documentation of the namespace transition."
+      },
+      {
+        "row": "os.operation",
+        "variation": "copy",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "kernel"
+        ],
+        "claims": [
+          "1",
+          "2"
+        ],
+        "refs": [
+          "copy"
+        ],
+        "rationale": "Scope the observed preparation or copy operation and link the source version to the created copy.",
+        "requiredFields": [
+          "Source object identity",
+          "Operation result and destination copy identity"
+        ],
+        "limitation": "A control request alone cannot establish file materialization or workload acquisition."
+      },
+      {
+        "row": "file.change",
+        "variation": "copy",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "file"
+        ],
+        "claims": [
+          "1",
+          "2"
+        ],
+        "refs": [
+          "copy"
+        ],
+        "rationale": "A file observation can establish the identity of a runtime-created copy and help bind it to a recipient view.",
+        "requiredFields": [
+          "Copy identity or resolved version",
+          "Runtime actor and timing"
+        ],
+        "limitation": "A local copy lacking provenance could be unrelated to the designated host version."
+      },
+      {
+        "row": "outcome.witness",
+        "variation": "copy",
+        "role": "complementary",
+        "basis": "hypothesis",
+        "capabilities": [
+          "dest"
+        ],
+        "claims": [
+          "1",
+          "2"
+        ],
+        "refs": [
+          "copy"
+        ],
+        "rationale": "Recipient visibility could corroborate acquisition of a specific materialized copy.",
+        "requiredFields": [
+          "Qualified recipient identity",
+          "Independent observation of that copy or version"
+        ],
+        "limitation": "The proposed receiver-side test has no production measurement."
+      },
+      {
+        "row": "file.change",
+        "variation": "integrity",
+        "role": "primary",
+        "basis": "source",
+        "capabilities": [
+          "file"
+        ],
+        "claims": [
+          "1",
+          "2"
+        ],
+        "refs": [
+          "runc"
+        ],
+        "rationale": "A resolved binary change is the evidence anchor for this variation.",
+        "requiredFields": [
+          "Runtime binary identity",
+          "Version, hash or generation and time"
+        ],
+        "limitation": "Retain the affected generation and separate a change from later execution."
+      },
+      {
+        "row": "process.execution",
+        "variation": "integrity",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "proc"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "runc"
+        ],
+        "rationale": "An execution record can join the runtime invocation to the affected generation.",
+        "requiredFields": [
+          "Executable generation or bound image identity",
+          "Execution authority and time"
+        ],
+        "limitation": "A reused pathname is insufficient to establish consumption of the changed image."
+      },
+      {
+        "row": "os.operation",
+        "variation": "integrity",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "kernel"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "runc"
+        ],
+        "rationale": "A scoped exec observation can help corroborate which generation actually ran.",
+        "requiredFields": [
+          "Resolved image or object identity",
+          "Successful result and host authority"
+        ],
+        "limitation": "The site should qualify sensor coverage and bind the operation to the file evidence."
+      },
+      {
+        "row": "outcome.witness",
+        "variation": "integrity",
+        "role": "complementary",
+        "basis": "hypothesis",
+        "capabilities": [
+          "dest"
+        ],
+        "claims": [
+          "1",
+          "2"
+        ],
+        "refs": [
+          "runc"
+        ],
+        "rationale": "Independent readback or a host execution witness could confirm the proposed outcome.",
+        "requiredFields": [
+          "Affected generation",
+          "Independent host-side witness or readback"
+        ],
+        "limitation": "A changed file alone is evidence of state change. It does not establish execution."
+      },
+      {
+        "row": "os.operation",
+        "variation": "composed",
+        "role": "primary",
+        "basis": "source",
+        "capabilities": [
+          "kernel"
+        ],
+        "claims": [
+          "1",
+          "2"
+        ],
+        "refs": [
+          "device",
+          "sysdig"
+        ],
+        "rationale": "Resolved host mapping and daemon reach are central to detecting the combined exposure.",
+        "requiredFields": [
+          "Workload and target identity",
+          "Observed host scope or operation result"
+        ],
+        "limitation": "The two steps need related identity and time. Reach alone does not prove that a job ran."
+      },
+      {
+        "row": "management.audit",
+        "variation": "composed",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "management"
+        ],
+        "claims": [
+          "1"
+        ],
+        "refs": [
+          "device",
+          "sysdig"
+        ],
+        "rationale": "Control-plane context links device setup or management access to the same workload.",
+        "requiredFields": [
+          "Device or runtime setup action",
+          "Principal, workload and occurrence time"
+        ],
+        "limitation": "Setup and task completion need different records."
+      },
+      {
+        "row": "runtime.job",
+        "variation": "composed",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "job"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "device",
+          "sysdig"
+        ],
+        "rationale": "A matched terminal corroborates completion of a host-enabled job after the exposure.",
+        "requiredFields": [
+          "Request and completed terminal",
+          "Target, runtime context and time"
+        ],
+        "limitation": "Another authorized job may produce related records. Bind outcome and policy explicitly."
+      },
+      {
+        "row": "policy.authorization",
+        "variation": "composed",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "auth"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "device",
+          "sysdig"
+        ],
+        "rationale": "Valid-time policy qualifies the observed use of both capabilities.",
+        "requiredFields": [
+          "Workload identity",
+          "Realized operation and policy scope"
+        ],
+        "limitation": "Accepted setup permission is different from job permission."
+      },
+      {
+        "row": "outcome.witness",
+        "variation": "composed",
+        "role": "complementary",
+        "basis": "hypothesis",
+        "capabilities": [
+          "dest"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "device",
+          "sysdig"
+        ],
+        "rationale": "A separate witness could qualify the effect of the matched job.",
+        "requiredFields": [
+          "Destination result and exact object-to-job binding"
+        ],
+        "limitation": "The proposed witness is a dependency. No empirical coverage claim follows."
+      },
+      {
+        "row": "outcome.witness",
+        "variation": "trust",
+        "role": "primary",
+        "basis": "hypothesis",
+        "capabilities": [
+          "dest"
+        ],
+        "claims": [
+          "1",
+          "2"
+        ],
+        "refs": [
+          "ssh"
+        ],
+        "rationale": "A controlled effective-trust witness is the proposed evidence anchor for this route.",
+        "requiredFields": [
+          "Named key and account",
+          "Applicable host trust resolution and resulting state"
+        ],
+        "limitation": "The OpenSSH source documents resolution. This assessment proposes a witness and does not measure its reliability or equate eligibility with login."
+      },
+      {
+        "row": "policy.authorization",
+        "variation": "trust",
+        "role": "complementary",
+        "basis": "source",
+        "capabilities": [
+          "auth"
+        ],
+        "claims": [
+          "1",
+          "2"
+        ],
+        "refs": [
+          "ssh"
+        ],
+        "rationale": "Applicable account and trust configuration qualify whether the named key became eligible.",
+        "requiredFields": [
+          "Winning trust rule or principal binding",
+          "Account and authenticating key identity"
+        ],
+        "limitation": "Configuration or authorized key file evidence alone may miss effective resolution."
+      },
+      {
+        "row": "file.change",
+        "variation": "trust",
+        "role": "complementary",
+        "basis": "hypothesis",
+        "capabilities": [
+          "file"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "ssh"
+        ],
+        "rationale": "A scoped local integrity observation could help link the workload to changed trust material.",
+        "requiredFields": [
+          "Trust material identity and change",
+          "Actor-to-write binding and matching effective trust outcome"
+        ],
+        "limitation": "A file observation alone does not establish that SSH accepts the key."
+      },
+      {
+        "row": "process.execution",
+        "variation": "trust",
+        "role": "complementary",
+        "basis": "hypothesis",
+        "capabilities": [
+          "proc"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "ssh"
+        ],
+        "rationale": "Actor and process lifetime could complement a file change for the local write path.",
+        "requiredFields": [
+          "Workload/process lifetime",
+          "Actor link to the exact trust change"
+        ],
+        "limitation": "A process event alone cannot establish independent effective trust."
+      },
+      {
+        "row": "os.operation",
+        "variation": "trust",
+        "role": "complementary",
+        "basis": "hypothesis",
+        "capabilities": [
+          "kernel"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "ssh"
+        ],
+        "rationale": "A resolved operation could link a qualified actor to an affected trust object.",
+        "requiredFields": [
+          "Exact object and operation result",
+          "Caller lifetime link to host action"
+        ],
+        "limitation": "The path needs both authorization and independent effective trust evidence."
+      },
+      {
+        "row": "runtime.job",
+        "variation": "trust",
+        "role": "complementary",
+        "basis": "hypothesis",
+        "capabilities": [
+          "job"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "ssh"
+        ],
+        "rationale": "A bound job could supply the operation actor and target in the delegated version of the trust check.",
+        "requiredFields": [
+          "Bound terminal",
+          "Exact key-account target and workload identity"
+        ],
+        "limitation": "The delegated evidence chain for this objective is a hypothesis."
+      },
+      {
+        "row": "os.operation",
+        "variation": "diagnostic",
+        "role": "limited",
+        "basis": "measured",
+        "capabilities": [
+          "kernel"
+        ],
+        "claims": [
+          "2"
+        ],
+        "refs": [
+          "gate-c2",
+          "study"
+        ],
+        "rationale": "The selected Tetragon hook retained no return for either of the separate vectored-write cases. Reference tracing saw both complete.",
+        "requiredFields": [
+          "Selected hook and operation class",
+          "A retained return and resolved object binding where available"
+        ],
+        "limitation": "This is a named capture gap. The outcome witness cannot substitute for the missed return, and the result does not generalize to all sensors."
+      },
+      {
+        "row": "outcome.witness",
+        "variation": "diagnostic",
+        "role": "primary",
+        "basis": "measured",
+        "capabilities": [
+          "dest"
+        ],
+        "claims": [
+          "1"
+        ],
+        "refs": [
+          "gate-c2",
+          "study"
+        ],
+        "rationale": "The independent witness observed the designated canary change.",
+        "requiredFields": [
+          "Designated canary identity and matching independent readback"
+        ],
+        "limitation": "A downstream state change does not supply the missed writer or exact actor/object link."
+      },
+      {
+        "row": "file.change",
+        "variation": "diagnostic",
+        "role": "limited",
+        "basis": "measured",
+        "capabilities": [
+          "file"
+        ],
+        "claims": [],
+        "refs": [
+          "gate-c2",
+          "study"
+        ],
+        "rationale": "A change record can help describe state, while the named return projection lacked a native durable object join.",
+        "requiredFields": [
+          "Exact object identity if available",
+          "Actor or stable file descriptor binding where available"
+        ],
+        "limitation": "The approved result is a limitation of the tested capture. It does not validate generic file integrity telemetry."
+      },
+      {
+        "row": "process.execution",
+        "variation": "diagnostic",
+        "role": "context",
+        "basis": "measured",
+        "capabilities": [
+          "proc"
+        ],
+        "claims": [],
+        "refs": [
+          "gate-c2",
+          "study"
+        ],
+        "rationale": "The measured fixture enrolled the actors for the invocations.",
+        "requiredFields": [
+          "Enrolled process lifetime and fixture matching information"
+        ],
+        "limitation": "Enrollment supplies context and cannot repair an absent completion record."
+      },
+      {
+        "row": "os.operation",
+        "variation": "synthetic-direct",
+        "role": "primary",
+        "basis": "synthetic",
+        "capabilities": [
+          "kernel"
+        ],
+        "claims": [
+          "1"
+        ],
+        "refs": [
+          "gate-b",
+          "study"
+        ],
+        "rationale": "The synthetic model supplies a targeted kernel operation for the direct write.",
+        "requiredFields": [
+          "Modeled actor/object/operation binding"
+        ],
+        "limitation": "The controlled replay says nothing about a deployed collector or an actual escape."
+      },
+      {
+        "row": "policy.authorization",
+        "variation": "synthetic-direct",
+        "role": "complementary",
+        "basis": "synthetic",
+        "capabilities": [
+          "auth"
+        ],
+        "claims": [
+          "1"
+        ],
+        "refs": [
+          "gate-b",
+          "study"
+        ],
+        "rationale": "Modeled intended-policy context helps qualify the direct action.",
+        "requiredFields": [
+          "Modeled identity and expected grant for the target resource"
+        ],
+        "limitation": "Modeled policy does not establish completion."
+      },
+      {
+        "row": "outcome.witness",
+        "variation": "synthetic-direct",
+        "role": "complementary",
+        "basis": "synthetic",
+        "capabilities": [
+          "dest"
+        ],
+        "claims": [
+          "1"
+        ],
+        "refs": [
+          "gate-b",
+          "study"
+        ],
+        "rationale": "The modeled witness supplies the independent canary result needed by this synthetic claim.",
+        "requiredFields": [
+          "Separate canary observation and target binding"
+        ],
+        "limitation": "No measured production detection result follows from this synthetic combination."
+      }
+    ]
+  },
+  "studySelection": {
+    "id": "gate-c2-delegated",
+    "study": "gate-c2",
+    "revision": "f0c5aaf17d51a60007d8f596239cd317b99507a1",
+    "cohort": "path/workload_delegated",
+    "profile": "augmented",
+    "arm": null,
+    "metrics": {
+      "effect": "Downstream effects",
+      "causal": "Causal relationships",
+      "authorization": "Downstream authorization qualifications",
+      "boundary": "Boundary-policy qualifications"
+    },
+    "approvedSha256": "7cb327d92f11213863515aea0340cb69616a49aeea0df8ce73dd00ad58699323"
+  }
+}

@@ -1,0 +1,215 @@
+[
+  {
+    "rule": "research-nsenter-process",
+    "id": "source-shaped-image",
+    "basis": "source-derived",
+    "fields": {
+      "Image": "/usr/bin/nsenter"
+    },
+    "match": true
+  },
+  {
+    "rule": "research-nsenter-process",
+    "id": "authorized-node-diagnostics",
+    "basis": "benign-illustrative",
+    "fields": {
+      "Image": "/usr/bin/nsenter"
+    },
+    "match": true
+  },
+  {
+    "rule": "research-nsenter-process",
+    "id": "unshare-execution",
+    "basis": "benign-illustrative",
+    "fields": {
+      "Image": "/usr/bin/unshare"
+    },
+    "match": false
+  },
+  {
+    "rule": "research-nsenter-process",
+    "id": "image-missing",
+    "basis": "mapping-negative",
+    "fields": {},
+    "match": false
+  },
+  {
+    "rule": "research-containerd-task-start",
+    "id": "gate-c2-native-topic",
+    "basis": "measured-native",
+    "fields": null,
+    "match": true,
+    "approved_evidence": "containerd-start"
+  },
+  {
+    "rule": "research-containerd-task-start",
+    "id": "routine-rollout",
+    "basis": "benign-illustrative",
+    "fields": {
+      "topic": "/tasks/start"
+    },
+    "match": true
+  },
+  {
+    "rule": "research-containerd-task-start",
+    "id": "task-exit",
+    "basis": "benign-illustrative",
+    "fields": {
+      "topic": "/tasks/exit"
+    },
+    "match": false
+  },
+  {
+    "rule": "research-containerd-task-start",
+    "id": "raw-message-without-topic",
+    "basis": "mapping-negative",
+    "fields": {
+      "message": "/tasks/start"
+    },
+    "match": false
+  },
+  {
+    "rule": "research-protected-host-audit",
+    "id": "configured-watch",
+    "basis": "illustrative",
+    "fields": {
+      "type": "SYSCALL",
+      "success": "yes",
+      "key": "ce_protected_host_read"
+    },
+    "match": true
+  },
+  {
+    "rule": "research-protected-host-audit",
+    "id": "approved-watch-read",
+    "basis": "benign-illustrative",
+    "fields": {
+      "type": "SYSCALL",
+      "success": "yes",
+      "key": "ce_protected_host_read"
+    },
+    "match": true
+  },
+  {
+    "rule": "research-protected-host-audit",
+    "id": "denied-operation",
+    "basis": "benign-illustrative",
+    "fields": {
+      "type": "SYSCALL",
+      "success": "no",
+      "key": "ce_protected_host_read"
+    },
+    "match": false
+  },
+  {
+    "rule": "research-protected-host-audit",
+    "id": "PATH-only",
+    "basis": "mapping-negative",
+    "fields": {
+      "type": "PATH",
+      "key": "ce_protected_host_read"
+    },
+    "match": false
+  },
+  {
+    "rule": "research-protected-host-audit",
+    "id": "other-watch",
+    "basis": "benign-illustrative",
+    "fields": {
+      "type": "SYSCALL",
+      "success": "yes",
+      "key": "ordinary_watch"
+    },
+    "match": false
+  },
+  {
+    "rule": "research-runc-file-create",
+    "id": "runc-file-create-shape",
+    "basis": "source-derived",
+    "fields": {
+      "EventID": 11,
+      "TargetFilename": "/usr/bin/runc"
+    },
+    "match": true
+  },
+  {
+    "rule": "research-runc-file-create",
+    "id": "runtime-package-upgrade",
+    "basis": "benign-illustrative",
+    "fields": {
+      "EventID": 11,
+      "TargetFilename": "/usr/bin/runc"
+    },
+    "match": true
+  },
+  {
+    "rule": "research-runc-file-create",
+    "id": "different-target",
+    "basis": "benign-illustrative",
+    "fields": {
+      "EventID": 11,
+      "TargetFilename": "/usr/bin/runuser"
+    },
+    "match": false
+  },
+  {
+    "rule": "research-runc-file-create",
+    "id": "other-event-class",
+    "basis": "mapping-negative",
+    "fields": {
+      "EventID": 1,
+      "TargetFilename": "/usr/bin/runc"
+    },
+    "match": false
+  },
+  {
+    "rule": "research-ssh-authorized-keys-file-create",
+    "id": "ssh-key-file-create-shape",
+    "basis": "source-derived",
+    "fields": {
+      "EventID": 11,
+      "TargetFilename": "/home/example/.ssh/authorized_keys"
+    },
+    "match": true
+  },
+  {
+    "rule": "research-ssh-authorized-keys-file-create",
+    "id": "approved-key-rotation",
+    "basis": "benign-illustrative",
+    "fields": {
+      "EventID": 11,
+      "TargetFilename": "/home/example/.ssh/authorized_keys"
+    },
+    "match": true
+  },
+  {
+    "rule": "research-ssh-authorized-keys-file-create",
+    "id": "ssh-config-edit",
+    "basis": "benign-illustrative",
+    "fields": {
+      "EventID": 11,
+      "TargetFilename": "/home/example/.ssh/config"
+    },
+    "match": false
+  },
+  {
+    "rule": "research-ssh-authorized-keys-file-create",
+    "id": "alternate-configured-key-path",
+    "basis": "known-gap",
+    "fields": {
+      "EventID": 11,
+      "TargetFilename": "/etc/ssh/approved-keys/example"
+    },
+    "match": false
+  },
+  {
+    "rule": "research-ssh-authorized-keys-file-create",
+    "id": "other-event-class",
+    "basis": "mapping-negative",
+    "fields": {
+      "EventID": 1,
+      "TargetFilename": "/home/example/.ssh/authorized_keys"
+    },
+    "match": false
+  }
+]

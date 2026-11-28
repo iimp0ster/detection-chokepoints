@@ -1,0 +1,60 @@
+/* Container objectives use the existing Lens Explorer tokens and panel treatment. */
+.container-explorer .tabs,
+.container-explorer .nav,
+.container-explorer .nav > div,
+.container-explorer .options,
+.container-explorer .route-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem;
+}
+.container-explorer .tabs { margin-bottom: .75rem; }
+.container-explorer .nav, .container-explorer .route-head { justify-content: space-between; }
+.container-explorer .workspace { margin-block: .8rem; }
+.container-explorer :is(.panel-body, .stack, .checks) { display: grid; gap: .65rem; }
+.container-explorer .panel-body { padding: .75rem 1rem; }
+.container-explorer .panel p { margin-block: .2rem .45rem; }
+.container-explorer .panel-title h2 { line-height: 1.4; }
+.container-explorer :is(.quiet, .compact) { font-size: .84rem; }
+.container-explorer .step,
+.container-explorer .status { padding: .45rem .7rem; border-left: 3px solid var(--low); background: var(--bg-code); }
+.container-explorer .step { border-color: var(--lens-heading); }
+.container-explorer .status.hit { border-color: var(--lens-confirmed); }
+.container-explorer .status.blocked { border-color: var(--lens-attempt); }
+.container-explorer .route { border: 1px solid var(--border-strong); padding: .55rem; display: grid; gap: .5rem; }
+.container-explorer .route.current { border-color: var(--lens-title); }
+.container-explorer .route h3 { font-size: .92rem; overflow-wrap: anywhere; }
+.container-explorer .tag { white-space: normal; font-size: .72rem; }
+.container-explorer .tag.source, .container-explorer .tag.measure { color: var(--lens-observed); }
+.container-explorer .tag.hyp { color: var(--lens-heading); }
+.container-explorer .tag.synthetic { color: var(--lens-title); }
+.container-explorer .flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .3rem .45rem;
+  list-style: none;
+  padding: 0;
+}
+.container-explorer .flow li { display: inline-flex; gap: .35rem; align-items: center; min-width: 0; }
+.container-explorer .flow li:not(:first-child)::before { content: "→"; color: var(--text-muted); }
+.container-explorer .node { padding: .12rem .3rem; border: 1px solid var(--border); font-size: .8rem; }
+.container-explorer :is(.check, .check span) { min-width: 0; }
+.container-explorer .check { display: flex; gap: .45rem; align-items: start; }
+.container-explorer .check input { flex: none; margin: .3em 0 0; accent-color: var(--lens-title); }
+.container-explorer .check small { display: block; color: var(--text-muted); }
+.container-explorer .split { display: grid; gap: .25rem; border-top: 1px solid var(--border); padding-top: .5rem; }
+.container-explorer .good { color: var(--lens-confirmed); }
+.container-explorer .limited { color: var(--lens-heading); }
+.container-explorer details summary { cursor: pointer; color: var(--lens-title); }
+.container-explorer .evidence-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .65rem; }
+.container-explorer .evidence-cards article { border: 1px solid var(--border); padding: .65rem; }
+.container-explorer button[aria-pressed="true"], .container-explorer button[aria-selected="true"] {
+  border-color: var(--lens-title);
+  box-shadow: inset 0 -2px var(--lens-title);
+}
+@media(max-width:800px) {
+  .container-explorer .workspace, .container-explorer .evidence-cards { grid-template-columns: minmax(0,1fr); }
+}
+

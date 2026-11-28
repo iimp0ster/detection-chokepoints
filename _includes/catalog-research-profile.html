@@ -1,0 +1,65 @@
+<link rel="stylesheet" href="{{ '/assets/css/catalog-research-profile.css' | relative_url }}" />
+<div class="cp-page-wrap catalog-research-profile">
+  <header class="cp-hero" id="overview">
+    <div class="cp-hero-inner max-w-[1100px] mx-auto px-6">
+      <div class="cp-hero-top">
+        <a href="{{ '/' | relative_url }}" class="cp-back-pill">&larr; All Chokepoints</a>
+        <span class="cp-maturity mat-research">{{ page.profile_maturity | escape }}</span>
+      </div>
+      <h1 class="cp-hero-title">{{ page.title | escape }}</h1>
+      <p class="cp-hero-constant">{{ page.scope_note | escape }}</p>
+      <div class="cp-hero-badges">
+        {% for technique in page.mitre_ids %}
+        <a class="badge mitre-badge" href="https://attack.mitre.org/techniques/{{ technique | replace: '.', '/' | escape }}/">{{ technique | escape }} Escape to Host</a>
+        {% endfor %}
+        <span class="badge tactic-badge">Research profile</span>
+      </div>
+      <p class="cp-hero-desc">{{ page.threat_summary | escape }}
+        <a href="{{ page.threat_source | escape }}">{{ page.threat_source_label | escape }}</a>
+      </p>
+      <nav class="research-profile-actions" aria-label="Explore container escape research">
+        <a class="cp-back-pill" href="{{ page.explorer_url | relative_url }}">Open the Lens Explorer</a>
+        <a class="cp-back-pill" href="{{ page.research_url | relative_url }}">Read the research study</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="chokepoint-layout max-w-[1100px] mx-auto px-6 pt-8 pb-20">
+{% include chokepoint-sidebar.html research=true %}
+    <article class="chokepoint-content ac-prose">
+      {%- assign content_sections = content | split: '<!-- defensive-coverage -->' -%}
+      {%- if content_sections.size == 2 -%}
+      {{ content_sections[0] }}
+      {%- assign coverage_slug = page.permalink | split: '/' | last -%}
+      {%- include defensive-coverage.html slug=coverage_slug -%}
+      {{ content_sections[1] }}
+      {%- else -%}
+      {{ content }}
+      {%- endif -%}
+      <section class="cp-section-card" id="related">
+        <div class="cp-section-heading-row">
+          <div class="cp-section-icon" aria-hidden="true">
+            <img class="cp-section-pixel" src="{{ '/assets/img/pixel/sec-related.png' | relative_url }}" alt="" width="22" height="22" />
+          </div>
+          <h2 class="cp-section-heading">Related Chokepoints</h2>
+        </div>
+        <div class="research-profile-related">
+          {% for relationship in page.related_entries %}
+            {% assign entry = site.data.chokepoints | where: "_slug", relationship.slug | first %}
+            {% if entry %}
+            <div class="research-profile-related-item">
+              <a class="related-name" href="{{ relationship.slug | prepend: '/chokepoints/' | append: '/' | relative_url }}">{{ entry.Name | escape }}</a>
+              <span class="cp-maturity">{{ relationship.relationship | escape }}</span>
+              <p>{{ relationship.scope | escape }}</p>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </section>
+    </article>
+  </div>
+</div>
+
+<script>
+{% include chokepoint-scroll-spy.html %}
+</script>

@@ -1,0 +1,49 @@
+{%- assign bundle = site.data.container_escape_sigma -%}
+{%- assign payloads = site.data.container_escape_sigma_generated -%}
+{%- if bundle and payloads -%}
+<div id="container-escape-sigma" class="coverage-panel" role="group" aria-labelledby="container-escape-sigma-title">
+  <h4 id="container-escape-sigma-title">Sigma research candidates</h4>
+  <p>Start with the observation your collector can support. These rules flag individual records. A completed operation, unauthorized effect and workload attribution require separate evidence.</p>
+  <p class="coverage-note">{{ bundle.backend_note | escape }}</p>
+  {% for rule in bundle.rules %}
+  {% assign raw = payloads[rule.id] %}
+  <details class="det-rule-item" id="sigma-{{ rule.id }}" data-ce-sigma
+           data-variation="{{ rule.variation | escape }}" data-row="{{ rule.row | escape }}"
+           data-requires="{{ rule.requires | jsonify | escape }}">
+    <summary class="det-rule-header">
+      <span class="det-rule-badge det-badge-research">Research</span>
+      <span class="det-rule-title">{{ rule.title | escape }}</span>
+    </summary>
+    <div class="det-rule-body">
+      <p class="coverage-note" data-ce-sigma-status aria-live="polite">Check the collection and fields below.</p>
+      <p>{{ rule.rationale | escape }}</p>
+      <p><strong>Threat evidence</strong> {{ rule.basis | escape }}. <code>{{ rule.fragment | escape }}</code></p>
+      <ul>{% for ref in rule.sources %}
+        <li><a href="{{ ref.url | escape }}">{{ ref.title | escape }}</a> · {{ ref.locator | escape }}</li>
+      {% endfor %}</ul>
+      <p><strong>Starting point</strong> {{ rule.origin | escape }}</p>
+      <p><strong>Matched fields</strong></p>
+      <ul>{% for match in rule.matches %}<li><code>{{ match | escape }}</code></li>{% endfor %}</ul>
+      <p><strong>Required telemetry</strong></p>
+      <ul>{% for item in rule.fields %}<li>{{ item | escape }}</li>{% endfor %}</ul>
+      <p><strong>Stronger evidence</strong> {{ rule.next_evidence | escape }}</p>
+      <p><strong>Administrative equivalents</strong> {{ rule.administrative | join: ' ' | escape }}</p>
+      <p><strong>Blind spots</strong> {{ rule.blind_spots | escape }}</p>
+      <p><strong>Validation</strong> {{ rule.validation | escape }}</p>
+      <details><summary>Backend mapping and maturity</summary>
+        <p><strong>Backend mapping</strong> {{ rule.backend_mapping | escape }}</p>
+        <p><strong>For Hunt review</strong> {{ rule.hunt_gate | escape }}</p>
+        <p><strong>For Analyst review</strong> {{ rule.analyst_gate | escape }}</p>
+        <p>Compare the relevant observation in the <a href="#tv-relevance">telemetry matrix</a> and check the <a href="#coverage-title">collection recommendation</a>. Demonstrate better discrimination against authorized controls before revisiting maturity.</p>
+      </details>
+      <p><a download href="{{ '/assets/sigma/container-escape-variations/' | append: rule.id | append: '.yml' | relative_url }}">Download YAML<span class="coverage-sr"> for {{ rule.title | escape }}</span></a></p>
+      <details><summary>Read Sigma YAML</summary>
+        <pre tabindex="0" aria-label="Sigma YAML for {{ rule.title | escape }}"><code>{{ raw | escape }}</code></pre>
+      </details>
+    </div>
+  </details>
+  {% endfor %}
+  <p><strong>Related rule set</strong> Reuse the <a href="{{ '/chokepoints/ssh-land-and-run/#detection-strategy' | relative_url }}">SSH Land-and-Run detections</a> when file-backed staging and later execution are in scope. That rule set covers a different observation from a key-file event.</p>
+</div>
+{%- endif -%}
+

@@ -1,0 +1,25 @@
+title: Linux FileCreate at a runc Path
+id: ca5be52d-b33f-4d7d-87e7-db8c37aa5b9a
+status: experimental
+description: Flags mapped Sysmon for Linux FileCreate events for a target basename of runc. Compare the target
+  with the host runtime inventory and the approved package activity.
+references:
+- https://www.openwall.com/lists/oss-security/2019/02/11/2
+- https://github.com/microsoft/Sysmon-Linux
+author: '@iimp0ster'
+date: '2026-11-27'
+tags:
+- attack.t1611
+- detection.maturity.research
+logsource:
+  product: linux
+  category: file_event
+detection:
+  selection:
+    EventID: 11
+    TargetFilename|endswith|cased: /runc
+  # Add a filter_legit_software selection after baselining approved activity.
+  condition: selection
+falsepositives:
+- Runtime package upgrades, image preparation and legitimate staging of a file named runc.
+level: low
