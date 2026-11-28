@@ -1072,7 +1072,9 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
 .cp-section-heading .section-sub { font-size: .72rem; font-weight: 500; }
 </style>
 
-{% assign cp = site.data.chokepoints | where: "_slug", page.slug | first %}
+{% if page.catalog_kind == "research-profile" %}
+{% include catalog-research-profile.html %}
+{% else %}{% assign cp = site.data.chokepoints | where: "_slug", page.slug | first %}
 
 {% if cp == nil %}
   <div class="max-w-[960px] mx-auto px-6 py-10">
@@ -1119,31 +1121,7 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
 </header>
 
 <div class="chokepoint-layout max-w-[1100px] mx-auto px-6 pt-8 pb-20">
-  <nav class="chokepoint-sidebar cp-sidebar-nav" id="chokepoint-nav">
-    <a href="#overview" class="sidebar-link active">Overview</a>
-    {% if cp.Chokepoints %}
-    <a href="#attack-chokepoints" class="sidebar-link">Chokepoints</a>
-    {% endif %}
-    {% if cp.Variations %}
-    <a href="#variations" class="sidebar-link">Variations</a>
-    {% endif %}
-    <a href="#detection-strategy" class="sidebar-link">Detection</a>
-    {% if cp.PreventionSummary or cp.PreventionOpportunities %}
-    <a href="#prevention" class="sidebar-link">Prevention</a>
-    {% endif %}
-    {% if cp.RawLogs %}
-    <a href="#raw-logs" class="sidebar-link">Logs</a>
-    {% endif %}
-    {% if cp.EmulationScript %}
-    <a href="#emulation" class="sidebar-link">Emulation</a>
-    {% endif %}
-    {% if cp.OsintSources %}
-    <a href="#osint-pivots" class="sidebar-link">OSINT</a>
-    {% endif %}
-    {% if cp.RelatedChokepoints %}
-    <a href="#related" class="sidebar-link">Related</a>
-    {% endif %}
-  </nav>
+{% include chokepoint-sidebar.html entry=cp %}
   <article class="chokepoint-content">
 
   <!-- ── 2. Attack Chokepoints ──────────────────────────────────── -->
@@ -1414,7 +1392,7 @@ details.emulation-wrapper[open] .emulation-lang::after { content: ''; }
       <h2 class="cp-section-heading">Detection Strategy</h2>
     </div>
 
-    {% if cp.Chokepoints and cp.Chokepoints.size > 0 %}
+{% include defensive-coverage.html slug=page.slug %}    {% if cp.Chokepoints and cp.Chokepoints.size > 0 %}
     {%- comment -%} ── Stage-grouped layout (new) ── {%- endcomment -%}
     <p class="section-intro mb-5">Rules organized by the chokepoint stage they detect. Each stage has one or more rules at different maturity levels.</p>
 
@@ -2026,31 +2004,7 @@ function copyCode(btn) {
   });
 }
 
-// Scroll spy for sidebar navigation
-(function() {
-  var navLinks = document.querySelectorAll('.sidebar-link');
-  if (!navLinks.length) return;
-  var sectionIds = [];
-  navLinks.forEach(function(link) {
-    sectionIds.push(link.getAttribute('href').slice(1));
-  });
-  var sections = sectionIds.map(function(id) { return document.getElementById(id); }).filter(Boolean);
-  if (!sections.length) return;
-
-  var observer = new IntersectionObserver(function(entries) {
-    entries.forEach(function(entry) {
-      if (entry.isIntersecting) {
-        navLinks.forEach(function(link) {
-          link.classList.toggle('active',
-            link.getAttribute('href') === '#' + entry.target.id
-          );
-        });
-      }
-    });
-  }, { rootMargin: '-20% 0px -70% 0px' });
-
-  sections.forEach(function(section) { observer.observe(section); });
-})();
+{% include chokepoint-scroll-spy.html %}
 </script>
 
-{% endif %}
+{% endif %}{% endif %}

@@ -1,0 +1,1422 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "container-escape-variations",
+  "title": "Container Escape Variations",
+  "maturity": "Research",
+  "deck": "Start with the claim you need to make. Pick a variation, then check which records you would need to support it.",
+  "scope": "Illustrative collection choices. Verify field availability and exact joins in your environment. Gate C.3 remains synthetic.",
+  "behavioralGraph": {
+    "path": "/assets/data/container-escape-research.v1.json",
+    "baseline": "71ede8b3625bcf1a2817b4c4a85e0ee5a1e813ae",
+    "explorer": "/lens-explorer/container-escape/"
+  },
+  "references": [
+    {
+      "id": "gate-b",
+      "title": "Gate B • synthetic replay",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays",
+      "locator": "Published study scope and evidence status"
+    },
+    {
+      "id": "gate-c",
+      "title": "Gate C • measured replay",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays",
+      "locator": "Published study scope and evidence status"
+    },
+    {
+      "id": "gate-c2",
+      "title": "Gate C.2 • measured replay",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays",
+      "locator": "Published study scope and evidence status"
+    },
+    {
+      "id": "gate-c3",
+      "title": "Gate C.3 • synthetic",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays",
+      "locator": "Published study scope and evidence status"
+    },
+    {
+      "id": "study",
+      "title": "Gate D • public Research Studies",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays",
+      "locator": "Published study scope and evidence status"
+    },
+    {
+      "id": "hostpath",
+      "title": "Kubernetes • hostPath",
+      "url": "https://kubernetes.io/docs/concepts/storage/volumes/#hostpath",
+      "locator": "Host resource and management socket exposure"
+    },
+    {
+      "id": "sysdig",
+      "title": "Sysdig • orchestration incident",
+      "url": "https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape",
+      "locator": "Phase 1 host-file output, management and namespace fallback; Phase 2 control-plane credentials"
+    },
+    {
+      "id": "setns",
+      "title": "Linux • setns",
+      "url": "https://man7.org/linux/man-pages/man2/setns.2.html#DESCRIPTION",
+      "locator": "Namespace-specific results and PID namespace semantics"
+    },
+    {
+      "id": "shim",
+      "title": "containerd • abstract shim advisory",
+      "url": "https://github.com/containerd/containerd/security/advisories/GHSA-36xw-fx78-c5r4#impact",
+      "locator": "Impact and affected shim authority"
+    },
+    {
+      "id": "copy",
+      "title": "containerd • CRI copy advisory",
+      "url": "https://github.com/containerd/containerd/security/advisories/GHSA-crp2-qrr5-8pq7#impact",
+      "locator": "Read-only copies during image-volume setup"
+    },
+    {
+      "id": "runc",
+      "title": "runc • runtime integrity disclosure",
+      "url": "https://www.openwall.com/lists/oss-security/2019/02/11/2",
+      "locator": "Overview and runtime lifecycle starts"
+    },
+    {
+      "id": "device",
+      "title": "Wiz • NVIDIA device integration research",
+      "url": "https://www.wiz.io/blog/nvidia-ai-vulnerability-deep-dive-cve-2024-0132",
+      "locator": "Privilege escalation & RCE, from read-only mapping to socket use"
+    },
+    {
+      "id": "ssh",
+      "title": "OpenSSH • trust resolution",
+      "url": "https://man.openbsd.org/sshd_config",
+      "locator": "AuthorizedKeysFile, AuthorizedKeysCommand and Match"
+    }
+  ],
+  "observationFamilies": [
+    {
+      "id": "process",
+      "label": "Process execution",
+      "short": "Process",
+      "collectionAny": [
+        "proc",
+        "kernel"
+      ]
+    },
+    {
+      "id": "namespace",
+      "label": "Namespace transitions",
+      "short": "Namespace",
+      "collectionAny": [
+        "kernel"
+      ]
+    },
+    {
+      "id": "host",
+      "label": "Host-resource access",
+      "short": "Host access",
+      "collectionAny": [
+        "file",
+        "kernel",
+        "job"
+      ]
+    },
+    {
+      "id": "runtime",
+      "label": "Runtime management operations",
+      "short": "Runtime",
+      "collectionAny": [
+        "management",
+        "kernel",
+        "job"
+      ]
+    },
+    {
+      "id": "integrity",
+      "label": "File and integrity changes",
+      "short": "Integrity",
+      "collectionAny": [
+        "file",
+        "kernel"
+      ]
+    },
+    {
+      "id": "policy",
+      "label": "Authorization context",
+      "short": "Policy",
+      "collectionAny": [
+        "auth"
+      ]
+    },
+    {
+      "id": "outcome",
+      "label": "Independent destination outcomes",
+      "short": "Outcome",
+      "collectionAny": [
+        "dest"
+      ]
+    }
+  ],
+  "collectionSources": [
+    {
+      "id": "proc",
+      "label": "Process EDR",
+      "scope": "Process start, parent and lifetime fields vary by agent."
+    },
+    {
+      "id": "file",
+      "label": "Endpoint file and integrity",
+      "scope": "Check supported object identity, access mode, write completion and generation fields."
+    },
+    {
+      "id": "kernel",
+      "label": "Kernel and runtime",
+      "scope": "Require the actual hook, result semantics and lifetime or incarnation fields."
+    },
+    {
+      "id": "management",
+      "label": "Management and orchestration audit",
+      "scope": "Check the retained stage, authenticated principal and runtime mapping."
+    },
+    {
+      "id": "job",
+      "label": "Bound job receipts",
+      "scope": "Exact authenticated request and terminal result for the named controller. Generic audit often lacks them."
+    },
+    {
+      "id": "auth",
+      "label": "Authorization records",
+      "scope": "Intended policy, effective interval and relevant exception or approval."
+    },
+    {
+      "id": "dest",
+      "label": "Independent outcome witness",
+      "scope": "Destination-side read, state, execution or trust evidence at the specified scope."
+    }
+  ],
+  "presets": [
+    {
+      "id": "process",
+      "label": "Process-only EDR",
+      "sources": [
+        "proc"
+      ]
+    },
+    {
+      "id": "endpoint",
+      "label": "Endpoint process and file",
+      "sources": [
+        "proc",
+        "file"
+      ]
+    },
+    {
+      "id": "kernel",
+      "label": "Kernel and runtime",
+      "sources": [
+        "proc",
+        "kernel"
+      ]
+    },
+    {
+      "id": "management",
+      "label": "Management logs",
+      "sources": [
+        "management"
+      ]
+    },
+    {
+      "id": "scoped",
+      "label": "Scoped joined evidence",
+      "sources": [
+        "proc",
+        "file",
+        "kernel",
+        "management",
+        "job",
+        "auth",
+        "dest"
+      ]
+    }
+  ],
+  "variations": [
+    {
+      "id": "mapping",
+      "title": "Granted host mapping",
+      "scope": "Source-supported mechanism. Access may predate workload compromise.",
+      "refs": [
+        "hostpath",
+        "sysdig"
+      ],
+      "graph": {
+        "objective": "data",
+        "route": "mapping"
+      },
+      "observations": [
+        {
+          "family": "process",
+          "state": "context",
+          "relevance": "Find the workload process that could use the mapping.",
+          "establishes": "A process episode was observed.",
+          "limit": "Process events alone do not resolve the object or establish a completed read."
+        },
+        {
+          "family": "host",
+          "state": "source",
+          "relevance": "Observe the operation on a resolved host object through the mapping.",
+          "establishes": "A sufficiently scoped result supports a completed host read.",
+          "limit": "Path text and a mount declaration cannot establish object identity or source version."
+        },
+        {
+          "family": "integrity",
+          "state": "source",
+          "relevance": "For a writable grant, compare independent state before and after use.",
+          "establishes": "A matching change supports a host mutation.",
+          "limit": "A read-only route can acquire data while leaving durable state unchanged."
+        },
+        {
+          "family": "policy",
+          "state": "context",
+          "relevance": "Compare the actual resource and action with intended policy.",
+          "establishes": "A relevant authorization record supports scope.",
+          "limit": "An approved backup can read the same object."
+        },
+        {
+          "family": "outcome",
+          "state": "hypothesis",
+          "relevance": "Use a receiver-side witness for the designated representation.",
+          "establishes": "An exact receipt could support acquisition by the recipient.",
+          "limit": "Receipt alone leaves the original host version and workload cause unresolved."
+        }
+      ],
+      "claims": [
+        {
+          "title": "Occurred on a host-owned object",
+          "requiresAny": [
+            [
+              "kernel"
+            ],
+            [
+              "file",
+              "proc"
+            ]
+          ],
+          "qualification": "The collector must retain a completed read or write and resolve the exact object, actor and version."
+        },
+        {
+          "title": "Designated data reached this recipient",
+          "requiresAny": [
+            [
+              "kernel",
+              "dest"
+            ],
+            [
+              "proc",
+              "file",
+              "dest"
+            ]
+          ],
+          "qualification": "Join the version-bound completed read to an independently scoped recipient."
+        },
+        {
+          "title": "This use was outside intended policy",
+          "requiresAny": [
+            [
+              "kernel",
+              "auth"
+            ],
+            [
+              "proc",
+              "file",
+              "auth"
+            ]
+          ],
+          "qualification": "Match identity, resource, action, and policy valid time."
+        }
+      ],
+      "hunt": "Hunt for high-risk host mappings, unusual resource access, or a workload near an independently observed host change."
+    },
+    {
+      "id": "namespace",
+      "title": "Namespace-mediated access",
+      "scope": "Source-supported namespace behavior. Individual fallback effects remain unresolved.",
+      "refs": [
+        "sysdig",
+        "setns"
+      ],
+      "graph": {
+        "objective": "execution",
+        "route": "namespace"
+      },
+      "observations": [
+        {
+          "family": "process",
+          "state": "source",
+          "relevance": "Inspect the resulting actor and later child when PID context changes.",
+          "establishes": "A process lifetime can support the route when joined to the operation.",
+          "limit": "A named utility such as nsenter is a hunt lead. Its execution does not prove a successful transition."
+        },
+        {
+          "family": "namespace",
+          "state": "source",
+          "relevance": "Resolve target namespace type, identity and signed result.",
+          "establishes": "An attributable successful operation supports a particular context change.",
+          "limit": "One changed namespace does not establish host resource access or effective host authority."
+        },
+        {
+          "family": "host",
+          "state": "hypothesis",
+          "relevance": "Bind subsequent use of the relevant host resource.",
+          "establishes": "A completed, scoped operation could establish use.",
+          "limit": "A successful transition alone is upstream evidence."
+        },
+        {
+          "family": "policy",
+          "state": "context",
+          "relevance": "Check approved diagnostics, runtime work and node operations.",
+          "establishes": "Authorization can separate approved administration from a suspicious transition.",
+          "limit": "Local policy needs the exact actor and target."
+        },
+        {
+          "family": "outcome",
+          "state": "hypothesis",
+          "relevance": "Corroborate a resulting host action.",
+          "establishes": "A qualified independent witness could support the outcome.",
+          "limit": "The public fallback narrative leaves individual transition-to-effect joins open."
+        }
+      ],
+      "claims": [
+        {
+          "title": "Relevant namespace transition occurred",
+          "requiresAny": [
+            [
+              "kernel"
+            ]
+          ],
+          "qualification": "Require namespace type, real target, result, and workload lifetime. Generic process-only records cannot substitute."
+        },
+        {
+          "title": "Host action followed this transition",
+          "requiresAny": [
+            [
+              "kernel",
+              "proc",
+              "dest",
+              "auth"
+            ]
+          ],
+          "qualification": "Qualify actual resulting authority, resulting actor and exact action. Evaluate policy separately."
+        }
+      ],
+      "hunt": "Hunt for unusual namespace tools, target selectors, and container-to-host process context. Approved node debugging can look similar."
+    },
+    {
+      "id": "delegation",
+      "title": "Privileged runtime delegation",
+      "scope": "Source-supported mechanism. A controller can act on a workload's behalf.",
+      "refs": [
+        "sysdig",
+        "shim",
+        "gate-c2"
+      ],
+      "graph": {
+        "objective": "data",
+        "route": "daemon"
+      },
+      "observations": [
+        {
+          "family": "process",
+          "state": "context",
+          "relevance": "Validate originating workload and resulting executor lifetimes.",
+          "establishes": "A boot-scoped process can be a join point.",
+          "limit": "A daemon's child or runtime event does not identify the initiating workload independently."
+        },
+        {
+          "family": "host",
+          "state": "source",
+          "relevance": "Observe the controller's completed action on the target.",
+          "establishes": "A result tied to a resolved object supports use.",
+          "limit": "The actor on the host operation can be the controller rather than the requesting workload."
+        },
+        {
+          "family": "runtime",
+          "state": "source",
+          "relevance": "Join authenticated requester, accepted request, terminal and realized host action.",
+          "establishes": "An exact terminal supports the scoped completed job.",
+          "limit": "Generic management audit or a mounted socket is insufficient. Abstract shim transport is a separate surface."
+        },
+        {
+          "family": "policy",
+          "state": "context",
+          "relevance": "Check intended authorization for the requesting actor and operation.",
+          "establishes": "An applicable policy can qualify approved or unauthorized use.",
+          "limit": "The controller's technical authority is separate from requester authorization."
+        },
+        {
+          "family": "outcome",
+          "state": "source",
+          "relevance": "Verify the effect at the destination independently.",
+          "establishes": "A linked host witness can support the downstream effect.",
+          "limit": "An outcome may survive loss of workload attribution or upstream causal evidence."
+        }
+      ],
+      "claims": [
+        {
+          "title": "Host or destination effect can be investigated",
+          "requiresAny": [
+            [
+              "dest"
+            ]
+          ],
+          "qualification": "A qualified independent witness can establish the outcome within its scope; origin and policy remain open."
+        },
+        {
+          "title": "Completed runtime job supports the witnessed effect",
+          "requiresAny": [
+            [
+              "job",
+              "dest"
+            ]
+          ],
+          "qualification": "Require a trusted terminal-to-object or result binding. Gate C.2 measured one instrumented helper contract only."
+        },
+        {
+          "title": "Workload-to-effect link can be reconstructed",
+          "requiresAny": [
+            [
+              "kernel",
+              "job",
+              "auth",
+              "dest"
+            ],
+            [
+              "proc",
+              "management",
+              "job",
+              "auth",
+              "dest"
+            ]
+          ],
+          "qualification": "Require the exact workload lifetime, job, target and outcome. Validate the crosswalk. Generic logs do not produce fixture transaction keys."
+        }
+      ],
+      "hunt": "Start with the process lifetime. If management audit is available, look for an unexpected create or a request to a host-enabled job."
+    },
+    {
+      "id": "copy",
+      "title": "Runtime-materialized copy",
+      "scope": "Source-supported exposure. Later acquisition can be a local read.",
+      "refs": [
+        "copy"
+      ],
+      "graph": {
+        "objective": "data",
+        "route": "copy"
+      },
+      "observations": [
+        {
+          "family": "process",
+          "state": "context",
+          "relevance": "Identify the workload or later reader.",
+          "establishes": "A lifetime can help bind a local read.",
+          "limit": "A new process is not required to read an existing copy."
+        },
+        {
+          "family": "host",
+          "state": "context",
+          "relevance": "Look for the original protected version at materialization.",
+          "establishes": "A trusted source-side record can bind that version.",
+          "limit": "The later reader may never touch the original host object."
+        },
+        {
+          "family": "runtime",
+          "state": "source",
+          "relevance": "Trace runtime image-volume handling to the resulting copy.",
+          "establishes": "A captured transaction could identify materialization.",
+          "limit": "The advisory establishes capability; routine runtime lifecycle events do not guarantee provenance fields."
+        },
+        {
+          "family": "integrity",
+          "state": "context",
+          "relevance": "Resolve the distinct local copy and its generation.",
+          "establishes": "A version-scoped identity can distinguish candidate copies.",
+          "limit": "Equal content may be stale or unrelated."
+        },
+        {
+          "family": "outcome",
+          "state": "hypothesis",
+          "relevance": "Capture acquisition of the resulting representation.",
+          "establishes": "A recipient-bound read can support acquisition of the local copy.",
+          "limit": "A specific incident recipient and exact source-version link remain untested here."
+        }
+      ],
+      "claims": [
+        {
+          "title": "Workload acquired a local copy",
+          "requiresAny": [
+            [
+              "file",
+              "dest"
+            ],
+            [
+              "kernel",
+              "dest"
+            ]
+          ],
+          "qualification": "Require version-scoped local read and named recipient. This does not prove host provenance."
+        },
+        {
+          "title": "The copy came from the designated host version",
+          "requiresAny": [
+            [
+              "kernel",
+              "file",
+              "dest"
+            ]
+          ],
+          "qualification": "A trusted materialization record must link the specific source version to the copy and recipient. Verify actual fields."
+        }
+      ],
+      "hunt": "Hunt unusual workload creation and volume handling. Investigate local reads without assuming a new host-side read."
+    },
+    {
+      "id": "integrity",
+      "title": "Runtime binary replacement",
+      "scope": "Source-supported lifecycle mechanism. Later use of the affected version is a separate claim.",
+      "refs": [
+        "runc"
+      ],
+      "graph": {
+        "objective": "execution",
+        "route": "binary"
+      },
+      "observations": [
+        {
+          "family": "process",
+          "state": "source",
+          "relevance": "Find the later invocation that consumed the affected generation.",
+          "establishes": "An exact-generation launch can support execution.",
+          "limit": "An unrelated routine launch or a clean replacement may follow the alert."
+        },
+        {
+          "family": "runtime",
+          "state": "context",
+          "relevance": "Scope the lifecycle event and affected runtime instance.",
+          "establishes": "A runtime action can establish the relevant stage.",
+          "limit": "Nearby runtime activity does not prove consumption."
+        },
+        {
+          "family": "integrity",
+          "state": "source",
+          "relevance": "Observe a confirmed change to the exact host binary.",
+          "establishes": "Independent integrity evidence supports modification.",
+          "limit": "Approved package maintenance can replace the same artifact."
+        },
+        {
+          "family": "policy",
+          "state": "context",
+          "relevance": "Check whether this installer or actor had change approval.",
+          "establishes": "An approved change record can explain replacement.",
+          "limit": "Missing policy is unknown."
+        },
+        {
+          "family": "outcome",
+          "state": "hypothesis",
+          "relevance": "Corroborate execution through a trusted witness when host trust is in doubt.",
+          "establishes": "An independent, qualified result could support host execution.",
+          "limit": "Binding to the affected generation remains necessary for causation."
+        }
+      ],
+      "claims": [
+        {
+          "title": "A host runtime binary changed",
+          "requiresAny": [
+            [
+              "file",
+              "dest"
+            ]
+          ],
+          "qualification": "Before/after identity or trusted integrity witness must identify the same target and generation."
+        },
+        {
+          "title": "The affected generation ran under host authority",
+          "requiresAny": [
+            [
+              "proc",
+              "file",
+              "dest"
+            ],
+            [
+              "kernel",
+              "file",
+              "dest"
+            ]
+          ],
+          "qualification": "Prove actual consumption and qualified authority. Check the authorized upgrade twin."
+        }
+      ],
+      "hunt": "Hunt unexpected runtime binary changes and nearby launches. Correlate by file generation before asserting causation."
+    },
+    {
+      "id": "composed",
+      "title": "Device setup plus a daemon job",
+      "scope": "Source-supported composition. Exact downstream receipt is modeled.",
+      "refs": [
+        "device",
+        "sysdig"
+      ],
+      "graph": {
+        "objective": "data",
+        "route": "device-daemon"
+      },
+      "observations": [
+        {
+          "family": "namespace",
+          "state": "context",
+          "relevance": "Check setup context and the effective resource view.",
+          "establishes": "Resolved context can support exposure investigation.",
+          "limit": "No explicit namespace change is required for socket reach."
+        },
+        {
+          "family": "host",
+          "state": "source",
+          "relevance": "Observe the unintended mapping and exposed resource.",
+          "establishes": "The case demonstrates a read-only host view.",
+          "limit": "Read-only file semantics did not block Unix-socket use in that demonstration."
+        },
+        {
+          "family": "runtime",
+          "state": "source",
+          "relevance": "Separate socket reach from the later privileged runtime job.",
+          "establishes": "A completed job can support utilization of daemon authority.",
+          "limit": "A file policy or removal of the conventional grant does not establish that this route is cut."
+        },
+        {
+          "family": "policy",
+          "state": "context",
+          "relevance": "Evaluate device setup policy and daemon job policy independently.",
+          "establishes": "Separate controls can cover distinct interactions.",
+          "limit": "Neither policy implies exact outcome or later acquisition."
+        },
+        {
+          "family": "outcome",
+          "state": "hypothesis",
+          "relevance": "Watch delivery of the designated version from the job.",
+          "establishes": "A bound receipt could support the selected data objective.",
+          "limit": "Original device research supports the composition, not this modeled receipt."
+        }
+      ],
+      "claims": [
+        {
+          "title": "Unintended mapping and daemon reach were present",
+          "requiresAny": [
+            [
+              "kernel",
+              "management"
+            ]
+          ],
+          "qualification": "Resolve actual mount scope and controller access. Read-only does not establish absence of socket activity."
+        },
+        {
+          "title": "A host-enabled job used this composed route",
+          "requiresAny": [
+            [
+              "kernel",
+              "job",
+              "dest",
+              "auth"
+            ]
+          ],
+          "qualification": "Join the originating setup, the authenticated job terminal, and actual host outcome."
+        }
+      ],
+      "hunt": "Hunt unusual setup changes and unexpected controller activity. Inspect separate enforcement at both boundaries."
+    },
+    {
+      "id": "trust",
+      "title": "Effective local SSH trust",
+      "scope": "Source-supported resolver semantics. The workload-origin route is hypothetical.",
+      "refs": [
+        "ssh"
+      ],
+      "graph": {
+        "objective": "trust",
+        "route": "local"
+      },
+      "observations": [
+        {
+          "family": "process",
+          "state": "context",
+          "relevance": "Identify the workload or authorized change actor.",
+          "establishes": "An actor lifetime supports attribution if the write is bound.",
+          "limit": "Process history cannot prove effective key eligibility."
+        },
+        {
+          "family": "integrity",
+          "state": "hypothesis",
+          "relevance": "Check the changed input used for this account and connection.",
+          "establishes": "A qualified mutation can support the input change.",
+          "limit": "An ineffective write and an approved rotation are controls."
+        },
+        {
+          "family": "policy",
+          "state": "context",
+          "relevance": "Check approval, effective configuration and other providers.",
+          "establishes": "Applicable policy and trust inputs qualify the claim.",
+          "limit": "A central publisher can establish the same eligibility without a node escape."
+        },
+        {
+          "family": "outcome",
+          "state": "hypothesis",
+          "relevance": "Check effective resolver decision and any later authentication separately.",
+          "establishes": "Qualified server-side evidence could establish eligibility.",
+          "limit": "A successful session may require other factors and is a separate result."
+        }
+      ],
+      "claims": [
+        {
+          "title": "A named key became eligible for this account",
+          "requiresAny": [
+            [
+              "dest",
+              "auth"
+            ]
+          ],
+          "qualification": "Use exact account, key and connection context. Evaluate effective resolver and intended change policy separately."
+        },
+        {
+          "title": "The workload caused the trust change",
+          "requiresAny": [
+            [
+              "proc",
+              "file",
+              "auth",
+              "dest"
+            ],
+            [
+              "kernel",
+              "job",
+              "auth",
+              "dest"
+            ]
+          ],
+          "qualification": "Bind the exact trust input change or job to effective resolution and distinguish host-native or central issuance."
+        }
+      ],
+      "hunt": "Hunt trust source changes and destination authentication while the change origin is unresolved."
+    },
+    {
+      "id": "diagnostic",
+      "title": "Direct write diagnostic",
+      "scope": "Measured comparison of inert writers. Named hook and separate reference slots.",
+      "refs": [
+        "gate-c2",
+        "study"
+      ],
+      "observations": [
+        {
+          "family": "process",
+          "state": "context",
+          "relevance": "The actor and fixture were enrolled for each diagnostic invocation.",
+          "establishes": "This supports scope for the comparison.",
+          "limit": "Actor matching does not fill an absent completion record."
+        },
+        {
+          "family": "host",
+          "state": "unavailable",
+          "relevance": "The selected Tetragon hook yielded zero returns for either tested vectored writer.",
+          "establishes": "This shows a scoped observation gap.",
+          "limit": "Reference tracing separately recorded the completed scalar, positional and both vectored writers. This does not imply general sensor incapability."
+        },
+        {
+          "family": "integrity",
+          "state": "measured",
+          "relevance": "The selected Tetragon hook retained both scalar and both positional returns.",
+          "establishes": "Captured signed returns support the tested operations. Separate witnesses observed canary changes.",
+          "limit": "The sensor projection lacked a native FD or durable object identifier. Separate invocations were used for reference and sensor."
+        },
+        {
+          "family": "outcome",
+          "state": "measured",
+          "relevance": "The independent witness observed the designated canary change.",
+          "establishes": "An independently supported outcome remained visible despite missing hook returns.",
+          "limit": "The outcome does not supply the missed operation or its exact actor/object binding."
+        }
+      ],
+      "claims": [
+        {
+          "title": "A controlled downstream state change was observed",
+          "requiresAny": [
+            [
+              "dest"
+            ]
+          ],
+          "qualification": "An independent scoped witness can support the fixture change even with the tested hook gap."
+        },
+        {
+          "title": "Exact vectored completion from the selected hook",
+          "requiresAny": [],
+          "qualification": "Unavailable in the measured vectored arm. Selecting a generic kernel source cannot recover the missed record.",
+          "availability": "unavailable"
+        }
+      ],
+      "hunt": "Investigate the verified effect and check hook coverage across the applicable operation classes."
+    },
+    {
+      "id": "synthetic-direct",
+      "title": "Direct canary model • Gate B",
+      "scope": "Synthetic replay only. Scope and conclusion apply to the constructed fixture.",
+      "refs": [
+        "gate-b",
+        "study"
+      ],
+      "observations": [
+        {
+          "family": "process",
+          "state": "context",
+          "relevance": "The modeled workload identity gives scoped lifetime and policy context.",
+          "establishes": "The fixture provides scoped lifetime and policy context.",
+          "limit": "This says nothing about a native process collector."
+        },
+        {
+          "family": "host",
+          "state": "synthetic",
+          "relevance": "The fixture supplies targeted kernel evidence for the direct write.",
+          "establishes": "Under the modeled fields it supports completed direct use.",
+          "limit": "The modeled object/operation join is stronger than the measured Gate C direct evidence."
+        },
+        {
+          "family": "policy",
+          "state": "context",
+          "relevance": "The modeled W lens supplies intended-policy context.",
+          "establishes": "Authorized twins remain separate.",
+          "limit": "Policy alone cannot establish write completion."
+        },
+        {
+          "family": "outcome",
+          "state": "synthetic",
+          "relevance": "The modeled H lens supplies an independent canary result.",
+          "establishes": "It supports the scoped effect with modeled workload and kernel evidence.",
+          "limit": "No live sensor or actual escape validation follows."
+        }
+      ],
+      "claims": [
+        {
+          "title": "Direct canary effect can be confirmed in this model",
+          "requiresAny": [
+            [
+              "kernel",
+              "auth",
+              "dest"
+            ]
+          ],
+          "qualification": "The Gate B modeled W/K/H set also requires exact workload incarnation. This profile choice only illustrates the evidence categories."
+        }
+      ],
+      "hunt": "Use the synthetic cases to test reasoning about missing evidence. Gate C found no qualifying direct measured combination."
+    }
+  ],
+  "evidenceExamples": [
+    {
+      "id": "containerd-start",
+      "title": "Containerd task start",
+      "provenance": "native-projection",
+      "study": "Gate C.2",
+      "locator": "containerd event projection",
+      "refs": [
+        "gate-c2"
+      ],
+      "fields": [
+        {
+          "field": "topic",
+          "value": "/tasks/start"
+        },
+        {
+          "field": "pid",
+          "value": "Withheld"
+        },
+        {
+          "field": "container_id_digest",
+          "value": "Projection digest withheld"
+        }
+      ],
+      "identifies": "A containerd task start and a process/runtime join candidate.",
+      "establishes": "The selected native lifecycle observer retained the start.",
+      "limits": "A task start does not show a host operation, prove its origin, or establish a completed job.",
+      "strengthen": "Join a boot-scoped workload lifetime and exact operation or job record.",
+      "administrative": "Ordinary rollout, restart, or an approved troubleshooting workload."
+    },
+    {
+      "id": "tetragon-return",
+      "title": "Signed Tetragon return",
+      "provenance": "native-projection",
+      "study": "Gate C.2",
+      "locator": "Tetragon process_kprobe projection",
+      "refs": [
+        "gate-c2"
+      ],
+      "fields": [
+        {
+          "field": "kind",
+          "value": "process_kprobe"
+        },
+        {
+          "field": "hook",
+          "value": "vfs_write"
+        },
+        {
+          "field": "signed_return",
+          "value": "16"
+        }
+      ],
+      "identifies": "The observed process and selected hook result in the test.",
+      "establishes": "A scoped hook retained a positive byte return in this slot.",
+      "limits": "A return alone does not prove exact target identity, filename provenance, independent change, or a workload-to-host link.",
+      "strengthen": "Exact actor and object binding plus an independent witness. For mediation, retain the authorized request and terminal job relation.",
+      "administrative": "A legitimate helper or maintenance service writing a host object."
+    },
+    {
+      "id": "helper-terminal",
+      "title": "Authenticated helper terminal",
+      "provenance": "supplemental",
+      "study": "Gate C.2",
+      "locator": "helper acceptance and terminal projections",
+      "refs": [
+        "gate-c2"
+      ],
+      "fields": [
+        {
+          "field": "phase",
+          "value": "accepted, then terminal"
+        },
+        {
+          "field": "result",
+          "value": "ok (terminal)"
+        },
+        {
+          "field": "bytes",
+          "value": "16 (terminal)"
+        }
+      ],
+      "identifies": "The fixture helper used the same scoped job for acceptance and completion. Job and actor values are withheld.",
+      "establishes": "The instrumented helper reported a completed operation.",
+      "limits": "This is a test harness record. A stock runtime log is not assumed to supply the same binding. A terminal is separate from an independent outcome.",
+      "strengthen": "Join the exact fixture and terminal time to the independently read state, plus workload lifetime and policy for causal attribution.",
+      "administrative": "An approved controller or broker operation can complete the same write."
+    },
+    {
+      "id": "independent-witness",
+      "title": "Independent host state",
+      "provenance": "supplemental",
+      "study": "Gate C.2",
+      "locator": "host physical binding witness",
+      "refs": [
+        "gate-c2"
+      ],
+      "fields": [
+        {
+          "field": "changed",
+          "value": "true"
+        },
+        {
+          "field": "observation_class",
+          "value": "state_readback"
+        },
+        {
+          "field": "canonical_revision",
+          "value": "Withheld"
+        }
+      ],
+      "identifies": "The host-side witness for the inert state record.",
+      "establishes": "Independently observed state changed within the fixture scope.",
+      "limits": "The witness does not identify the writer, its permitted scope, or a preceding boundary crossing.",
+      "strengthen": "Supply a completed operation or exact terminal, actor lifetime, object revision, and applicable authorization.",
+      "administrative": "Authorized account, trust, schedule, or service maintenance can change the same category of state."
+    },
+    {
+      "id": "gate-b-shape",
+      "title": "Direct effect with a modeled object binding",
+      "provenance": "synthetic",
+      "study": "Gate B",
+      "locator": "Gate B direct-write fixture model",
+      "refs": [
+        "gate-b"
+      ],
+      "fields": [
+        {
+          "field": "W",
+          "value": "Modeled workload episode and policy"
+        },
+        {
+          "field": "K",
+          "value": "Modeled qualified kernel operation"
+        },
+        {
+          "field": "H",
+          "value": "Modeled independent outcome"
+        }
+      ],
+      "identifies": "A constructed workload-to-host canary mutation.",
+      "establishes": "The full modeled direct evidence supports that synthetic effect.",
+      "limits": "These are evidence categories, with no native event schema or measurement implied.",
+      "strengthen": "Demonstrate actual collector support for actor, object generation, completion, and independent state.",
+      "administrative": "A scoped authorized update can share the same observed shape."
+    }
+  ],
+  "findings": [
+    {
+      "id": "delegated-effect-v-cause",
+      "title": "The effect can survive missing cause",
+      "featured": true,
+      "provenance": "measured",
+      "study": "Gate C.2",
+      "cohort": "Augmented delegated workload path",
+      "cutoff": "Final replay",
+      "refs": [
+        "gate-c2",
+        "study"
+      ],
+      "lead": "D/H kept every witnessed delegated effect. Adding workload and policy context closed the causal links in this fixture.",
+      "interpretation": "D is the authenticated job and transaction evidence. H is the independent outcome. W gives workload lifetime and scope. A supplies the applicable policy. The W and A records help reconstruct which workload crossed which test boundary, even though the effect count stays the same.",
+      "limitations": "Eleven delegated trials included two attempts. The effect and causal denominators answer different questions. The cohort used inert records and a trusted test helper. It establishes neither successful escape nor real persistence.",
+      "comparisons": [
+        {
+          "label": "D/H",
+          "lenses": [
+            "D",
+            "H"
+          ],
+          "metrics": [
+            {
+              "label": "Downstream effects",
+              "confirmed": 9,
+              "denominator": 9
+            },
+            {
+              "label": "Causal edges",
+              "confirmed": 0,
+              "denominator": 7
+            }
+          ]
+        },
+        {
+          "label": "W/D/A/H",
+          "lenses": [
+            "W",
+            "D",
+            "A",
+            "H"
+          ],
+          "metrics": [
+            {
+              "label": "Downstream effects",
+              "confirmed": 9,
+              "denominator": 9
+            },
+            {
+              "label": "Causal edges",
+              "confirmed": 7,
+              "denominator": 7
+            }
+          ]
+        }
+      ],
+      "minima": [
+        {
+          "path": "Delegated workload",
+          "claim": "Effect",
+          "lenses": [
+            "D",
+            "H"
+          ],
+          "scope": "Every measured augmented cutoff in this path."
+        },
+        {
+          "path": "Delegated workload",
+          "claim": "Boundary, causal edge",
+          "lenses": [
+            "W",
+            "D",
+            "A",
+            "H"
+          ],
+          "scope": "5 s and final replay. Earlier causal qualification was unavailable."
+        },
+        {
+          "path": "Delegated workload",
+          "claim": "Downstream authorization",
+          "lenses": [
+            "W",
+            "D",
+            "A",
+            "H"
+          ],
+          "scope": "Every measured augmented cutoff in this path."
+        },
+        {
+          "path": "Host-native",
+          "claim": "Effect",
+          "lenses": [
+            "W",
+            "K",
+            "H"
+          ],
+          "scope": "Final augmented replay. Host-native labels describe the actor on the downstream node."
+        },
+        {
+          "path": "Host-native",
+          "claim": "Downstream authorization",
+          "lenses": [
+            "W",
+            "K",
+            "A",
+            "H"
+          ],
+          "scope": "Final augmented replay. Separate workload activity cannot supply this causal edge."
+        }
+      ],
+      "lensKey": "D job · H outcome · W workload lifetime · A authorization"
+    },
+    {
+      "id": "hook-gap",
+      "title": "A different write reaches the same canary",
+      "featured": true,
+      "provenance": "measured",
+      "study": "Gate C.2",
+      "cohort": "Direct-write diagnostic; 8 reference slots and 8 separate sensor slots",
+      "cutoff": "Completed invocations",
+      "refs": [
+        "gate-c2",
+        "study"
+      ],
+      "lead": "The reference observer saw both vectored writers complete. The selected Tetragon hook missed both in separate runs.",
+      "interpretation": "Every diagnostic invocation changed its designated canary. A matching process and file alias did not recover the missed completion. The reference returns for each vectored writer were 16 bytes.",
+      "limitations": "The selected policy used vfs_write under the tested stack. Reference and Tetragon rows came from different invocations. The sensor projection lacked a native FD or durable object identifier. The result does not estimate broad collector coverage.",
+      "comparisons": [
+        {
+          "label": "Original Gate C writer, writev",
+          "lenses": [],
+          "metrics": [
+            {
+              "label": "Reference",
+              "confirmed": 2,
+              "denominator": 2
+            },
+            {
+              "label": "Tetragon",
+              "confirmed": 0,
+              "denominator": 2
+            }
+          ]
+        },
+        {
+          "label": "Known vectored writer, writev",
+          "lenses": [],
+          "metrics": [
+            {
+              "label": "Reference",
+              "confirmed": 2,
+              "denominator": 2
+            },
+            {
+              "label": "Tetragon",
+              "confirmed": 0,
+              "denominator": 2
+            }
+          ]
+        },
+        {
+          "label": "Scalar control, write",
+          "lenses": [],
+          "metrics": [
+            {
+              "label": "Reference",
+              "confirmed": 2,
+              "denominator": 2
+            },
+            {
+              "label": "Tetragon",
+              "confirmed": 2,
+              "denominator": 2
+            }
+          ]
+        },
+        {
+          "label": "Positional control, pwrite64",
+          "lenses": [],
+          "metrics": [
+            {
+              "label": "Reference",
+              "confirmed": 2,
+              "denominator": 2
+            },
+            {
+              "label": "Tetragon",
+              "confirmed": 2,
+              "denominator": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "direct-delegated-b",
+      "title": "One host effect, two attribution paths",
+      "featured": false,
+      "provenance": "synthetic",
+      "study": "Gate B",
+      "cohort": "Primary canary positives and scoped controls",
+      "cutoff": "Final replay",
+      "refs": [
+        "gate-b",
+        "study"
+      ],
+      "lead": "The modeled direct operation and delegated job reach an inert host canary. The smallest evidence sets distinguish which actor performed the operation.",
+      "interpretation": "For the direct path the kernel operation matters. For the delegated path, use the authenticated job. The independent outcome serves both. Gate B W includes workload and policy context.",
+      "limitations": "These minima use modeled identities and object bindings. They do not describe what an installed collector emits.",
+      "comparisons": [
+        {
+          "label": "All lenses",
+          "lenses": [
+            "W",
+            "K",
+            "D",
+            "H"
+          ],
+          "metrics": [
+            {
+              "label": "Primary effects",
+              "confirmed": 4,
+              "denominator": 4
+            }
+          ]
+        }
+      ],
+      "minima": [
+        {
+          "path": "Direct workload",
+          "claim": "Primary effect",
+          "lenses": [
+            "W",
+            "K",
+            "H"
+          ],
+          "scope": "Modeled direct writes and controls."
+        },
+        {
+          "path": "Delegated workload",
+          "claim": "Primary effect",
+          "lenses": [
+            "W",
+            "D",
+            "H"
+          ],
+          "scope": "Modeled delegated writes and controls."
+        },
+        {
+          "path": "Combined cohort",
+          "claim": "Primary effect",
+          "lenses": [
+            "W",
+            "K",
+            "D",
+            "H"
+          ],
+          "scope": "Both modeled paths."
+        }
+      ]
+    },
+    {
+      "id": "direct-delegated-c",
+      "title": "The measured direct path lacked completion evidence",
+      "featured": false,
+      "provenance": "measured",
+      "study": "Gate C",
+      "cohort": "Primary direct and delegated canary writes",
+      "cutoff": "Complete evidence, final replay",
+      "refs": [
+        "gate-c",
+        "study"
+      ],
+      "lead": "The complete profile confirmed all primary delegated effects. It confirmed zero primary direct effects.",
+      "interpretation": "The complete profile's delegated minimum used workload, policy, authenticated helper and independent outcome records. The selected native hook provided no completed direct operation.",
+      "limitations": "No measured combination qualified for direct or combined coverage, and none qualified in the native profiles. Two additional delayed delegated positives are outside the primary denominator.",
+      "comparisons": [
+        {
+          "label": "Complete research instrumentation",
+          "lenses": [
+            "W",
+            "K",
+            "D",
+            "H"
+          ],
+          "metrics": [
+            {
+              "label": "Direct primary effects",
+              "confirmed": 0,
+              "denominator": 8
+            },
+            {
+              "label": "Delegated primary effects",
+              "confirmed": 8,
+              "denominator": 8
+            }
+          ]
+        }
+      ],
+      "minima": [
+        {
+          "path": "Delegated workload",
+          "claim": "Primary effect",
+          "lenses": [
+            "W",
+            "D",
+            "H"
+          ],
+          "scope": "Every cutoff in complete instrumentation, specific to the tested helper."
+        }
+      ]
+    }
+  ],
+  "placements": [
+    {
+      "id": "exposure",
+      "title": "Dangerous exposure",
+      "detection": "Admission or inventory shows an unexpected grant.",
+      "prevention": "Scope admission, grants and versions before use.",
+      "deception": "An isolated nonfunctional management surface can show unexpected contact.",
+      "investigation": "Check approved debug and device workloads."
+    },
+    {
+      "id": "boundary",
+      "title": "Boundary interaction",
+      "detection": "Qualify target context, resolved object or controller peer.",
+      "prevention": "Enforce the specific boundary before the operation.",
+      "deception": "Record contact with an inert decoy without granting real authority.",
+      "investigation": "Bind actor lifetime, target identity and result."
+    },
+    {
+      "id": "authority",
+      "title": "Exercise of authority",
+      "detection": "Follow a completed read, write, or host-enabled job.",
+      "prevention": "Restrict the job or allowed resource operation where eligible.",
+      "deception": "Track use of an isolated nonsecret marker.",
+      "investigation": "Separate request acceptance, completion and actual authorized scope."
+    },
+    {
+      "id": "effect",
+      "title": "Downstream effect",
+      "detection": "Check the independent recipient, execution or trust witness.",
+      "prevention": "Protect the configured destination input.",
+      "deception": "Observe effects on a controlled decoy state.",
+      "investigation": "Record the effect even if origin and causal edge remain open."
+    },
+    {
+      "id": "later",
+      "title": "Subsequent use",
+      "detection": "Watch later authentication, code consumption or relevant destination activity.",
+      "prevention": "Apply destination access and redemption policy.",
+      "deception": "Inert decoy use can provide a distinct signal.",
+      "investigation": "Link the later outcome to the exact credential, code generation or prior action."
+    }
+  ],
+  "initialVariation": "delegation",
+  "initialObservation": "runtime"
+}

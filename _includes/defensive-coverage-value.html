@@ -1,0 +1,88 @@
+<link rel="stylesheet" href="{{ '/assets/css/defensive-coverage.css' | relative_url }}" />
+<link rel="stylesheet" href="{{ '/assets/css/telemetry-value.css' | relative_url }}" />
+<div id="defensive-coverage" class="tv-coverage"
+     data-value="{{ include.entry.telemetry_value | relative_url | escape }}"
+     data-profile="{{ include.entry.profile | relative_url | escape }}"
+     data-baseurl="{{ site.baseurl | escape }}"
+     data-explorer="{{ include.entry.explorer | relative_url | escape }}">
+  <p id="coverage-loading" role="status" hidden>Loading defensive coverage.</p>
+  <div id="tv-panel" hidden>
+    <h3 id="coverage-title">What should you collect next?</h3>
+    <p class="tv-intro">Choose a variation and an outcome. Changing the variation loads its illustrative baseline.</p>
+    <div class="coverage-pair tv-controls">
+      <label>Tradecraft variation<select id="tv-variation"></select></label>
+      <label>Defensive outcome<select id="tv-goal"></select></label>
+    </div>
+    <label id="tv-earlier" hidden>Claim to qualify earlier
+      <select id="tv-timing"><option value="causal">Causal relationships</option><option value="effect">Downstream effects</option><option value="authorization">Downstream authorization</option></select>
+    </label>
+    <details id="tv-collection">
+      <summary>Existing telemetry</summary>
+      <div class="coverage-options" id="tv-presets" aria-label="Replay examples">
+        <button type="button" data-preset="DH">Job receipt + witness</button><button type="button" data-preset="WDAH">Qualifying causal set</button><button type="button" data-preset="">Clear selection</button>
+      </div>
+      <div class="coverage-sources" id="tv-capabilities"></div>
+      <label class="coverage-check"><input type="checkbox" id="tv-conflict"><span>Records conflict, share an origin required to be independent, or lack a required join</span></label>
+    </details>
+    <p class="coverage-note tv-chain" id="tv-baseline"></p>
+    <div class="coverage-tags" id="tv-evidence-label"></div>
+    <div id="tv-results" class="tv-results" aria-live="polite"></div>
+    <div id="tv-link" class="tv-link"></div>
+    {% if include.entry.sigma_bundle %}<p><a href="#container-escape-sigma">Review Sigma candidates</a></p>{% endif %}
+    <div id="tv-relevance" class="coverage-panel" role="group" aria-labelledby="tv-relevance-heading" hidden>
+      <h4 id="tv-relevance-heading">Which telemetry helps across variations?</h4>
+      <p class="coverage-note" id="tv-relevance-hint">Select a cell for fields and joins. Relevance describes an evidence role. Detection coverage requires separate measurement. Recommendations use your selected claim and collection.</p>
+      <div class="tvr-compact">
+        <label>Telemetry capability <select id="tv-relevance-row"></select></label>
+        <table class="tvr-table" aria-describedby="tv-relevance-hint">
+          <thead><tr><th scope="col">Variation</th><th scope="col">Relevance</th></tr></thead>
+          <tbody id="tv-relevance-mobile-rows"></tbody>
+        </table>
+      </div>
+      <div class="tvr-wide coverage-scroll" role="region" tabindex="0" aria-label="Telemetry relevance across variations">
+        <table id="tv-relevance-grid" class="tvr-table" aria-describedby="tv-relevance-hint"></table>
+      </div>
+      <p class="tvr-legend coverage-note"><strong>P</strong> Primary · <strong>C</strong> Complementary · <strong>S</strong> Supporting context · <strong>L</strong> Limited · <strong>?</strong> Unknown</p>
+      <p class="tvr-legend coverage-note"><strong>SRC</strong> Source-supported · <strong>LAB</strong> Measured fixture · <strong>SYN</strong> Synthetic · <strong>HYP</strong> Hypothesis</p>
+      <details id="tv-relevance-inspector">
+        <summary>Cell rationale <span id="tv-relevance-title">· Select a cell</span></summary>
+        <div id="tv-relevance-info" class="coverage-readout" aria-live="polite">The selected cell will show its fields, evidence dependencies and sources.</div>
+      </details>
+    </div>
+    <details class="coverage-panel"><summary>View all seven value dimensions</summary><div id="tv-dimensions"></div></details>
+    <details class="coverage-panel" id="tv-appendix" hidden>
+      <summary>Selected variation observations, path and evidence examples</summary>
+      <div id="tv-observations"></div><div id="tv-graph"></div><div id="tv-samples" class="coverage-examples"></div>
+    </details>
+    <details class="coverage-panel" id="tv-lab-details" hidden>
+      <summary>Replay matrix, minimum evidence and average contribution</summary>
+      <div id="tv-minimum"></div><div id="tv-matrix"></div>
+      <details><summary>Shapley contribution for this claim</summary><div id="tv-shapley"></div></details>
+    </details>
+    <details class="coverage-panel" id="tv-advanced" hidden>
+      <summary>Organizational priorities and effort estimates</summary>
+      <div class="coverage-sources tv-inputs" aria-label="Organization preferences">
+        <label>Effect confirmation <input type="number" min="0" max="5" value="0" data-weight="effect"></label>
+        <label>Causal reconstruction <input type="number" min="0" max="5" value="0" data-weight="causal"></label>
+        <label>Authorization qualification <input type="number" min="0" max="5" value="0" data-weight="authorization"></label>
+      </div>
+      <p class="coverage-note">Choose priority from 0 (unset) to 5 (highest). Different claim counts keep their own denominators.</p>
+      <div id="tv-weight-result"></div>
+      <h4>Incremental effort</h4>
+      <p>Estimate staff-hours per month for each new capability in this environment, including collection, retention upkeep, tuning and investigation. Use one planning period.</p>
+      <label class="coverage-check"><input id="tv-additive" type="checkbox"><span>These effort estimates are incremental, independent and nonoverlapping.</span></label>
+      <div id="tv-cost-inputs" class="coverage-sources tv-inputs"></div>
+      <div id="tv-pareto"></div>
+    </details>
+    <details class="coverage-panel"><summary>Sources, administrative equivalents and limits</summary><div id="tv-scope"></div></details>
+    <details class="coverage-panel">
+      <summary>How the comparison and recommendations work</summary>
+      <p>The matrix shows evidence roles. Recommendations use the selected claim, held capabilities and applicable evidence joins. A primary observation can require other records before a claim qualifies.</p>
+      <p>A measured minimum confirms all eligible positives with zero recorded false confirmations. A marginal gain compares counts for the same claim, cohort and cutoff. An unknown comparison stays unscored. Recorded sufficiency at a cutoff does not establish alert latency.</p>
+      <p>Shapley averages the gains across all recorded subsets when the table supports it. Where comparable data is missing, use the cited qualitative dependencies. Effort comparisons use your nonoverlapping estimates. Priority weights choose the leading tier.</p>
+    </details>
+  </div>
+  {% if include.entry.sigma_bundle %}{% include container-escape-sigma.html %}{% endif %}
+  <noscript><p>Enable JavaScript to compare evidence. Read the detection notes or rules below.</p></noscript>
+</div>
+<script type="module" src="{{ '/assets/js/defensive-coverage-value.mjs' | relative_url }}"></script>

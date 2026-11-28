@@ -1,0 +1,25 @@
+title: containerd Task Start Topic
+id: 4dc4d4aa-4d5b-4861-84a4-77be52430839
+status: experimental
+description: Matches the exact task-start topic from a containerd event stream. Use it as a lifecycle lead when
+  investigating runtime management activity.
+references:
+- https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays
+- https://github.com/containerd/containerd/blob/0e1fb1bf00c3e690e13e2447cd034db9ed4f96fb/core/runtime/events.go
+- https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape
+author: '@iimp0ster'
+date: '2026-11-27'
+tags:
+- attack.t1611
+- detection.maturity.research
+logsource:
+  product: linux
+  service: containerd
+detection:
+  selection:
+    topic|cased: /tasks/start
+  # Add a filter_legit_software selection after baselining approved activity.
+  condition: selection
+falsepositives:
+- Normal rollout, restart and scheduled workload activity. Task starts are routine.
+level: low

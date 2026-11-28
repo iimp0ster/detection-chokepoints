@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Catalog research profile front matter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "layout",
+    "title",
+    "description",
+    "permalink",
+    "catalog_kind",
+    "profile_maturity",
+    "mitre_ids",
+    "research_url",
+    "explorer_url",
+    "scope_note",
+    "related_entries",
+    "threat_summary",
+    "threat_source",
+    "threat_source_label"
+  ],
+  "properties": {
+    "layout": {
+      "const": "chokepoint"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "permalink": {
+      "type": "string",
+      "pattern": "^/chokepoints/[a-z0-9]+(?:-[a-z0-9]+)*/$"
+    },
+    "catalog_kind": {
+      "const": "research-profile"
+    },
+    "profile_maturity": {
+      "const": "Research"
+    },
+    "mitre_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"
+      }
+    },
+    "research_url": {
+      "type": "string",
+      "pattern": "^/research/[a-z0-9-]+/$"
+    },
+    "explorer_url": {
+      "type": "string",
+      "pattern": "^/lens-explorer/[a-z0-9-]+/$"
+    },
+    "scope_note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "related_entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slug",
+          "relationship",
+          "scope"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "relationship": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "threat_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "threat_source": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^https://"
+    },
+    "threat_source_label": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

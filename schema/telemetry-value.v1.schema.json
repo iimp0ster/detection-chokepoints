@@ -1,0 +1,1016 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Detection Strategy telemetry value sidecars v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/profile"
+    },
+    {
+      "$ref": "#/$defs/projection"
+    },
+    {
+      "$ref": "#/$defs/preferences"
+    },
+    {
+      "$ref": "#/$defs/comparison"
+    }
+  ],
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "required": [
+        "format",
+        "entry",
+        "threat",
+        "references",
+        "capabilities",
+        "variations"
+      ],
+      "properties": {
+        "format": {
+          "const": "telemetry-value/v1"
+        },
+        "entry": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "threat": {
+          "type": "string",
+          "minLength": 1
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reference"
+          },
+          "minItems": 1
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capability"
+          },
+          "minItems": 1
+        },
+        "variations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/variation"
+          },
+          "minItems": 1
+        },
+        "defaultVariation": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "sourceAppendix": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "costMeasurements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cost"
+          },
+          "minItems": 0
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "relevanceMatrix": {
+          "$ref": "#/$defs/relevanceMatrix"
+        },
+        "studySelection": {
+          "type": "object",
+          "required": [
+            "id",
+            "study",
+            "revision",
+            "cohort",
+            "profile",
+            "approvedSha256",
+            "arm",
+            "metrics"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "study": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cohort": {
+              "type": "string",
+              "minLength": 1
+            },
+            "profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "approvedSha256": {
+              "type": "string",
+              "minLength": 1
+            },
+            "arm": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "metrics": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minProperties": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "reference": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "url",
+        "locator"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "capability": {
+      "type": "object",
+      "required": [
+        "id",
+        "label",
+        "description",
+        "origin"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "variation": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "objective",
+        "maturity",
+        "capabilities",
+        "baseline",
+        "hunt",
+        "claims",
+        "refs",
+        "limitation",
+        "legitimate"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maturity": {
+          "enum": [
+            "measured",
+            "synthetic",
+            "source",
+            "hypothesis"
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "baseline": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "hunt": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/claim"
+          },
+          "minItems": 0
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "limitation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "legitimate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "study": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "defaultGoal": {
+          "enum": [
+            "hunt",
+            "effect",
+            "fidelity",
+            "attribution",
+            "causal",
+            "earlier"
+          ]
+        },
+        "explorer": {
+          "type": "object",
+          "required": [
+            "objective",
+            "route"
+          ],
+          "properties": {
+            "objective": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+            },
+            "route": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "claim": {
+      "type": "object",
+      "required": [
+        "id",
+        "goal",
+        "label",
+        "requiresAny",
+        "qualification",
+        "distinctOrigins"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "goal": {
+          "enum": [
+            "hunt",
+            "effect",
+            "fidelity",
+            "attribution",
+            "causal",
+            "earlier"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiresAny": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "minItems": 0
+        },
+        "qualification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "distinctOrigins": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "uniqueItems": true
+          },
+          "minItems": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "projection": {
+      "type": "object",
+      "required": [
+        "format",
+        "id",
+        "study",
+        "revision",
+        "approvedSha256",
+        "sourcePath",
+        "cohort",
+        "profile",
+        "arm",
+        "maturity",
+        "use",
+        "dataKey",
+        "lenses",
+        "metrics",
+        "points"
+      ],
+      "properties": {
+        "format": {
+          "const": "telemetry-value-projection/v1"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "study": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "approvedSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sourcePath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cohort": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "profile": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "arm": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "maturity": {
+          "enum": [
+            "measured",
+            "synthetic",
+            "source",
+            "hypothesis"
+          ]
+        },
+        "use": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataKey": {
+          "const": [
+            "confirmed",
+            "eligible",
+            "abstentions",
+            "falseConfirmed"
+          ]
+        },
+        "lenses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minProperties": 1
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/point"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "point": {
+      "type": "object",
+      "required": [
+        "cutoffMs",
+        "rows",
+        "approvedMinimum"
+      ],
+      "properties": {
+        "cutoffMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "rows": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/count"
+                },
+                {
+                  "$ref": "#/$defs/unresolved"
+                }
+              ]
+            }
+          }
+        },
+        "approvedMinimum": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "count": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      ],
+      "items": false
+    },
+    "unresolved": {
+      "type": "object",
+      "required": [
+        "status",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "unknown",
+            "conflicting",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "cost": {
+      "type": "object",
+      "required": [
+        "capabilities",
+        "incremental",
+        "value",
+        "unit",
+        "period",
+        "scope",
+        "provenance"
+      ],
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "incremental": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provenance": {
+          "enum": [
+            "measured",
+            "user-estimate"
+          ]
+        },
+        "costComponents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "sharedCostGroup": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "preferences": {
+      "type": "object",
+      "required": [
+        "format",
+        "organizationScope",
+        "priorities",
+        "weights",
+        "evidenceBaseline",
+        "costEstimates"
+      ],
+      "properties": {
+        "format": {
+          "const": "telemetry-value-preferences/v1"
+        },
+        "organizationScope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "priorities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "hunt",
+              "effect",
+              "fidelity",
+              "attribution",
+              "causal",
+              "earlier"
+            ]
+          },
+          "minItems": 1
+        },
+        "weights": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          }
+        },
+        "evidenceBaseline": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "costEstimates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cost"
+          },
+          "minItems": 0
+        },
+        "disputedClaims": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "costAssumption": {
+          "enum": [
+            "unknown",
+            "independent-additive",
+            "joint-bundle"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "comparison": {
+      "type": "object",
+      "required": [
+        "format",
+        "entry",
+        "variation",
+        "projection",
+        "cutoffMs",
+        "baseline",
+        "added",
+        "dimensions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "telemetry-value-comparison/v1"
+        },
+        "entry": {
+          "type": "string"
+        },
+        "variation": {
+          "type": "string"
+        },
+        "projection": {
+          "type": "string",
+          "description": "Resolve the study scope, projection profile, arm and cohort here."
+        },
+        "cutoffMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "added": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "dimensions": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/unresolved"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "metric",
+                  "before",
+                  "after",
+                  "marginal"
+                ],
+                "properties": {
+                  "metric": {
+                    "type": "string"
+                  },
+                  "before": {
+                    "$ref": "#/$defs/count"
+                  },
+                  "after": {
+                    "$ref": "#/$defs/count"
+                  },
+                  "marginal": {
+                    "type": "integer"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "cost": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/cost"
+            },
+            {
+              "$ref": "#/$defs/unresolved"
+            }
+          ]
+        }
+      }
+    },
+    "relevanceMatrix": {
+      "type": "object",
+      "required": [
+        "format",
+        "rows",
+        "columns",
+        "defaultRow",
+        "cells"
+      ],
+      "properties": {
+        "format": {
+          "const": "telemetry-relevance/v1"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relevanceRow"
+          },
+          "minItems": 1
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relevanceColumn"
+          },
+          "minItems": 1
+        },
+        "defaultRow": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "cells": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relevanceCell"
+          },
+          "description": "Omit an unassessed pairing to render Unknown. Unknown carries no numeric value."
+        }
+      },
+      "additionalProperties": false
+    },
+    "relevanceRow": {
+      "type": "object",
+      "required": [
+        "id",
+        "label",
+        "definition"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "relevanceColumn": {
+      "type": "object",
+      "required": [
+        "variation",
+        "label"
+      ],
+      "properties": {
+        "variation": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "tradecraft",
+            "diagnostic",
+            "synthetic"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "relevanceCell": {
+      "type": "object",
+      "required": [
+        "row",
+        "variation",
+        "role",
+        "basis",
+        "capabilities",
+        "claims",
+        "refs",
+        "rationale",
+        "requiredFields",
+        "limitation"
+      ],
+      "properties": {
+        "row": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "variation": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "role": {
+          "enum": [
+            "primary",
+            "complementary",
+            "context",
+            "limited",
+            "unknown"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "source",
+            "measured",
+            "synthetic",
+            "hypothesis",
+            null
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+          },
+          "uniqueItems": true
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+          },
+          "uniqueItems": true
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+          },
+          "uniqueItems": true
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredFields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "limitation": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "basis": {
+                "type": "null"
+              },
+              "claims": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "basis": {
+                "type": "string"
+              },
+              "capabilities": {
+                "minItems": 1
+              },
+              "refs": {
+                "minItems": 1
+              },
+              "requiredFields": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

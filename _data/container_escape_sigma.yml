@@ -1,0 +1,215 @@
+format: container-escape-sigma/v1
+rules:
+- id: research-nsenter-process
+  title: Linux nsenter Utility Execution
+  variation: namespace
+  row: process.execution
+  requires:
+  - proc
+  basis: Source-reported behavior adapted to a process field
+  fragment: nsenter utility invocation
+  rationale: Flags process creation with a resolved image path ending in /nsenter. Use the event to review
+    the process and its workload context.
+  sources:
+  - title: Sysdig incident report
+    url: https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape
+    locator: Phase 1, host namespace fallback paragraph immediately after the host file reads.
+  - title: Linux setns manual
+    url: https://man7.org/linux/man-pages/man2/setns.2.html#DESCRIPTION
+    locator: DESCRIPTION, namespace behavior and return value.
+  fields:
+  - Image (normalized absolute executable path).
+  - Keep host, timestamp, process lifetime and workload identity for investigation.
+  next_evidence: Add a kernel operation record with the namespace type and target, syscall result, and
+    a reliable actor binding. Join independent host evidence before attributing an effect.
+  blind_spots: Direct setns calls and aliased binaries can leave no matching image. The match cannot confirm
+    a namespace transition, permission, or host effect.
+  validation: Selection checked against a source-derived image-shaped example and illustrative controls.
+    No native incident process record was available.
+  administrative:
+  - Authorized node debugging, support and recovery workflows.
+  origin: The Sysdig route starts in an existing compromised workload. The utility invocation is the observed
+    lead.
+  matches:
+  - 'Image|endswith|cased: /nsenter'
+  backend_mapping: Route Linux process creation records to the query. Map the resolved executable path
+    to Image. Retain case and the final path segment.
+  hunt_gate: Qualify the process-to-workload lifetime and separate expected diagnostics using actor and
+    valid-time policy. Require a successful namespace operation and its target for any claim of a transition.
+  analyst_gate: Validate target namespace, kernel result and workload binding across the supported runtimes.
+    Independently verify the host-side outcome for an escape-effect claim.
+- id: research-containerd-task-start
+  title: containerd Task Start Topic
+  variation: delegation
+  row: management.audit
+  requires:
+  - containerd-topic
+  basis: Measured native projection
+  fragment: topic = /tasks/start
+  rationale: Matches the exact task-start topic from a containerd event stream. Use it as a lifecycle lead
+    when investigating runtime management activity.
+  sources:
+  - title: Gate C.2 sanitized evidence
+    url: https://iimp0ster.github.io/detection-chokepoints/research/#lab-results-and-synthetic-replays
+    locator: Gate C.2 measured research, Container Escape Variations Detection Strategy evidence example,
+      Containerd task start.
+  - title: containerd runtime source
+    url: https://github.com/containerd/containerd/blob/0e1fb1bf00c3e690e13e2447cd034db9ed4f96fb/core/runtime/events.go
+    locator: TaskStartEventTopic constant.
+  - title: Sysdig incident report
+    url: https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape
+    locator: Phase 1, runtime-management request and follow-on workload. The incident uses a different
+      runtime interface.
+  fields:
+  - Exact topic field from the containerd event envelope or mapped projection.
+  - Keep runtime namespace, task or container ID, process lifetime and occurrence time.
+  next_evidence: Add an authenticated request and a bound terminal record. Link them to the task and an
+    independent target or destination witness. The measured helper binding is supplemental.
+  blind_spots: A task start does not report job completion or caller identity. Docker-only logs and unrelated
+    runtime APIs need separate mapping. The report's incident artifact was not a containerd task-start
+    record.
+  validation: One sanitized Gate C.2 native projection matches this equality. No malicious task start,
+    confirmed boundary crossing or backend deployment was tested.
+  administrative:
+  - Normal rollout, restart and scheduled workload activity. Task starts are routine.
+  origin: The retained topic comes from an enrolled workload in the Gate C.2 inert fixture. The related
+    Sysdig incident starts in an existing compromised workload and uses Docker.
+  matches:
+  - 'topic|cased: /tasks/start'
+  backend_mapping: Use the containerd event envelope or a verified projection with a scalar topic. Bind
+    the Linux containerd service tag in the backend pipeline. Preserve exact case and retain namespace
+    and ID.
+  hunt_gate: Pair starts with authenticated controller and task identity plus an approved deployment record.
+    Test routine rollouts and simultaneous launches before claiming unusual runtime activity.
+  analyst_gate: For a delegated host-effect claim, validate requester, task lifetime, completed job, resolved
+    target, authorization and independent outcome together. A start remains a lifecycle observation.
+- id: research-protected-host-audit
+  title: Successful Operation Under Protected Host Read Watch
+  variation: mapping
+  row: os.operation
+  requires:
+  - kernel
+  basis: Source-reported behavior and illustrative field mapping
+  fragment: reported access to the host credential file named shadow
+  rationale: Matches a successful Linux Audit syscall record tagged with the local protected host read-watch
+    key. Review the associated object and audit rule before interpreting it as access.
+  sources:
+  - title: Sysdig incident report
+    url: https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape
+    locator: Phase 1, isolated evidence excerpt for access to the host shadow file and following summary
+      of the protected files.
+  - title: Linux Audit auditctl manual
+    url: https://man7.org/linux/man-pages/man8/auditctl.8.html
+    locator: RULE OPTIONS, key, file/dir, perm and success.
+  fields:
+  - type = SYSCALL, success mapped to the native yes token, and a scalar key with quoting removed.
+  - ce_protected_host_read is a defender-assigned key. Map it only to a read-permission watch on the actual
+    protected host objects.
+  - Retain matching PATH and syscall records by node, boot and audit serial for resolved identity.
+  next_evidence: Recover the exact operation and object from joined audit records, then corroborate independent
+    outcome, intended policy and workload/process lifetime.
+  blind_spots: This can match successful open activity without establishing how many bytes were read. It
+    misses uninstrumented objects, pre-existing descriptors, mediated copies and incomplete records.
+  validation: Illustrative parser-shaped checks plus benign controls. Gate C.2 write returns do not validate
+    a protected-read watch or this mapping.
+  administrative:
+  - Approved host maintenance, backups and credential-store administration.
+  origin: The Sysdig incident starts in an existing compromised workload. Runtime-mediated host-file access
+    is part of that incident. The Audit watch is an illustrative collection hypothesis.
+  matches:
+  - 'type|cased: SYSCALL'
+  - 'key|cased: ce_protected_host_read'
+  - 'success|cased: yes'
+  backend_mapping: Use the Linux Audit stream. Normalize SYSCALL, scalar key with enclosing quotes removed
+    and literal success yes. Keep the PATH records for the same host, boot and audit serial.
+  hunt_gate: Check audited target and operation scope on native records. Compare approved backups with
+    exercise-only anomalous access, and guard against missing record bundles.
+  analyst_gate: Verify completed access or delivery using the resolved object/version, identity and an
+    independent witness for the claimed result. A watch match or successful open alone cannot qualify outcome.
+- id: research-runc-file-create
+  title: Linux FileCreate at a runc Path
+  variation: integrity
+  row: file.change
+  requires:
+  - file
+  basis: Source-reported target, illustrative collector record
+  fragment: runc host runtime binary is the reported overwrite target
+  rationale: Flags mapped Sysmon for Linux FileCreate events for a target basename of runc. Compare the
+    target with the host runtime inventory and the approved package activity.
+  sources:
+  - title: runc maintainer disclosure
+    url: https://www.openwall.com/lists/oss-security/2019/02/11/2
+    locator: OVERVIEW, CVE-2019-5736 host runtime binary overwrite.
+  - title: Microsoft Sysmon for Linux
+    url: https://github.com/microsoft/Sysmon-Linux
+    locator: Sysmon for Linux event producer and configuration. Validate Event ID 11 capture at the destination.
+  fields:
+  - Numeric EventID 11 and TargetFilename containing the complete path from Sysmon for Linux FileCreate.
+  - Restrict the stream to Sysmon for Linux. Retain node, writer lifetime and the resolved host runtime
+    identity.
+  next_evidence: Add a qualified integrity readback and verify the later execution used the same binary
+    generation before attributing an effect.
+  blind_spots: The suffix alone cannot identify the installed binary. In-place writes, different names,
+    missing capture and replacement outside the selected event may be missed.
+  validation: Illustrative event-shaped records and benign controls only. No native capture from CVE-2019-5736
+    or replay of that mechanism.
+  administrative:
+  - Runtime package upgrades, image preparation and legitimate staging of a file named runc.
+  origin: The maintainer describes both a new container launched from an attacker-controlled image and
+    an existing container the actor could already modify. The rule covers a host file observation shared
+    by those lifecycle paths.
+  matches:
+  - 'EventID: 11'
+  - 'TargetFilename|endswith|cased: /runc'
+  backend_mapping: Restrict the backend stream to Sysmon for Linux FileCreate. Preserve numeric EventID
+    and resolved TargetFilename. Check the intended runtime inventory instead of generalizing from the
+    basename.
+  hunt_gate: Establish capture of the file operations in scope. Correlate a change with a specific enrolled
+    runtime object and valid-time package or change approval.
+  analyst_gate: Validate identity or generation across a verified native change and later use. Add independent
+    execution and authority evidence for a host-execution claim.
+- id: research-ssh-authorized-keys-file-create
+  title: Linux FileCreate at an SSH authorized_keys Path
+  variation: trust
+  row: file.change
+  requires:
+  - file
+  basis: Source-reported target, illustrative collector record
+  fragment: authorized_keys file targeted by reported SSH key additions
+  rationale: Flags mapped Sysmon for Linux FileCreate records for the conventional authorized_keys path.
+    Review the exact account and effective trust resolution before reporting persistence.
+  sources:
+  - title: Datadog Security Labs campaign report
+    url: https://securitylabs.datadoghq.com/articles/analysis-of-teamtnt-doppelganger/#persistence-backdooring-ssh-configuration-all-the-way-down
+    locator: 'Persistence: Backdooring SSH configuration all the way down, first description of public
+      key additions.'
+  - title: OpenSSH server configuration
+    url: https://man.openbsd.org/sshd_config#AuthorizedKeysFile
+    locator: AuthorizedKeysFile and AuthorizedKeysCommand.
+  - title: Microsoft Sysmon for Linux
+    url: https://github.com/microsoft/Sysmon-Linux
+    locator: Sysmon for Linux event producer and configuration. Validate Event ID 11 capture at the destination.
+  fields:
+  - Numeric EventID 11 and complete TargetFilename from Sysmon for Linux FileCreate.
+  - Keep destination host and account context, writer lifetime, exact file identity and occurrence time.
+  next_evidence: Check the configured trust sources, exact key/account scope and policy. An independent
+    effective-trust or authentication result supports a stronger destination claim.
+  blind_spots: Append-only changes, configured nonstandard paths, authorized-key commands and trusted CA
+    use can avoid this signal. The match does not establish effective trust, login, or workload cause.
+  validation: Illustrative event-shaped cases only. Prior Land-and-Run testing did not observe its authorized_keys
+    write with the configured staging telemetry.
+  administrative:
+  - Provisioning, approved key rotation, node administration, and user-managed keys.
+  origin: The Datadog incident starts with an external management principal using exposed Docker. Its key-file
+    behavior is a downstream observation. Workload-origin SSH trust remains a hypothesis here.
+  matches:
+  - 'EventID: 11'
+  - 'TargetFilename|endswith|cased: /.ssh/authorized_keys'
+  backend_mapping: Restrict the backend stream to Sysmon for Linux FileCreate. Keep EventID numeric and
+    TargetFilename case-sensitive. Check whether the actual account uses this configured key path.
+  hunt_gate: Corroborate target account, exact file identity and change approval. Compare observed provisioning
+    and rotation with the scoped suspicious change.
+  analyst_gate: Validate effective trust for the named key and account through an independent readback.
+    For workload attribution, prove the writer and causal chain separately.
+backend_note: EQL conversion passed. Lucene without a pipeline rejected the case-sensitive modifiers. Check
+  collector field mappings and case behavior before deploying.

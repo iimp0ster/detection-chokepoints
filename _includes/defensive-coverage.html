@@ -1,0 +1,40 @@
+{%- assign coverage_entry = site.data.defensive_coverage_profiles[include.slug] -%}
+{%- if coverage_entry.telemetry_value -%}
+{%- include defensive-coverage-value.html entry=coverage_entry -%}
+{%- elsif coverage_entry -%}
+<link rel="stylesheet" href="{{ '/assets/css/defensive-coverage.css' | relative_url }}" />
+<div id="defensive-coverage"
+         data-profile="{{ coverage_entry.profile | relative_url | escape }}" data-baseurl="{{ site.baseurl | escape }}">
+  <p id="coverage-loading" role="status" hidden>Loading defensive coverage.</p>
+  <div id="coverage-interface" hidden>
+    <h3 id="coverage-title">What can your telemetry support?</h3>
+    <p id="coverage-deck"></p>
+    <div id="coverage-guidance-title">
+      <div id="coverage-guidance"></div>
+    </div>
+    <div class="coverage-quick" id="coverage-quick"></div>
+    <details class="coverage-panel">
+      <summary>Tradecraft and observation matrix</summary>
+      <div id="coverage-matrix"></div>
+    </details>
+    <details class="coverage-panel">
+      <summary>Follow the path and find defensive placements</summary>
+      <div id="coverage-graph"></div>
+    </details>
+    <details class="coverage-panel">
+      <summary>Inspect sample evidence and smallest sets</summary>
+      <div id="coverage-evidence">
+        <div id="coverage-examples" class="coverage-examples"></div>
+        <div id="coverage-findings" class="coverage-findings"></div>
+      </div>
+    </details>
+    <p class="coverage-note" id="coverage-scope"></p>
+  </div>
+  <nav class="coverage-footer" aria-label="Related defensive coverage resources">
+    {% if coverage_entry.explorer %}<a class="coverage-open-explorer" href="{{ coverage_entry.explorer | relative_url }}">Open the Lens Explorer</a>{% endif %}
+    {% if coverage_entry.research %}<a href="{{ coverage_entry.research | relative_url }}">Read the research study</a>{% endif %}
+  </nav>
+  <noscript><p>Enable JavaScript to select telemetry. Read the detection notes or rules below.</p></noscript>
+</div>
+<script type="module" src="{{ '/assets/js/defensive-coverage.mjs' | relative_url }}"></script>
+{%- endif -%}

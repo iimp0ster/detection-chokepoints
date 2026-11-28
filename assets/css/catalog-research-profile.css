@@ -1,0 +1,31 @@
+.research-profile-actions{display:flex;gap:.65rem;flex-wrap:wrap;margin-top:1.25rem}
+.research-profile-actions a{min-height:2.5rem}
+.catalog-research-profile .ac-prose .cp-section-heading{border-bottom:0;padding-bottom:0;margin:0}
+.catalog-research-profile .chokepoint-body{padding-top:.8rem}
+.catalog-research-profile #variations details+details{margin-top:.65rem}
+.catalog-research-profile .table-wrapper{overflow-x:auto;max-width:100%}
+.catalog-research-profile .table-wrapper table{min-width:35rem}
+.catalog-research-profile .table-wrapper:focus-visible{outline:2px solid var(--border-focus);outline-offset:3px}
+.research-profile-related{display:grid;gap:.65rem;grid-template-columns:repeat(2,minmax(0,1fr))}
+.research-profile-related-item{border:1px solid var(--border-strong);padding:.75rem}
+.research-profile-related-item p{margin:.4rem 0 0}
+.catalog-research-note{color:var(--text-muted);margin:.4rem 0 .75rem}
+.catalog-research-card{max-width:40rem}
+.catalog-research-card .card-link{display:grid;gap:.55rem;padding:1rem 1.25rem}
+.catalog-research-card .card-header{display:flex;gap:.5rem;align-items:center}
+@media(max-width:650px){.research-profile-related{grid-template-columns:1fr}}
+
+.catalog-research-profile .controls-col-variable .controls-col-label{color:var(--text-muted)}
+[data-theme=light] .catalog-research-profile .chokepoint-content :is(h2,h3,th,a,code,.controls-col-chokepoint .controls-col-label),
+[data-theme=light] #catalog-research-profiles :is(h2,h3){color:var(--accent-dark)!important}
+[data-theme=light] #catalog-research-profiles .det-badge-research{color:color-mix(in srgb,var(--low),var(--text) 56%)!important}
+[data-theme=light] .catalog-research-profile .cp-hero :is(.cp-hero-title,.cp-hero-constant,.cp-maturity){color:var(--accent-dark)!important}
+[data-theme=light] .catalog-research-profile .mitre-badge{color:color-mix(in srgb,var(--low),var(--text) 56%)!important}
+[data-theme=light] .catalog-research-profile .table-wrapper:focus-visible{outline-color:var(--accent-dark)}
+
+.catalog-research-profile :is(#overview,#attack-chokepoints,#variations,#detection-strategy,#prevention,#related,
+  #boundaries,#isolation-boundaries,#candidates,#candidates-by-objective,#detection,#controls,
+  #prevention-and-deception,#limits,#research-limits){scroll-margin-top:calc(var(--nav-h,56px) + .75rem)}
+.catalog-research-profile .research-field-notes{border-top:1px solid var(--border);margin-top:1rem;padding-top:.75rem}
+.catalog-research-profile .research-field-notes summary{cursor:pointer;font-weight:700}
+.catalog-research-profile .research-field-notes summary:focus-visible{outline:2px solid var(--border-focus);outline-offset:.25rem}

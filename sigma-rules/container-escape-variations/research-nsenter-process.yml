@@ -1,0 +1,24 @@
+title: Linux nsenter Utility Execution
+id: 17077e4a-fe50-48e2-ad70-50e219607dc9
+status: experimental
+description: Flags process creation with a resolved image path ending in /nsenter. Use the event to review the
+  process and its workload context.
+references:
+- https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape
+- https://man7.org/linux/man-pages/man2/setns.2.html#DESCRIPTION
+author: '@iimp0ster'
+date: '2026-11-27'
+tags:
+- attack.t1611
+- detection.maturity.research
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  selection:
+    Image|endswith|cased: /nsenter
+  # Add a filter_legit_software selection after baselining approved activity.
+  condition: selection
+falsepositives:
+- Authorized node debugging, support and recovery workflows.
+level: low

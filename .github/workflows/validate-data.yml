@@ -18,6 +18,32 @@ on:
       - "assets/data/detection-lens-explorer.v1.json"
       - "schema/detection-lens-explorer.v1.schema.json"
       - "scripts/validate_lens_explorer.py"
+      - "catalog-profiles/**"
+      - "_includes/catalog-research-profile*.html"
+      - "_includes/container-escape-explorer.html"
+      - "_includes/defensive-coverage.html"
+      - "_includes/defensive-coverage-value.html"
+      - "_includes/container-escape-sigma.html"
+      - "scripts/validate_container_escape_sigma.py"
+      - "scripts/fixtures/container-escape-sigma-cases.json"
+      - "assets/css/telemetry-value.css"
+      - "assets/js/defensive-coverage-value.mjs"
+      - "assets/js/telemetry-value-*.mjs"
+      - "assets/data/telemetry-value/**"
+      - "schema/telemetry-value.v1.schema.json"
+      - "scripts/validate_telemetry_value.py"
+      - "tests/test_telemetry_value.mjs"
+      - "assets/css/catalog-research-profile.css"
+      - "assets/css/container-escape-explorer.css"
+      - "assets/css/defensive-coverage.css"
+      - "assets/js/container-escape-explorer.mjs"
+      - "assets/js/defensive-coverage.mjs"
+      - "assets/data/container-escape-research.v1.json"
+      - "assets/data/defensive-coverage/**"
+      - "_data/defensive_coverage_profiles.yml"
+      - "schema/catalog-research-profile.v1.schema.json"
+      - "schema/defensive-coverage.v1.schema.json"
+      - "scripts/validate_defensive_coverage.py"
   workflow_dispatch:
 
 permissions:
@@ -36,10 +62,16 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install pyyaml
+        run: pip install pyyaml jsonschema pySigma==2.1.2
 
       - name: Validate chokepoint + trends data
         run: python scripts/validate_schema.py
 
       - name: Validate Lens Explorer projection
         run: python scripts/validate_lens_explorer.py
+
+      - name: Validate defensive coverage profiles
+        run: |
+          python scripts/validate_defensive_coverage.py
+          python scripts/validate_telemetry_value.py
+          python scripts/validate_container_escape_sigma.py

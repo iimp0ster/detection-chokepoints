@@ -1,0 +1,1122 @@
+{
+  "format": "container-escape-research-review/v1",
+  "baseline": {
+    "siteCommit": "71ede8b3625bcf1a2817b4c4a85e0ee5a1e813ae",
+    "issueStatus": "unresolved",
+    "gateC3": "synthetic"
+  },
+  "semantics": {
+    "behavioral": "Every stage and listed fact is required within a route. Enabled routes are alternatives for one objective. Steps progressively reveal the finite model.",
+    "prevention": "Each eligible control in a route can break it when applied prospectively. A minimum cut is the smallest eligible set hitting all enabled routes.",
+    "detection": "A placement names a possible signal type for that route. Placement intersection alone does not confer collector coverage or evidence.",
+    "evidence": "Effect requires an independent outcome witness and objective scope. Origin requires a scoped initiating principal. Causality requires effect, origin and exact binding. Intended authorization is assessed for a causally linked operation.",
+    "provenance": "Mechanism support describes the source contribution. All route compositions and cut results are research models. Lab counts remain in the study receipts."
+  },
+  "sourceReferences": {
+    "sysdig": {
+      "locator": "Sysdig incident · Phase 1 and Phase 2",
+      "url": "https://www.sysdig.com/blog/agentic-threat-actor-hits-the-orchestration-plane-ai-agent-driven-container-escape"
+    },
+    "host": {
+      "locator": "Kubernetes · hostPath",
+      "url": "https://kubernetes.io/docs/concepts/storage/volumes/#hostpath"
+    },
+    "namespace": {
+      "locator": "Linux setns · Namespace details",
+      "url": "https://man7.org/linux/man-pages/man2/setns.2.html#DESCRIPTION"
+    },
+    "ref": {
+      "locator": "runc reference disclosure · Impact",
+      "url": "https://github.com/opencontainers/runc/security/advisories/GHSA-xr7r-f8xq-vfvv#impact"
+    },
+    "copy": {
+      "locator": "containerd CRI advisory · Impact",
+      "url": "https://github.com/containerd/containerd/security/advisories/GHSA-crp2-qrr5-8pq7#impact"
+    },
+    "device": {
+      "locator": "Wiz · Privilege escalation & RCE",
+      "url": "https://www.wiz.io/blog/nvidia-ai-vulnerability-deep-dive-cve-2024-0132"
+    },
+    "shim": {
+      "locator": "containerd shim advisory · Impact",
+      "url": "https://github.com/containerd/containerd/security/advisories/GHSA-36xw-fx78-c5r4#impact"
+    },
+    "cgroup": {
+      "locator": "Unit 42 · Figures 7–9",
+      "url": "https://unit42.paloaltonetworks.com/cve-2022-0492-cgroups/"
+    },
+    "binary": {
+      "locator": "runc lifecycle disclosure · Overview",
+      "url": "https://www.openwall.com/lists/oss-security/2019/02/11/2"
+    },
+    "kernel": {
+      "locator": "Original Linux kernel research · kCTF",
+      "url": "https://www.willsroot.io/2022/01/cve-2022-0185.html"
+    },
+    "redirect": {
+      "locator": "runc redirection advisory · Impact",
+      "url": "https://github.com/opencontainers/runc/security/advisories/GHSA-cgrx-mc8f-2prm#impact"
+    },
+    "scheduler": {
+      "locator": "Aqua · Using rootkits in the wild",
+      "url": "https://www.aquasec.com/blog/advanced-persistent-threat-techniques-container-attacks/"
+    },
+    "ssh": {
+      "locator": "OpenSSH · Effective trust inputs",
+      "url": "https://man.openbsd.org/sshd_config"
+    },
+    "datadog": {
+      "locator": "Datadog · SSH persistence observation",
+      "url": "https://securitylabs.datadoghq.com/articles/analysis-of-teamtnt-doppelganger/"
+    },
+    "land": {
+      "locator": "Catalog · Land and Run",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/chokepoints/ssh-land-and-run/"
+    },
+    "aws": {
+      "locator": "Catalog · AWS permission enumeration",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/chokepoints/aws-credential-permission-enumeration/"
+    },
+    "trustLesson": {
+      "locator": "Explorer · Docker SSH backdoors",
+      "url": "https://iimp0ster.github.io/detection-chokepoints/lens-explorer/?lesson=minimum"
+    }
+  },
+  "preventionControls": {
+    "M": {
+      "name": "Remove direct read grant",
+      "eligibility": "Block all modeled live references before the read. Earlier copies remain readable."
+    },
+    "Mw": {
+      "name": "Remove direct write grant",
+      "eligibility": "Block live write references before use. Earlier state changes require separate recovery."
+    },
+    "F": {
+      "name": "Verify and enforce direct read policy",
+      "eligibility": "Assumes subject-aware enforcement across all four direct routes, including applicable mapped and descriptor reads."
+    },
+    "N": {
+      "name": "Restrict relevant namespace reach",
+      "eligibility": "Deny the required eligible context before use."
+    },
+    "R": {
+      "name": "Fix leaked runtime reference",
+      "eligibility": "Remediate before the affected lifecycle request."
+    },
+    "G": {
+      "name": "Fix device integration",
+      "eligibility": "Remediate before setup exposes the host resource or socket."
+    },
+    "A": {
+      "name": "Remove conventional daemon grant",
+      "eligibility": "Applies to the configured grant. Device setup can create another route."
+    },
+    "J": {
+      "name": "Enforce daemon job authorization",
+      "eligibility": "Requires reliable origin and enforcement for the named jobs, including device-derived daemon reach."
+    },
+    "C": {
+      "name": "Fix CRI copy handling",
+      "eligibility": "Act before a workload-readable copy is created."
+    },
+    "S": {
+      "name": "Remediate or isolate the affected shim",
+      "eligibility": "Include vulnerable instances still running after a package upgrade."
+    },
+    "H": {
+      "name": "Fix cgroup authorization",
+      "eligibility": "Act before the affected cgroup operation."
+    },
+    "V": {
+      "name": "Remove the affected cgroup v1 surface",
+      "eligibility": "Removes a required precondition for the modeled cgroup route."
+    },
+    "B": {
+      "name": "Fix runtime lifecycle integrity",
+      "eligibility": "Act before replacement. Previously altered host binaries require recovery."
+    },
+    "K": {
+      "name": "Fix the shared-kernel flaw",
+      "eligibility": "Act before exposure to the affected interface."
+    },
+    "P": {
+      "name": "Fix privileged write redirection",
+      "eligibility": "Act before vulnerable setup. The resulting host write has a separate recovery path."
+    },
+    "L": {
+      "name": "Enforce host consumer input policy",
+      "eligibility": "Hypothesis for the exact scheduler or service input and consumer."
+    },
+    "T": {
+      "name": "Enforce local trust-store policy",
+      "eligibility": "Assumes complete mediation through relevant local trust resolution."
+    },
+    "U": {
+      "name": "Enforce configured publisher authorization",
+      "eligibility": "Covers this publisher only. Other providers require separate treatment."
+    }
+  },
+  "detectionPlacements": {
+    "namespace": "Namespace target and result",
+    "read": "Host read result",
+    "mapping": "Host mapping or reference",
+    "job": "Runtime request or completion",
+    "copy": "Copy or materialization event",
+    "receive": "Recipient observation",
+    "execute": "Host execution observation",
+    "integrity": "Host integrity or policy change",
+    "kernel": "Kernel or shim boundary event",
+    "trustFile": "Trust input change",
+    "trustResolve": "Effective SSH resolution",
+    "publish": "Publisher audit"
+  },
+  "evidenceFields": {
+    "outcome": "Independent objective witness",
+    "origin": "Scoped originating principal or workload",
+    "binding": "Exact operation-to-outcome binding",
+    "policy": "Applicable intended policy",
+    "version": "Exact protected version and recipient scope",
+    "context": "Qualified host execution context",
+    "resolution": "Exact account, key, and connection context"
+  },
+  "objectives": [
+    {
+      "id": "data",
+      "name": "Protected host data",
+      "objective": "Obtain one designated host data version. The receiver starts without that version.",
+      "startingScope": "Obtain one designated host data version. The receiver starts without that version.",
+      "defaultFacts": [
+        "device",
+        "job"
+      ],
+      "optionalFacts": [
+        {
+          "id": "device",
+          "label": "Affected setup exposes the socket",
+          "description": "Applies to the composed route."
+        },
+        {
+          "id": "job",
+          "label": "Daemon can complete the host-reading job",
+          "description": "This enables the modeled interaction, before any receipt evidence."
+        }
+      ],
+      "otherExplanations": "A Kubernetes Secret response can explain possession of other credentials. Bind the actual source version before counting it as acquisition of this host object. An approved backup can read the same host file.",
+      "modelLimit": "The cut applies to the displayed routes and this exact data version. Existing copies and unmodeled providers can require separate controls.",
+      "requiredEffectFields": [
+        "outcome",
+        "version"
+      ],
+      "requiredAttributionFields": [
+        "outcome",
+        "version",
+        "origin",
+        "binding"
+      ],
+      "walkthrough": [
+        {
+          "stage": 1,
+          "title": "Find the protected object",
+          "prompt": "Sysdig reported host-file output after a workload used Docker management access. First ask what a direct read would establish. A host mount alone establishes exposure.",
+          "suggestedRoute": "mapping"
+        },
+        {
+          "stage": 2,
+          "title": "Follow the runtime job",
+          "prompt": "An authenticated request can identify the requester. Add a terminal result and a link to the exact recipient before crediting a mediated read.",
+          "suggestedRoute": "daemon"
+        },
+        {
+          "stage": 3,
+          "title": "Follow the copy",
+          "prompt": "containerd disclosed a route that materialized read-only host copies. Select the local read and look for the original version. Matching content can come from a stale copy.",
+          "suggestedRoute": "copy"
+        },
+        {
+          "stage": 4,
+          "title": "Try the device route",
+          "prompt": "Wiz showed a read-only host mount still gave access to a socket. Enable both prerequisites for that composed route, then compare the configured grant with job authorization.",
+          "suggestedRoute": "device-daemon"
+        }
+      ],
+      "routes": [
+        {
+          "id": "mapping",
+          "name": "Direct host mapping",
+          "origin": "Existing workload",
+          "revealStage": 1,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Existing workload",
+            "Host object visible",
+            "Protected version acquired"
+          ],
+          "possibleDetectionPlacements": [
+            "read",
+            "mapping",
+            "receive"
+          ],
+          "eligiblePreventionControlsAny": [
+            "M",
+            "F"
+          ],
+          "exactBindingRequirement": "Completed read bound to the source version and recipient.",
+          "provenance": "source-supported mechanism with modeled objective",
+          "sources": [
+            "host"
+          ]
+        },
+        {
+          "id": "namespace",
+          "name": "Namespace-mediated read",
+          "origin": "Workload or descendant",
+          "revealStage": 2,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Workload or descendant",
+            "Relevant context and authority",
+            "Protected version acquired"
+          ],
+          "possibleDetectionPlacements": [
+            "namespace",
+            "read",
+            "receive"
+          ],
+          "eligiblePreventionControlsAny": [
+            "N",
+            "F"
+          ],
+          "exactBindingRequirement": "Target namespace and resulting actor bound to the completed read.",
+          "provenance": "source-supported mechanism with modeled objective",
+          "sources": [
+            "namespace",
+            "sysdig"
+          ]
+        },
+        {
+          "id": "reference",
+          "name": "Leaked runtime reference",
+          "origin": "Affected launch or exec",
+          "revealStage": 3,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Affected launch or exec",
+            "Reference resolves to host",
+            "Protected version acquired"
+          ],
+          "possibleDetectionPlacements": [
+            "mapping",
+            "read",
+            "receive"
+          ],
+          "eligiblePreventionControlsAny": [
+            "R",
+            "F"
+          ],
+          "exactBindingRequirement": "Resolved reference and completed read of the exact source version.",
+          "provenance": "source-supported mechanism with modeled objective",
+          "sources": [
+            "ref"
+          ]
+        },
+        {
+          "id": "device-direct",
+          "name": "Device setup exposes host data",
+          "origin": "Controlled image",
+          "revealStage": 3,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Controlled image",
+            "Unintended host mapping",
+            "Protected version acquired"
+          ],
+          "possibleDetectionPlacements": [
+            "mapping",
+            "read",
+            "receive"
+          ],
+          "eligiblePreventionControlsAny": [
+            "G",
+            "F"
+          ],
+          "exactBindingRequirement": "Observed host mapping and completed acquisition tied to the workload.",
+          "provenance": "hypothetical route",
+          "sources": [
+            "device"
+          ]
+        },
+        {
+          "id": "daemon",
+          "name": "Configured daemon delegation",
+          "origin": "Existing workload",
+          "revealStage": 2,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Existing workload",
+            "Completed host-reading job",
+            "Protected version delivered"
+          ],
+          "possibleDetectionPlacements": [
+            "job",
+            "read",
+            "receive"
+          ],
+          "eligiblePreventionControlsAny": [
+            "A",
+            "J"
+          ],
+          "exactBindingRequirement": "Exact job terminal and delivery to the authenticated requester.",
+          "provenance": "source-supported mechanism with modeled objective",
+          "sources": [
+            "sysdig"
+          ]
+        },
+        {
+          "id": "device-daemon",
+          "name": "Device setup followed by delegation",
+          "origin": "Controlled image",
+          "revealStage": 4,
+          "requiredFactsAll": [
+            "device",
+            "job"
+          ],
+          "requiredBehavioralStages": [
+            "Controlled image",
+            "Unexpected daemon reach",
+            "Completed job and delivery"
+          ],
+          "possibleDetectionPlacements": [
+            "mapping",
+            "job",
+            "receive"
+          ],
+          "eligiblePreventionControlsAny": [
+            "G",
+            "J"
+          ],
+          "exactBindingRequirement": "Authenticated job, exact protected read, and requester-bound delivery.",
+          "provenance": "hypothetical route",
+          "sources": [
+            "device",
+            "sysdig"
+          ]
+        },
+        {
+          "id": "copy",
+          "name": "Runtime materializes a copy",
+          "origin": "Affected provisioning",
+          "revealStage": 3,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Affected provisioning",
+            "Workload-readable copy",
+            "Local read of the copy"
+          ],
+          "possibleDetectionPlacements": [
+            "copy",
+            "receive"
+          ],
+          "eligiblePreventionControlsAny": [
+            "C"
+          ],
+          "exactBindingRequirement": "Protected source version bound to the copied object and recipient read.",
+          "provenance": "source-supported mechanism with modeled objective",
+          "sources": [
+            "copy"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "execution",
+      "name": "Host execution",
+      "objective": "Execute attacker-controlled user-space code under host authority. The attacker starts without that execution.",
+      "startingScope": "Execute attacker-controlled user-space code under host authority. The attacker starts without that execution.",
+      "defaultFacts": [],
+      "optionalFacts": [
+        {
+          "id": "writable",
+          "label": "The workload can write this host input",
+          "description": "Optional scheduler or service route."
+        },
+        {
+          "id": "consumer",
+          "label": "The configured host consumer would execute the new definition",
+          "description": "Both scheduler or service conditions must hold."
+        }
+      ],
+      "otherExplanations": "An external management caller can launch a host-authorized workload. An approved package update can replace the same binary. A nearby launch may consume a clean version. Shared-writable artifact execution has its own catalog contract.",
+      "modelLimit": "These cuts omit takeover of an already host-authorized process or workload and unenumerated host scheduler or service inputs.",
+      "requiredEffectFields": [
+        "outcome",
+        "context"
+      ],
+      "requiredAttributionFields": [
+        "outcome",
+        "context",
+        "origin",
+        "binding"
+      ],
+      "walkthrough": [
+        {
+          "stage": 1,
+          "title": "Qualify the context",
+          "prompt": "A namespace move can explain how a route begins. Check the resulting actor and what authority it actually exercised.",
+          "suggestedRoute": "namespace"
+        },
+        {
+          "stage": 2,
+          "title": "Check what the controller did",
+          "prompt": "Compare a daemon, an abstract shim, and a cgroup-mediated action. A request, a setting change, and a host action need separate evidence.",
+          "suggestedRoute": "daemon"
+        },
+        {
+          "stage": 3,
+          "title": "Match the launch to the changed generation",
+          "prompt": "The runc lifecycle disclosure describes host runtime overwrite. For the execution claim, check that a later action consumed the affected generation.",
+          "suggestedRoute": "binary"
+        },
+        {
+          "stage": 4,
+          "title": "Test the model boundary",
+          "prompt": "Add a writable scheduler or service input when both prerequisites hold. Check which control must change and which routes still reach the objective.",
+          "suggestedRoute": "scheduler"
+        }
+      ],
+      "routes": [
+        {
+          "id": "namespace",
+          "name": "Namespace-qualified execution",
+          "origin": "Existing workload",
+          "revealStage": 1,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Existing workload",
+            "Eligible context and authority",
+            "Host execution"
+          ],
+          "possibleDetectionPlacements": [
+            "namespace",
+            "execute"
+          ],
+          "eligiblePreventionControlsAny": [
+            "N"
+          ],
+          "exactBindingRequirement": "Target context and relevant process lifetime tied to actual execution.",
+          "provenance": "source-supported mechanism with modeled objective",
+          "sources": [
+            "namespace"
+          ]
+        },
+        {
+          "id": "daemon",
+          "name": "Configured daemon delegation",
+          "origin": "Existing workload",
+          "revealStage": 2,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Existing workload",
+            "Completed host-enabled daemon job",
+            "Host execution"
+          ],
+          "possibleDetectionPlacements": [
+            "job",
+            "execute"
+          ],
+          "eligiblePreventionControlsAny": [
+            "A",
+            "J"
+          ],
+          "exactBindingRequirement": "Authenticated job terminal and exact created instance tied to execution.",
+          "provenance": "hypothetical route",
+          "sources": [
+            "sysdig"
+          ]
+        },
+        {
+          "id": "shim",
+          "name": "Abstract shim delegation",
+          "origin": "Existing workload",
+          "revealStage": 2,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Existing workload",
+            "Affected reachable shim",
+            "Host execution"
+          ],
+          "possibleDetectionPlacements": [
+            "kernel",
+            "job",
+            "execute"
+          ],
+          "eligiblePreventionControlsAny": [
+            "S"
+          ],
+          "exactBindingRequirement": "Shim operation and qualifying resulting host execution tied to the origin.",
+          "provenance": "source-supported mechanism with modeled objective",
+          "sources": [
+            "shim"
+          ]
+        },
+        {
+          "id": "cgroup",
+          "name": "Cgroup-mediated execution",
+          "origin": "Existing workload",
+          "revealStage": 2,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Existing workload",
+            "Affected v1 control surface",
+            "Host action executes"
+          ],
+          "possibleDetectionPlacements": [
+            "kernel",
+            "integrity",
+            "execute"
+          ],
+          "eligiblePreventionControlsAny": [
+            "H",
+            "V"
+          ],
+          "exactBindingRequirement": "Scoped control change linked to the independently observed host action.",
+          "provenance": "source-supported mechanism with modeled objective",
+          "sources": [
+            "cgroup"
+          ]
+        },
+        {
+          "id": "binary",
+          "name": "Runtime binary replacement",
+          "origin": "New launch or existing workload lifecycle",
+          "revealStage": 3,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "New launch or existing workload lifecycle",
+            "Host binary changes",
+            "Affected generation executes"
+          ],
+          "possibleDetectionPlacements": [
+            "integrity",
+            "execute"
+          ],
+          "eligiblePreventionControlsAny": [
+            "B"
+          ],
+          "exactBindingRequirement": "Later launch consumed the exact affected generation.",
+          "provenance": "source-supported mechanism with modeled objective",
+          "sources": [
+            "binary"
+          ]
+        },
+        {
+          "id": "kernel",
+          "name": "Shared-kernel isolation failure",
+          "origin": "Existing workload",
+          "revealStage": 3,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Existing workload",
+            "Affected kernel interface",
+            "Host user-space execution"
+          ],
+          "possibleDetectionPlacements": [
+            "kernel",
+            "execute"
+          ],
+          "eligiblePreventionControlsAny": [
+            "K"
+          ],
+          "exactBindingRequirement": "Qualifying user-space host action, with a witness independent of the affected kernel.",
+          "provenance": "source-supported mechanism with modeled objective",
+          "sources": [
+            "kernel"
+          ]
+        },
+        {
+          "id": "redirect",
+          "name": "Privileged runtime write redirected",
+          "origin": "Affected runtime setup",
+          "revealStage": 3,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Affected runtime setup",
+            "Host control receives a write",
+            "Host action follows"
+          ],
+          "possibleDetectionPlacements": [
+            "integrity",
+            "kernel",
+            "execute"
+          ],
+          "eligiblePreventionControlsAny": [
+            "P"
+          ],
+          "exactBindingRequirement": "Later host execution is linked to the actual redirected write.",
+          "provenance": "hypothetical route",
+          "sources": [
+            "redirect"
+          ]
+        },
+        {
+          "id": "device-daemon",
+          "name": "Device setup followed by delegation",
+          "origin": "Controlled image",
+          "revealStage": 3,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Controlled image",
+            "Unexpected daemon reach",
+            "Completed job and host execution"
+          ],
+          "possibleDetectionPlacements": [
+            "job",
+            "mapping",
+            "execute"
+          ],
+          "eligiblePreventionControlsAny": [
+            "G",
+            "J"
+          ],
+          "exactBindingRequirement": "Exact daemon-created instance is bound to an attacker-controlled host action.",
+          "provenance": "hypothetical route",
+          "sources": [
+            "device"
+          ]
+        },
+        {
+          "id": "scheduler",
+          "name": "Host scheduler or service consumption",
+          "origin": "Existing workload",
+          "revealStage": 4,
+          "requiredFactsAll": [
+            "writable",
+            "consumer"
+          ],
+          "requiredBehavioralStages": [
+            "Existing workload",
+            "Writable host input changes",
+            "Host consumer executes it"
+          ],
+          "possibleDetectionPlacements": [
+            "integrity",
+            "execute"
+          ],
+          "eligiblePreventionControlsAny": [
+            "Mw",
+            "L"
+          ],
+          "exactBindingRequirement": "Configured consumer executed the applicable changed definition.",
+          "provenance": "hypothetical route",
+          "sources": [
+            "scheduler",
+            "land"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trust",
+      "name": "Persistent SSH trust",
+      "objective": "Make a previously untrusted key eligible for a named existing account and connection context.",
+      "startingScope": "Make a previously untrusted key eligible for a named existing account and connection context.",
+      "defaultFacts": [
+        "publisher",
+        "reach"
+      ],
+      "optionalFacts": [
+        {
+          "id": "publisher",
+          "label": "The modeled central publisher is configured",
+          "description": "This is a separate trust input."
+        },
+        {
+          "id": "reach",
+          "label": "The actor can exercise the modeled publisher route",
+          "description": "Both publisher conditions must hold. An approved publication remains a competing cause."
+        }
+      ],
+      "otherExplanations": "An approved rotation can change the same file. A central publisher can establish effective trust without a node escape. A later authenticated session is a separate result, and may require additional factors.",
+      "modelLimit": "The local cut assumes all relevant local trust inputs are mediated. The publisher control covers only the configured publisher shown here. Other key or certificate inputs require separate treatment.",
+      "requiredEffectFields": [
+        "outcome",
+        "resolution"
+      ],
+      "requiredAttributionFields": [
+        "outcome",
+        "resolution",
+        "origin",
+        "binding"
+      ],
+      "walkthrough": [
+        {
+          "stage": 1,
+          "title": "Find the trust change",
+          "prompt": "Datadog reported SSH persistence in an external-Docker-origin campaign. For this exercise, start with a workload-origin route that changes a local trust input.",
+          "suggestedRoute": "local"
+        },
+        {
+          "stage": 2,
+          "title": "Check effective trust",
+          "prompt": "A file write can be ineffective. Bind the exact account, key, connection context, and resolver decision. Check whether a runtime job performed the change.",
+          "suggestedRoute": "daemon"
+        },
+        {
+          "stage": 3,
+          "title": "Compare a configured publisher",
+          "prompt": "Bring the central route into the threat scope only when it is configured and the actor can exercise it. Recompute the cut and keep origin separate from the destination result.",
+          "suggestedRoute": "publisher"
+        }
+      ],
+      "routes": [
+        {
+          "id": "local",
+          "name": "Direct change to local trust",
+          "origin": "Existing workload",
+          "revealStage": 1,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Existing workload",
+            "Configured local input changes",
+            "Key becomes eligible"
+          ],
+          "possibleDetectionPlacements": [
+            "trustFile",
+            "trustResolve"
+          ],
+          "eligiblePreventionControlsAny": [
+            "Mw",
+            "T"
+          ],
+          "exactBindingRequirement": "Exact altered trust input linked to effective server resolution.",
+          "provenance": "hypothetical route",
+          "sources": [
+            "datadog",
+            "ssh"
+          ]
+        },
+        {
+          "id": "daemon",
+          "name": "Delegated change to local trust",
+          "origin": "Existing workload",
+          "revealStage": 2,
+          "requiredFactsAll": [],
+          "requiredBehavioralStages": [
+            "Existing workload",
+            "Completed trust-changing job",
+            "Configured local input changes",
+            "Key becomes eligible"
+          ],
+          "possibleDetectionPlacements": [
+            "job",
+            "trustFile",
+            "trustResolve"
+          ],
+          "eligiblePreventionControlsAny": [
+            "A",
+            "J",
+            "T"
+          ],
+          "exactBindingRequirement": "Delegated job targeted the exact trust input used by the server.",
+          "provenance": "hypothetical route",
+          "sources": [
+            "datadog",
+            "ssh"
+          ]
+        },
+        {
+          "id": "publisher",
+          "name": "Configured central publisher",
+          "origin": "Publisher authority",
+          "revealStage": 3,
+          "requiredFactsAll": [
+            "publisher",
+            "reach"
+          ],
+          "requiredBehavioralStages": [
+            "Publisher authority",
+            "Scoped publication",
+            "Key becomes eligible"
+          ],
+          "possibleDetectionPlacements": [
+            "publish",
+            "trustResolve"
+          ],
+          "eligiblePreventionControlsAny": [
+            "U"
+          ],
+          "exactBindingRequirement": "Publication is linked to the effective account and key decision.",
+          "provenance": "hypothetical route",
+          "sources": [
+            "ssh"
+          ]
+        }
+      ]
+    }
+  ],
+  "validationCases": [
+    {
+      "id": "data-default",
+      "objective": "data",
+      "activeFacts": [
+        "device",
+        "job"
+      ],
+      "ineligibleControls": [],
+      "minimumCuts": [
+        [
+          "C",
+          "F",
+          "J"
+        ]
+      ]
+    },
+    {
+      "id": "data-read-guard-unavailable",
+      "objective": "data",
+      "activeFacts": [
+        "device",
+        "job"
+      ],
+      "ineligibleControls": [
+        "F"
+      ],
+      "minimumCuts": [
+        [
+          "A",
+          "C",
+          "G",
+          "M",
+          "N",
+          "R"
+        ],
+        [
+          "C",
+          "G",
+          "J",
+          "M",
+          "N",
+          "R"
+        ]
+      ]
+    },
+    {
+      "id": "data-composition-incomplete",
+      "objective": "data",
+      "activeFacts": [
+        "device"
+      ],
+      "ineligibleControls": [],
+      "minimumCuts": [
+        [
+          "A",
+          "C",
+          "F"
+        ],
+        [
+          "C",
+          "F",
+          "J"
+        ]
+      ]
+    },
+    {
+      "id": "execution-default",
+      "objective": "execution",
+      "activeFacts": [],
+      "ineligibleControls": [],
+      "minimumCuts": [
+        [
+          "B",
+          "H",
+          "J",
+          "K",
+          "N",
+          "P",
+          "S"
+        ],
+        [
+          "B",
+          "J",
+          "K",
+          "N",
+          "P",
+          "S",
+          "V"
+        ]
+      ]
+    },
+    {
+      "id": "execution-job-policy-unavailable",
+      "objective": "execution",
+      "activeFacts": [],
+      "ineligibleControls": [
+        "J"
+      ],
+      "minimumCuts": [
+        [
+          "A",
+          "B",
+          "G",
+          "H",
+          "K",
+          "N",
+          "P",
+          "S"
+        ],
+        [
+          "A",
+          "B",
+          "G",
+          "K",
+          "N",
+          "P",
+          "S",
+          "V"
+        ]
+      ]
+    },
+    {
+      "id": "execution-scheduler-incomplete",
+      "objective": "execution",
+      "activeFacts": [
+        "consumer"
+      ],
+      "ineligibleControls": [],
+      "minimumCuts": [
+        [
+          "B",
+          "H",
+          "J",
+          "K",
+          "N",
+          "P",
+          "S"
+        ],
+        [
+          "B",
+          "J",
+          "K",
+          "N",
+          "P",
+          "S",
+          "V"
+        ]
+      ]
+    },
+    {
+      "id": "execution-scheduler-included",
+      "objective": "execution",
+      "activeFacts": [
+        "writable",
+        "consumer"
+      ],
+      "ineligibleControls": [],
+      "minimumCuts": [
+        [
+          "B",
+          "H",
+          "J",
+          "K",
+          "L",
+          "N",
+          "P",
+          "S"
+        ],
+        [
+          "B",
+          "H",
+          "J",
+          "K",
+          "Mw",
+          "N",
+          "P",
+          "S"
+        ],
+        [
+          "B",
+          "J",
+          "K",
+          "L",
+          "N",
+          "P",
+          "S",
+          "V"
+        ],
+        [
+          "B",
+          "J",
+          "K",
+          "Mw",
+          "N",
+          "P",
+          "S",
+          "V"
+        ]
+      ]
+    },
+    {
+      "id": "execution-scheduler-controls-unavailable",
+      "objective": "execution",
+      "activeFacts": [
+        "writable",
+        "consumer"
+      ],
+      "ineligibleControls": [
+        "Mw",
+        "L"
+      ],
+      "minimumCuts": []
+    },
+    {
+      "id": "trust-publisher-included",
+      "objective": "trust",
+      "activeFacts": [
+        "publisher",
+        "reach"
+      ],
+      "ineligibleControls": [],
+      "minimumCuts": [
+        [
+          "T",
+          "U"
+        ]
+      ]
+    },
+    {
+      "id": "trust-local-only",
+      "objective": "trust",
+      "activeFacts": [
+        "reach"
+      ],
+      "ineligibleControls": [],
+      "minimumCuts": [
+        [
+          "T"
+        ]
+      ]
+    },
+    {
+      "id": "trust-local-control-unavailable",
+      "objective": "trust",
+      "activeFacts": [
+        "publisher",
+        "reach"
+      ],
+      "ineligibleControls": [
+        "T"
+      ],
+      "minimumCuts": [
+        [
+          "A",
+          "Mw",
+          "U"
+        ],
+        [
+          "J",
+          "Mw",
+          "U"
+        ]
+      ]
+    }
+  ]
+}

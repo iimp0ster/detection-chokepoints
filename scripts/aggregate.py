@@ -236,6 +236,32 @@ def write_collection_stubs(entries):
     print(f"  Wrote {len(entries)} stub files to _chokepoints/")
 
 
+def write_container_escape_sigma():
+    """Expose only the indexed research bundle as inspectable and downloadable YAML."""
+    metadata = os.path.join(DATA_DIR, "container_escape_sigma.yml")
+    if not os.path.isfile(metadata):
+        return
+    with open(metadata, encoding="utf-8") as handle:
+        bundle = yaml.safe_load(handle)
+    slug = "container-escape-variations"
+    output = os.path.join(REPO_ROOT, "assets", "sigma", slug)
+    os.makedirs(output, exist_ok=True)
+    rendered = {}
+    for record in bundle["rules"]:
+        rule_id = record["id"]
+        if not re.fullmatch(r"research-[a-z0-9-]+", rule_id) or rule_id in rendered:
+            raise ValueError(f"Invalid research Sigma rule ID {rule_id}")
+        filename = rule_id + ".yml"
+        with open(os.path.join(SIGMA_RULES_DIR, slug, filename), "rb") as handle:
+            raw = handle.read()
+        with open(os.path.join(output, filename), "wb") as handle:
+            handle.write(raw)
+        rendered[rule_id] = raw.decode("utf-8")
+    with open(os.path.join(DATA_DIR, "container_escape_sigma_generated.json"), "w", encoding="utf-8") as handle:
+        json.dump(rendered, handle)
+    print(f"  Prepared {len(rendered)} downloadable Research rules")
+
+
 if __name__ == "__main__":
     print("Aggregating chokepoint data...")
     entries = load_chokepoints()
@@ -243,4 +269,5 @@ if __name__ == "__main__":
     write_data_file(entries)
     write_search_index(entries)
     write_collection_stubs(entries)
+    write_container_escape_sigma()
     print("Done.")

@@ -1,0 +1,25 @@
+  <nav class="chokepoint-sidebar cp-sidebar-nav" id="chokepoint-nav">
+    <a href="#overview" class="sidebar-link active">Overview</a>
+    {% if include.entry.Chokepoints or include.research %}
+    <a href="#attack-chokepoints" class="sidebar-link">Chokepoints</a>
+    {% endif %}
+    {% if include.entry.Variations or include.research %}
+    <a href="#variations" class="sidebar-link">Variations</a>
+    {% endif %}
+    <a href="#detection-strategy" class="sidebar-link">Detection</a>
+    {% if include.entry.PreventionSummary or include.entry.PreventionOpportunities or include.research %}
+    <a href="#prevention" class="sidebar-link">Prevention</a>
+    {% endif %}
+    {% if include.entry.RawLogs %}
+    <a href="#raw-logs" class="sidebar-link">Logs</a>
+    {% endif %}
+    {% if include.entry.EmulationScript %}
+    <a href="#emulation" class="sidebar-link">Emulation</a>
+    {% endif %}
+    {% if include.entry.OsintSources %}
+    <a href="#osint-pivots" class="sidebar-link">OSINT</a>
+    {% endif %}
+    {% if include.entry.RelatedChokepoints or include.research %}
+    <a href="#related" class="sidebar-link">Related</a>
+    {% endif %}
+  </nav>

@@ -1,0 +1,26 @@
+title: Linux FileCreate at an SSH authorized_keys Path
+id: 388820b5-287b-49a2-b9dd-b79da8266d28
+status: experimental
+description: Flags mapped Sysmon for Linux FileCreate records for the conventional authorized_keys path. Review
+  the exact account and effective trust resolution before reporting persistence.
+references:
+- https://securitylabs.datadoghq.com/articles/analysis-of-teamtnt-doppelganger/#persistence-backdooring-ssh-configuration-all-the-way-down
+- https://man.openbsd.org/sshd_config#AuthorizedKeysFile
+- https://github.com/microsoft/Sysmon-Linux
+author: '@iimp0ster'
+date: '2026-11-27'
+tags:
+- attack.t1098.004
+- detection.maturity.research
+logsource:
+  product: linux
+  category: file_event
+detection:
+  selection:
+    EventID: 11
+    TargetFilename|endswith|cased: /.ssh/authorized_keys
+  # Add a filter_legit_software selection after baselining approved activity.
+  condition: selection
+falsepositives:
+- Provisioning, approved key rotation, node administration, and user-managed keys.
+level: low
